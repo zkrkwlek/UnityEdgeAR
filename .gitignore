@@ -1,0 +1,14 @@
+.vs
+Library
+Logs
+obj
+Packages
+ProjectSettings
+Temp
+Assets/Plugins
+
+*.cs.meta
+*.meta
+*.csproj
+*.sln
+*.VC.db
