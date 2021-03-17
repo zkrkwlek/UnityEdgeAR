@@ -415,6 +415,7 @@ public class CameraManager : MonoBehaviour
             //    StartCoroutine("Test1");
             //}
         }
+
         GCHandle gch = GCHandle.Alloc(webCamColorData, GCHandleType.Pinned);
         IntPtr addr = gch.AddrOfPinnedObject();
         if (mbSended && mnFrameID % 3 == 0)

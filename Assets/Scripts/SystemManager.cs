@@ -78,12 +78,20 @@ public class SystemManager {
         {
             return strUserID;
         }
+        set
+        {
+            strUserID = value;
+        }
     }
     public string Map
     {
         get
         {
             return strMapName;
+        }
+        set
+        {
+            strMapName = value;
         }
     }
     private static string serveraddr;
@@ -93,7 +101,53 @@ public class SystemManager {
         {
             return serveraddr;
         }
+        set
+        {
+            serveraddr = value;
+        }
     }
+    static string[] imgFileLIst;
+    public string[] ImageData
+    {
+        get
+        {
+            return imgFileLIst;
+        }
+    }
+    static string imgPathTxt;
+    public string ImagePath
+    {
+        get
+        {
+            return imgPathTxt;
+        }
+    }
+
+    static bool bconnect = false;
+    public bool Connect
+    {
+        get
+        {
+            return bconnect;
+        }
+        set
+        {
+            bconnect = value;
+        }
+    }
+    static bool bMapping;
+    public bool Mapping
+    {
+        get
+        {
+            return bMapping;
+        }
+        set
+        {
+            bMapping = value;
+        }
+    }
+
 
     static private SystemManager m_pInstance = null;
     static public SystemManager Instance
@@ -107,14 +161,40 @@ public class SystemManager {
             return m_pInstance;
         }
     }
+    
 
-    static bool bconnect = false;
-    static string[] imgFileLIst;
-    static string imgPathTxt;
-    static int nImgFrameIDX = 3;
+    
     static bool bCam = false;
-    static bool bMapping;
+    
 
+    public void LoadParameter(string path)
+    {
+        string[] paramText = File.ReadAllLines(path);
+        int nUserData = 0;
+        strUserID = (paramText[nUserData++].Split('=')[1]);
+        serveraddr = (paramText[nUserData++].Split('=')[1]);
+        bool bMapLoad = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
+        bool bMapReset = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
+        bMapping = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
+        strMapName = (paramText[nUserData++].Split('=')[1]);
+        string datafile = (paramText[nUserData++].Split('=')[1]);
+
+        int numLine = 0;
+        string[] dataText = File.ReadAllLines(Application.persistentDataPath + datafile); //데이터 읽기
+        string imgFileTxt = Application.persistentDataPath + Convert.ToString(dataText[numLine++].Split('=')[1]);
+        imgFileLIst = File.ReadAllLines(imgFileTxt);
+        Debug.Log("Load Datase = " + (imgFileLIst.Length - 3));
+        imgPathTxt = Convert.ToString(dataText[numLine++].Split('=')[1]);
+        if (Application.platform == RuntimePlatform.Android)
+            imgPathTxt = Application.persistentDataPath + imgPathTxt;
+
+        fx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+        fy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+        cx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+        cy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+        w = Convert.ToInt32(dataText[numLine++].Split('=')[1]);
+        h = Convert.ToInt32(dataText[numLine++].Split('=')[1]);
+    }
     public void LoadParameter()
     {
         Debug.Log("Load Parameter!!");
