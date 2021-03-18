@@ -111,6 +111,11 @@ public class SystemEditor : Editor
         {
             mSystem.ThreadPause();
         }
+
+        if (GUILayout.Button("Reset", GUILayout.Width(100)))
+        {
+            mSystem.Reset();
+        }
         GUILayout.EndHorizontal();
     }
 }

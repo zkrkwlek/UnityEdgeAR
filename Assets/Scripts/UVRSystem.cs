@@ -74,22 +74,16 @@ public class UVRSystem : MonoBehaviour
         UnityWebRequestAsyncOperation res = request.SendWebRequest();
         Debug.Log("Disconnect!!" + addr);
     }
-    
-    //[MenuItem("UVRSystem/Reset")]
-    //static void Reset()
-    //{
-    //    bMappingThread = false;
-    //    nImgFrameIDX = 3;
-    //    mnFrameID = 0;
-    //    mbSended = true;
 
-    //    string addr = SystemManager.Instance.ServerAddr + "/reset?map=" + SystemManager.Instance.Map;
-    //    Debug.Log("Reset:" + addr);
-    //    UnityWebRequest request = new UnityWebRequest(addr);
-    //    request.method = "POST";
-    //    request.downloadHandler = new DownloadHandlerBuffer();
-    //    UnityWebRequestAsyncOperation res = request.SendWebRequest();
-    //}
+    public void Reset()
+    {
+        Init();
+        string addr = SystemManager.Instance.ServerAddr + "/reset?map=" + SystemManager.Instance.Map;
+        UnityWebRequest request = new UnityWebRequest(addr);
+        request.method = "POST";
+        request.downloadHandler = new DownloadHandlerBuffer();
+        UnityWebRequestAsyncOperation res = request.SendWebRequest();
+    }
 
     public void SaveMap()
     {
