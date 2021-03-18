@@ -51,7 +51,7 @@ public class SystemEditor : Editor
             mSystem.imageData = SystemManager.Instance.ImageData;
             mSystem.imagePath = SystemManager.Instance.ImagePath;
             mSystem.nMaxImageIndex = mSystem.imageData.Length;
-            Debug.Log(mSystem.nMaxImageIndex);
+            mSystem.Init();
         }
 
         if (SystemManager.Instance.Connect)

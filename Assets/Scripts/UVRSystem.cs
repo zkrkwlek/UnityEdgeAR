@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
+using Debug = UnityEngine.Debug;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -30,7 +32,7 @@ public class UVRSystem : MonoBehaviour
 
     DateTime baseTime = new DateTime(2021, 1, 1, 0, 0, 0, 0).ToLocalTime();
 
-    void Init()
+    public void Init()
     {
         mnFrameID = 0;
         mbSended = true;
@@ -38,6 +40,8 @@ public class UVRSystem : MonoBehaviour
         bProcessThread = false;
         bThreadStart = false;
         bWaitThread = true;
+
+        sw = new Stopwatch();
     }
 
     public void Connect()
@@ -195,39 +199,127 @@ public class UVRSystem : MonoBehaviour
     {
         while (bProcessThread)
         {
-            fTime += Time.deltaTime;
-            if (bWaitThread)
+            if (!SystemManager.Instance.Connect)
                 continue;
+            if (bWaitThread) { 
+                continue;
+            }
             if (nImgFrameIDX >= nMaxImageIndex) {
                 Init();
                 break;
             }
-            string imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
-            ++mnFrameID;
+            Thread.Sleep(33);
+            EditorCoroutineUtility.StartCoroutine(MappingCoroutine(), this);
+            //string imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
+            //++mnFrameID;
             
-            if (mbSended && mnFrameID % 3 == 0)
-            {
-                mbSended = false;
-                string ts = (DateTime.Now.ToLocalTime() - baseTime).ToString();
-                //StartCoroutine(Mapping(imgFile, ts));
-                EditorCoroutineUtility.StartCoroutine(Mapping(imgFile, ts), this);                
-            }
+            //if (mbSended && mnFrameID % 3 == 0)
+            //{
+            //    mbSended = false;
+            //    string ts = (DateTime.Now.ToLocalTime() - baseTime).ToString();
+            //    EditorCoroutineUtility.StartCoroutine(Mapping(imgFile, ts), this);                
+            //}
         }
-        Debug.Log("thread end!! " + fTime);
+        
+    }
+
+    Stopwatch sw;
+
+    IEnumerator MappingCoroutine()
+    {
+        //yield return new WaitForSecondsRealtime(0.033f);
+        yield return null;
+        string imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
+        ++mnFrameID;
+        string ts = (DateTime.Now.ToLocalTime() - baseTime).ToString();
+        byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
+        tex.LoadImage(byteTexture);
+        background.texture = tex;
+        if (mnFrameID % 3 == 0)
+        {
+            mbSended = false;
+
+            sw.Start();
+            byte[] webCamByteData = tex.EncodeToJPG(90);
+            string addr = SystemManager.Instance.ServerAddr + "/ReceiveAndDetect?user=" + SystemManager.Instance.User + "&map=" + SystemManager.Instance.Map + "&id=" + ts;
+            UnityWebRequest request = new UnityWebRequest(addr);
+            request.method = "POST";
+            UploadHandlerRaw uH = new UploadHandlerRaw(webCamByteData);
+            uH.contentType = "application/json";
+            request.uploadHandler = uH;
+            request.downloadHandler = new DownloadHandlerBuffer();
+
+            UnityWebRequestAsyncOperation res = request.SendWebRequest();
+            while (request.uploadHandler.progress < 1f)
+            {
+                yield return new WaitForFixedUpdate();
+                //progress = request.uploadHandler.progress;
+            }
+            sw.Stop();
+            Debug.Log("time = " +mnFrameID+"::"+ sw.ElapsedMilliseconds.ToString() + "ms");
+            sw.Reset();
+            mbSended = true;
+        }
+        
+
+        //while (bProcessThread) {
+        //    if (bWaitThread) {
+        //        yield return null;
+        //        continue;
+        //    }
+        //    if (nImgFrameIDX >= nMaxImageIndex)
+        //    {
+        //        Init();
+        //        break;
+        //    }
+        //    yield return new WaitForSecondsRealtime(0.033f);
+        //    Debug.Log(Time.deltaTime);
+        //    fTime += Time.deltaTime;
+
+        //    string imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
+        //    ++mnFrameID;
+
+        //    if (mnFrameID % 3 == 0)
+        //    {
+        //        string ts = (DateTime.Now.ToLocalTime() - baseTime).ToString();
+
+        //        byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
+        //        tex.LoadImage(byteTexture);
+        //        background.texture = tex;
+        //        byte[] webCamByteData = tex.EncodeToJPG(90);
+
+        //        string addr = SystemManager.Instance.ServerAddr + "/ReceiveAndDetect?user=" + SystemManager.Instance.User + "&map=" + SystemManager.Instance.Map + "&id=" + ts;
+        //        UnityWebRequest request = new UnityWebRequest(addr);
+        //        request.method = "POST";
+        //        UploadHandlerRaw uH = new UploadHandlerRaw(webCamByteData);
+        //        uH.contentType = "application/json";
+        //        request.uploadHandler = uH;
+        //        request.downloadHandler = new DownloadHandlerBuffer();
+
+        //        UnityWebRequestAsyncOperation res = request.SendWebRequest();
+        //        while (request.uploadHandler.progress < 1f)
+        //        {
+        //            yield return new WaitForFixedUpdate();
+        //            //progress = request.uploadHandler.progress;
+        //        }
+        //    }
+
+        //}
+        //Debug.Log("thread end!! " + fTime);
     }
 
     ///
     public void ThreadStart()
     {
         Debug.Log("thread start!!");
-        bProcessThread = true;
-        bWaitThread = false;
-        
         if (!bThreadStart)
         {
+            bProcessThread = true;
+            bWaitThread = false;
             bThreadStart = true;
             thread = new Thread(Run);
             thread.Start();
+            //EditorCoroutineUtility.StartCoroutine(MappingCoroutine(), this);
         }
     }
     public void ThreadPause()
