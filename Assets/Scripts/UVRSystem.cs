@@ -28,7 +28,9 @@ public class UVRSystem : MonoBehaviour
     int mnFrameID = 0; //start 시에 초기화 시키기?
     bool mbSended = true; //start 시에 초기화 시키기?
     public int nImgFrameIDX = 3;
-    
+
+    public int nTargetID = -1;
+    public int nRefID = -1;
 
     DateTime baseTime = new DateTime(2021, 1, 1, 0, 0, 0, 0).ToLocalTime();
 
@@ -67,7 +69,7 @@ public class UVRSystem : MonoBehaviour
         //mnFrameID = 0;
         //mbSended = true;
 
-        string addr = SystemManager.Instance.ServerAddr + "/Disconnect?userID=" + SystemManager.Instance.User;
+        string addr = SystemManager.Instance.ServerAddr + "/Disconnect?userID=" + SystemManager.Instance.User+"&mapName="+SystemManager.Instance.Map;
         UnityWebRequest request = new UnityWebRequest(addr);
         request.method = "POST";
         request.downloadHandler = new DownloadHandlerBuffer();
@@ -77,8 +79,10 @@ public class UVRSystem : MonoBehaviour
 
     public void Reset()
     {
-        Init();
+       Init();
+
         string addr = SystemManager.Instance.ServerAddr + "/reset?map=" + SystemManager.Instance.Map;
+        Debug.Log("Reset:" + addr);
         UnityWebRequest request = new UnityWebRequest(addr);
         request.method = "POST";
         request.downloadHandler = new DownloadHandlerBuffer();
@@ -172,6 +176,9 @@ public class UVRSystem : MonoBehaviour
             yield return new WaitForFixedUpdate();
             //progress = request.uploadHandler.progress;
         }
+        
+        //ts, id
+
         mbSended = true;
         
     }
@@ -204,9 +211,11 @@ public class UVRSystem : MonoBehaviour
             }
             Thread.Sleep(33);
             EditorCoroutineUtility.StartCoroutine(MappingCoroutine(), this);
+            EditorCoroutineUtility.StartCoroutine(GetReferenceInfoCoroutine(), this);
+            
             //string imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
             //++mnFrameID;
-            
+
             //if (mbSended && mnFrameID % 3 == 0)
             //{
             //    mbSended = false;
@@ -217,6 +226,20 @@ public class UVRSystem : MonoBehaviour
         
     }
 
+    IEnumerator GetReferenceInfoCoroutine()
+    {
+        yield return null;
+        string addr = SystemManager.Instance.ServerAddr + "/SendData?map=" + SystemManager.Instance.Map + "&attr=Users&id=" + SystemManager.Instance.User + "&key=refid";
+        UnityWebRequest request = new UnityWebRequest(addr);
+        request.method = "POST";
+        request.downloadHandler = new DownloadHandlerBuffer();
+        UnityWebRequestAsyncOperation res = request.SendWebRequest();
+        while (!request.downloadHandler.isDone)
+        {
+            yield return new WaitForFixedUpdate();
+        }
+        nRefID = BitConverter.ToInt32(request.downloadHandler.data, 0);
+    }
     Stopwatch sw;
 
     IEnumerator MappingCoroutine()
@@ -249,6 +272,11 @@ public class UVRSystem : MonoBehaviour
                 yield return new WaitForFixedUpdate();
                 //progress = request.uploadHandler.progress;
             }
+            //while(!request.downloadHandler.isDone)
+            //{
+            //    yield return new WaitForFixedUpdate();
+            //}
+            nTargetID = -1;//BitConverter.ToInt32(request.downloadHandler.data, 0);//Convert.ToInt32(request.downloadHandler.data);
             sw.Stop();
             Debug.Log("time = " +mnFrameID+"::"+ sw.ElapsedMilliseconds.ToString() + "ms");
             sw.Reset();
@@ -327,4 +355,64 @@ public class UVRSystem : MonoBehaviour
         thread.Join();
     }
 
+    public void GetModel()
+    {
+        string addr = SystemManager.Instance.ServerAddr + "/SendData?map=" + SystemManager.Instance.Map + "&attr=Models&id=1&key=bregion";
+        UnityWebRequest request = new UnityWebRequest(addr);
+        request.method = "POST";
+        request.downloadHandler = new DownloadHandlerBuffer();
+        UnityWebRequestAsyncOperation res = request.SendWebRequest();
+        while (!request.downloadHandler.isDone)
+        {
+            continue;
+        }
+
+        float[] pdata = new float[12];
+        Buffer.BlockCopy(request.downloadHandler.data, 0, pdata, 0, request.downloadHandler.data.Length);
+        Debug.Log(pdata[0]+" "+pdata[1]);
+        Vector3[] points = new Vector3[4];
+        for(int i = 0; i < 4; i++)
+        {
+            Vector3 temp = new Vector3(pdata[3 * i], pdata[3 * i + 1], pdata[3 * i + 2]);
+            points[i] = temp;
+            Debug.Log(points[i]);
+        }
+        createPlane(points, "plane1", new Color(1.0f, 0.0f, 0.0f, 0.6f), 0, 1, 2, 3);
+    }
+
+    public GameObject createPlane(Vector3[] points, string oname, Color acolor, int idx1, int idx2, int idx3, int idx4)
+    {
+        GameObject go = new GameObject("Plane");
+        go.name = oname;
+        MeshFilter mf = go.AddComponent(typeof(MeshFilter)) as MeshFilter;
+        MeshRenderer mr = go.AddComponent(typeof(MeshRenderer)) as MeshRenderer;
+
+        Mesh m = new Mesh();
+
+        m.vertices = new Vector3[] {
+			//입력의 3,4를 바꿈.
+			points [idx1],
+            points [idx2],
+            points [idx4],
+            points [idx3]
+        };
+        m.uv = new Vector2[] {
+            new Vector2 (0, 0),
+            new Vector2 (0, 1),
+            new Vector2 (1, 1),
+            new Vector2 (1, 0)
+        };
+        m.triangles = new int[] { 0, 1, 2, 0, 2, 3 };
+        /*
+		m.colors = new Color[] {
+			acolor, acolor, acolor, acolor
+		};
+		*/
+        mf.mesh = m;
+        m.RecalculateBounds();
+        m.RecalculateNormals();
+        mr.material = new Material(Shader.Find("Legacy Shaders/Transparent/Diffuse"));
+        mr.material.color = acolor;
+        return go;
+    }
 }

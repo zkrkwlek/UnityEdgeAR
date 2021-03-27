@@ -30,8 +30,10 @@ public class SystemEditor : Editor
         SystemManager.Instance.ServerAddr = EditorGUILayout.TextField("Server Address", SystemManager.Instance.ServerAddr);
         EditorGUILayout.TextField("Dataset Path", SystemManager.Instance.ImagePath);
         mSystem.nImgFrameIDX = EditorGUILayout.IntField("Image Index", mSystem.nImgFrameIDX);
+        EditorGUILayout.IntField("Target Frame ID", mSystem.nTargetID);
+        EditorGUILayout.IntField("Reference Frame ID", mSystem.nRefID);
 
-        GUILayout.BeginHorizontal("toggle1");
+        GUILayout.BeginHorizontal();
         SystemManager.Instance.Connect = EditorGUILayout.Toggle("Connect", SystemManager.Instance.Connect);
         SystemManager.Instance.Mapping = EditorGUILayout.Toggle("Mapping", SystemManager.Instance.Mapping);
         GUILayout.EndHorizontal();
@@ -39,7 +41,7 @@ public class SystemEditor : Editor
         //mSystem.runInEditMode = EditorGUILayout.TextField("Server Address", SystemManager.Instance.ServerAddr);
         //base.OnInspectorGUI();
 
-        GUILayout.BeginHorizontal("button1");
+        GUILayout.BeginHorizontal();
         if (GUILayout.Button("File Select", GUILayout.Width(100)))
         {
             string path = EditorUtility.OpenFilePanel("Parameter file", "C:/Users/UVR-KAIST/AppData/LocalLow/DefaultCompany/EdgeSLAM_19_1", "txt");
@@ -50,7 +52,7 @@ public class SystemEditor : Editor
 
             mSystem.imageData = SystemManager.Instance.ImageData;
             mSystem.imagePath = SystemManager.Instance.ImagePath;
-            mSystem.nMaxImageIndex = mSystem.imageData.Length;
+            mSystem.nMaxImageIndex = mSystem.imageData.Length-1;
             mSystem.Init();
         }
 
@@ -83,7 +85,7 @@ public class SystemEditor : Editor
 
         GUILayout.EndHorizontal();
 
-        GUILayout.BeginHorizontal("button2");
+        GUILayout.BeginHorizontal();
 
         if (mSystem.bThreadStart)
         {
@@ -117,5 +119,12 @@ public class SystemEditor : Editor
             mSystem.Reset();
         }
         GUILayout.EndHorizontal();
+
+        if (GUILayout.Button("Get Model", GUILayout.Width(100)))
+        {
+            mSystem.GetModel();
+            //mSystem.ThreadStop();
+        }
+
     }
 }
