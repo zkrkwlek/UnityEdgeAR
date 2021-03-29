@@ -12,11 +12,13 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
+using System.Net.Sockets;
+using System.Net;
 
 [ExecuteInEditMode]
 public class UVRSystem : MonoBehaviour
 {
-    
+
     EditorCoroutine editorCorotine;
     static GCHandle webCamHandle;
     static WebCamTexture webCamTexture;
@@ -69,7 +71,7 @@ public class UVRSystem : MonoBehaviour
         //mnFrameID = 0;
         //mbSended = true;
 
-        string addr = SystemManager.Instance.ServerAddr + "/Disconnect?userID=" + SystemManager.Instance.User+"&mapName="+SystemManager.Instance.Map;
+        string addr = SystemManager.Instance.ServerAddr + "/Disconnect?userID=" + SystemManager.Instance.User + "&mapName=" + SystemManager.Instance.Map;
         UnityWebRequest request = new UnityWebRequest(addr);
         request.method = "POST";
         request.downloadHandler = new DownloadHandlerBuffer();
@@ -79,7 +81,7 @@ public class UVRSystem : MonoBehaviour
 
     public void Reset()
     {
-       Init();
+        Init();
 
         string addr = SystemManager.Instance.ServerAddr + "/reset?map=" + SystemManager.Instance.Map;
         Debug.Log("Reset:" + addr);
@@ -113,7 +115,7 @@ public class UVRSystem : MonoBehaviour
     static bool bMappingThread = false;
     static bool bMappingThreadStart = false;
 
-    
+
     public string[] imageData;
     public string imagePath;
     public int nMaxImageIndex;
@@ -123,14 +125,14 @@ public class UVRSystem : MonoBehaviour
         bMappingThread = !bMappingThread;
         imageData = SystemManager.Instance.ImageData;
         imagePath = SystemManager.Instance.ImagePath;
-        Debug.Log(imagePath+" "+ bMappingThread);
+        Debug.Log(imagePath + " " + bMappingThread);
         if (!bMappingThreadStart)
         {
             tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.RGB24, false);
             bMappingThreadStart = true;
         }
     }
-        
+
     void Update()
     {
         if (bMappingThread)
@@ -149,11 +151,11 @@ public class UVRSystem : MonoBehaviour
             //    string ts = (DateTime.Now.ToLocalTime() - baseTime).ToString();
             //    StartCoroutine(Mapping(imgFile, ts));
             //}
-        }        
+        }
     }
 
     public Texture2D tex;
-    IEnumerator Mapping(string imgFile,string ts)
+    IEnumerator Mapping(string imgFile, string ts)
     {
         //yield return new WaitForEndOfFrame();
         yield return new WaitForFixedUpdate();
@@ -176,13 +178,14 @@ public class UVRSystem : MonoBehaviour
             yield return new WaitForFixedUpdate();
             //progress = request.uploadHandler.progress;
         }
-        
+
         //ts, id
 
         mbSended = true;
-        
+
     }
-    IEnumerator Test2(string imgFile) {
+    IEnumerator Test2(string imgFile)
+    {
         byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
         tex.LoadImage(byteTexture);
         background.texture = tex;
@@ -202,17 +205,19 @@ public class UVRSystem : MonoBehaviour
         {
             if (!SystemManager.Instance.Connect)
                 continue;
-            if (bWaitThread) { 
+            if (bWaitThread)
+            {
                 continue;
             }
-            if (nImgFrameIDX >= nMaxImageIndex) {
+            if (nImgFrameIDX >= nMaxImageIndex)
+            {
                 Init();
                 break;
             }
             Thread.Sleep(33);
             EditorCoroutineUtility.StartCoroutine(MappingCoroutine(), this);
             EditorCoroutineUtility.StartCoroutine(GetReferenceInfoCoroutine(), this);
-            
+
             //string imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
             //++mnFrameID;
 
@@ -223,9 +228,13 @@ public class UVRSystem : MonoBehaviour
             //    EditorCoroutineUtility.StartCoroutine(Mapping(imgFile, ts), this);                
             //}
         }
-        
-    }
 
+    }
+    public GameObject Bullet;
+    public Transform FirePos;
+    public Vector3 Center = new Vector3(0f, 0f, 0f);
+    public Vector3 DIR = new Vector3(0f, 0f, 0f);
+    int prevID = -1;
     IEnumerator GetReferenceInfoCoroutine()
     {
         yield return null;
@@ -239,6 +248,40 @@ public class UVRSystem : MonoBehaviour
             yield return new WaitForFixedUpdate();
         }
         nRefID = BitConverter.ToInt32(request.downloadHandler.data, 0);
+        if (nRefID != -1 && nRefID != prevID)
+        {
+            string addr2 = SystemManager.Instance.ServerAddr + "/SendData?map=" + SystemManager.Instance.Map + "&id=" + nRefID + "&key=bpose";
+            request = new UnityWebRequest(addr2);
+            request.method = "POST";
+            request.downloadHandler = new DownloadHandlerBuffer();
+            res = request.SendWebRequest();
+            while (!request.downloadHandler.isDone)
+            {
+                yield return new WaitForFixedUpdate();
+            }
+
+            byte[] bdata = request.downloadHandler.data;
+            float[] framepose = new float[bdata.Length / 4];
+            Buffer.BlockCopy(bdata, 0, framepose, 0, bdata.Length);
+            //Debug.Log(framedata.Length+" "+framepose.Length);
+
+            ////카메라 자세 획득 및 카메라 위치 추정
+            Matrix3x3 R = new Matrix3x3(framepose[0], framepose[1], framepose[2], framepose[3], framepose[4], framepose[5], framepose[6], framepose[7], framepose[8]);
+
+            Vector3 t = new Vector3(framepose[9], framepose[10], framepose[11]);
+            Debug.Log(prevID + "::" + t.ToString());
+            Center = -(R.Transpose() * t);
+
+            ////업데이트 카메라 포즈
+            Vector3 mAxis = R.LOG();
+            DIR = mAxis;
+
+            float mAngle = mAxis.magnitude * Mathf.Rad2Deg;
+            mAxis = mAxis.normalized;
+            Quaternion rotation = Quaternion.AngleAxis(mAngle, mAxis);
+            Camera.main.transform.SetPositionAndRotation(Center, rotation);
+            prevID = nRefID;
+        }
     }
     Stopwatch sw;
 
@@ -278,11 +321,11 @@ public class UVRSystem : MonoBehaviour
             //}
             nTargetID = -1;//BitConverter.ToInt32(request.downloadHandler.data, 0);//Convert.ToInt32(request.downloadHandler.data);
             sw.Stop();
-            Debug.Log("time = " +mnFrameID+"::"+ sw.ElapsedMilliseconds.ToString() + "ms");
+            Debug.Log("time = " + mnFrameID + "::" + sw.ElapsedMilliseconds.ToString() + "ms");
             sw.Reset();
             mbSended = true;
         }
-        
+
 
         //while (bProcessThread) {
         //    if (bWaitThread) {
@@ -369,9 +412,9 @@ public class UVRSystem : MonoBehaviour
 
         float[] pdata = new float[12];
         Buffer.BlockCopy(request.downloadHandler.data, 0, pdata, 0, request.downloadHandler.data.Length);
-        Debug.Log(pdata[0]+" "+pdata[1]);
+        Debug.Log(pdata[0] + " " + pdata[1]);
         Vector3[] points = new Vector3[4];
-        for(int i = 0; i < 4; i++)
+        for (int i = 0; i < 4; i++)
         {
             Vector3 temp = new Vector3(pdata[3 * i], pdata[3 * i + 1], pdata[3 * i + 2]);
             points[i] = temp;
@@ -393,8 +436,8 @@ public class UVRSystem : MonoBehaviour
 			//입력의 3,4를 바꿈.
 			points [idx1],
             points [idx2],
-            points [idx4],
-            points [idx3]
+            points [idx3],
+            points [idx4]
         };
         m.uv = new Vector2[] {
             new Vector2 (0, 0),
@@ -414,5 +457,151 @@ public class UVRSystem : MonoBehaviour
         mr.material = new Material(Shader.Find("Legacy Shaders/Transparent/Diffuse"));
         mr.material.color = acolor;
         return go;
+    }
+    public void ContentStart(Vector3 pos, Vector3 rot)
+    {
+        try
+        {
+            Debug.Log("ContentStart");
+            float mAngle = rot.magnitude * Mathf.Rad2Deg;
+            Quaternion q = Quaternion.AngleAxis(mAngle, rot.normalized);
+            //try
+            //{
+            //    Debug.Log("Create Bullet!!");
+            //    Instantiate(Bullet, pos, q);
+            //}
+            //catch (Exception e)
+            //{
+            //    Debug.Log(e.ToString());
+            //}
+            EditorCoroutineUtility.StartCoroutine(CreateBullet(pos, q), this);
+        }
+        catch (Exception e)
+        {
+            Debug.Log(e.ToString());
+        }
+
+    }
+    IEnumerator CreateBullet(Vector3 pos, Quaternion q)
+    {
+        try
+        {
+            Debug.Log("Create Bullet!!");
+            Instantiate(Bullet, pos, q);
+        }
+        catch (Exception e)
+        {
+            Debug.Log(e.ToString());
+        }
+        yield return null;
+    }
+
+    private Thread socthread;
+    public bool bSocThreadStart = false;
+    public bool bSocDoThread = false;
+    public void SocThreadStart()
+    {
+        Debug.Log("thread start!!");
+        if (!bSocThreadStart)
+        {
+            bSocDoThread = true;
+            bSocThreadStart = true;
+            socthread = new Thread(SocRun);
+            socthread.Start();
+        }
+    }
+    public void SocThreadStop()
+    {
+        bSocDoThread = false;
+        bSocThreadStart = false;
+        socthread.Abort();
+    }
+
+    private void SocRun()
+    {
+        while (bSocDoThread)
+        {
+            try
+            {
+                EndPoint ep = AsyncSocketReceiver.Instance.EP;
+                int bytes = AsyncSocketReceiver.Instance.SOCKET.ReceiveFrom(AsyncSocketReceiver.Instance.BUFFER, AsyncSocketReceiver.Instance.BUFSIZE, SocketFlags.None, ref ep);
+                AsyncSocketReceiver.Instance.EP = ep;
+                float[] rdata = new float[bytes / 4];
+                Buffer.BlockCopy(AsyncSocketReceiver.Instance.BUFFER, 0, rdata, 0, bytes);
+                Debug.Log(rdata[0] + " " + rdata[1] + " " + rdata[2] + ":" + rdata[3] + " " + rdata[4] + " " + rdata[5]);
+                Vector3 pos = new Vector3(rdata[0], rdata[1], rdata[2]);
+                Vector3 rot = new Vector3(rdata[3], rdata[4], rdata[5]);
+                //ContentStart(pos, rot);
+                //TestCoroutine(pos, rot);
+                EditorCoroutineUtility.StartCoroutine(TestCR(pos, rot, 100f), this);
+            }
+            catch (Exception e)
+            {
+                e.ToString();
+            }
+
+            //ReceiveMessage();
+            //receiveDone.WaitOne();
+        }
+    }
+    public void TestCoroutine(Vector3 pos, Vector3 rot)
+    {
+        //try
+        //{
+        //    //모델의 위치와 회전
+            
+        //    //그후 스레딩거리까지 이동
+
+        //    //거리 되면 삭제
+        //}
+        //catch (Exception e)
+        //{
+        //    Debug.Log(e.ToString());
+        //}
+       
+    }
+
+    class ContentObject
+    {
+        public GameObject obj;
+        bool bEnd;
+    }
+
+    IEnumerator TestCR(Vector3 pos, Vector3 rot, float dist)
+    {
+        GameObject go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        go.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+        float fAngle = rot.magnitude * Mathf.Rad2Deg;
+        Quaternion q = Quaternion.AngleAxis(fAngle, rot.normalized);
+
+        go.transform.SetPositionAndRotation(Center, q);
+
+        Transform tr = go.transform;
+        Vector3 spawnPoint = tr.position;
+
+        bool bDist = (spawnPoint - tr.position).sqrMagnitude < dist;
+        while (bDist)
+        {
+            yield return new WaitForSeconds(0.001f);
+            tr.Translate(Vector3.forward * Time.deltaTime * 10f);
+            bDist = (spawnPoint - tr.position).sqrMagnitude < dist;
+            if (!bDist)
+            {
+                //Destroy(Bullet);
+                try {
+                    EditorCoroutineUtility.StartCoroutine(DestroyBullet(go), this);
+                } catch(Exception e)
+                {
+                    Debug.Log(e.ToString());
+                }
+                
+            }
+        }
+        yield return null;
+    }
+    IEnumerator DestroyBullet(GameObject obj)
+    {
+        DestroyImmediate(obj);
+        yield return null;
     }
 }

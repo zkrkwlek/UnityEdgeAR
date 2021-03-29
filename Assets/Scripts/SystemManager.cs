@@ -9,11 +9,12 @@ public class SystemManager {
     public class InitConnectData
     {
         public InitConnectData() { }
-        public InitConnectData(string _userID, string _mapName, bool _bMapping, float _fx, float _fy, float _cx, float _cy, int _w, int _h)
+        public InitConnectData(string _userID, string _mapName, bool _bMapping, bool _bManager, float _fx, float _fy, float _cx, float _cy, int _w, int _h)
         {
             userID = _userID;
             mapName = _mapName;
             bMapping = _bMapping;
+            bManager = _bManager;
             fx = _fx;
             fy = _fy;
             cx = _cx;
@@ -24,7 +25,7 @@ public class SystemManager {
         public string userID, mapName;
         public float fx, fy, cx, cy;
         public int w, h;
-        public bool bMapping;
+        public bool bMapping, bManager;
     }
 
     private static int w, h;
@@ -147,6 +148,18 @@ public class SystemManager {
             bMapping = value;
         }
     }
+    static bool bManagerMode = false;
+    public bool Manager
+    {
+        get
+        {
+            return bManagerMode;
+        }
+        set
+        {
+            bManagerMode = value;
+        }
+    }
 
 
     static private SystemManager m_pInstance = null;
@@ -245,6 +258,6 @@ public class SystemManager {
 
     public InitConnectData GetConnectData()
     {
-        return new InitConnectData(strUserID, strMapName, bMapping, fx, fy, cx, cy, w, h);
+        return new InitConnectData(strUserID, strMapName, bMapping, bManagerMode, fx, fy, cx, cy, w, h);
     }
 }
