@@ -574,7 +574,7 @@ public class UVRSystem : MonoBehaviour
         float fAngle = rot.magnitude * Mathf.Rad2Deg;
         Quaternion q = Quaternion.AngleAxis(fAngle, rot.normalized);
 
-        go.transform.SetPositionAndRotation(Center, q);
+        go.transform.SetPositionAndRotation(pos, q);
 
         Transform tr = go.transform;
         Vector3 spawnPoint = tr.position;
