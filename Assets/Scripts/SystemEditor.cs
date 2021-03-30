@@ -69,6 +69,13 @@ public class SystemEditor : Editor
                 mSystem.Disconnect();
                 mSystem.SocThreadStop();
                 //AsyncSocketReceiver.Instance.SendMessage("Disconnect");
+
+                float[] fdata = new float[1];
+                fdata[0] = 10001f;
+                byte[] bdata = new byte[4];
+                Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
+                AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
+
                 AsyncSocketReceiver.Instance.Disconnect();
                 
             }
@@ -83,6 +90,13 @@ public class SystemEditor : Editor
                 //AsyncSocketReceiver.Instance.ReceiveMessage();
                 //AsyncSocketReceiver.Instance.SendMessage("Connect");//"143.248.6.143", 35001, 
                 mSystem.Connect();
+
+                float[] fdata = new float[1];
+                fdata[0] = 10000f;
+                byte[] bdata = new byte[4];
+                Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
+                AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
+
             }
         }
 
@@ -164,7 +178,6 @@ public class SystemEditor : Editor
             fdata[5] = mSystem.DIR.z;
             byte[] bdata = new byte[24];
             Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-
             AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
             //메세지 보낸 후 받은 곳에서 생성하기
         }

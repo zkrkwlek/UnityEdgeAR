@@ -114,7 +114,9 @@ public class AsyncSocketReceiver
     }
     public void SendData(byte[] data)
     {
-        socket.BeginSend(data, 0, data.Length, SocketFlags.None, new AsyncCallback(SendCallback), socket);
+        
+        socket.SendTo(data, data.Length, SocketFlags.None, socket.RemoteEndPoint);
+        //socket.BeginSend(data, 0, data.Length, SocketFlags.None, new AsyncCallback(SendCallback), socket);
     }
 
     
