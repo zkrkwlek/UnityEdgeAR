@@ -51,7 +51,6 @@ public class SystemEditor : Editor
         {
             string path = EditorUtility.OpenFilePanel("Parameter file", "C:/Users/UVR-KAIST/AppData/LocalLow/DefaultCompany/EdgeSLAM_19_1", "txt");
             SystemManager.Instance.LoadParameter(path);
-            mSystem.background = (RawImage)GameObject.Find("background").GetComponent<RawImage>();
             mSystem.tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.RGB24, false);
             mSystem.nImgFrameIDX = 3;
 

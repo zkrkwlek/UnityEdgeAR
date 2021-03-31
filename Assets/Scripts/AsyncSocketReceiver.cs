@@ -10,20 +10,20 @@ using UnityEngine;
 public class AsyncSocketReceiver
 {
     //참조 https://gist.github.com/louis-e/888d5031190408775ad130dde353e0fd
-    private EndPoint ep;
+    private EndPoint lep, rep;
     private Socket socket;
     private UdpState stat;
 
     private const int bufSize = 8 * 1024;
 
-    public EndPoint EP
+    public EndPoint RemoteEP
     {
         get
         {
-            return ep;
+            return rep;
         }
         set {
-            ep = value;
+            rep = value;
         }
     }
     public Socket SOCKET
@@ -73,13 +73,16 @@ public class AsyncSocketReceiver
 
     public void Connect(string ip, int port)
     {
+        
         socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        //lep = new IPEndPoint(IPAddress.Any, 34999); // 에코 서버의 포트
+        //socket.Bind(lep);
         socket.Connect(IPAddress.Parse(ip), port);
-        //= new UdpClient(34999); //보낼 때 고정할 포트. 
-
-        ep = new IPEndPoint(IPAddress.Any, 0); // 에코 서버의 포트
+        
+        
+        rep = new IPEndPoint(IPAddress.Any, 0); // 에코 서버의 포트
         stat = new UdpState();
-        stat.e = ep;
+        stat.e = rep;
         stat.u = socket;
 
     }
@@ -92,31 +95,17 @@ public class AsyncSocketReceiver
             socket.Close();
     }
 
-    public void SendCallback(IAsyncResult ar)
-    {
-        try
-        {
-            Socket u = (Socket)ar.AsyncState;
-            Debug.Log("number of bytes sent : " + u.EndSend(ar));
-            //SendDone.Set();
-        }
-        catch (Exception ex)
-        {
-            Debug.Log(ex.ToString());
-        }
-    }
-
-    public void SendMessage(string message)
-    {
-        //string ip, int port, 
-        byte[] sendBytes = Encoding.ASCII.GetBytes(message);
-        socket.BeginSend(sendBytes, 0, sendBytes.Length,SocketFlags.None, new AsyncCallback(SendCallback), socket);
-    }
     public void SendData(byte[] data)
     {
-        
         socket.SendTo(data, data.Length, SocketFlags.None, socket.RemoteEndPoint);
-        //socket.BeginSend(data, 0, data.Length, SocketFlags.None, new AsyncCallback(SendCallback), socket);
+        try
+        {
+            Debug.Log("Port = " + ((IPEndPoint)socket.LocalEndPoint).Port + "");
+        }
+        catch (Exception e)
+        {
+            Debug.Log(e.ToString());
+        }
     }
 
     

@@ -47,7 +47,7 @@ public class UVRSystem : MonoBehaviour
 
         sw = new Stopwatch();
     }
-
+    public GameObject targetObj = null;
     public void Connect()
     {
         SystemManager.InitConnectData data = SystemManager.Instance.GetConnectData();
@@ -61,6 +61,7 @@ public class UVRSystem : MonoBehaviour
         request.uploadHandler = uH;
         request.downloadHandler = new DownloadHandlerBuffer();
         UnityWebRequestAsyncOperation res = request.SendWebRequest();
+        targetObj = Instantiate(Bullet);
     }
 
     public void Disconnect()
@@ -77,6 +78,9 @@ public class UVRSystem : MonoBehaviour
         request.downloadHandler = new DownloadHandlerBuffer();
         UnityWebRequestAsyncOperation res = request.SendWebRequest();
         Debug.Log("Disconnect!!" + addr);
+
+        DestroyImmediate(targetObj);
+        targetObj = null;
     }
 
     public void Reset()
@@ -132,66 +136,9 @@ public class UVRSystem : MonoBehaviour
             bMappingThreadStart = true;
         }
     }
-
-    void Update()
-    {
-        if (bMappingThread)
-        {
-            //if (SystemManager.Instance.ImageData.Length == nImgFrameIDX)
-            //{
-            //    Debug.Log("END!!!!!!!");
-            //    bMappingThread = false;
-            //}
-            //string imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
-            //++mnFrameID;
-            //Debug.Log(imgFile);
-            //if (mbSended && mnFrameID % 3 == 0)
-            //{
-            //    mbSended = false;
-            //    string ts = (DateTime.Now.ToLocalTime() - baseTime).ToString();
-            //    StartCoroutine(Mapping(imgFile, ts));
-            //}
-        }
-    }
-
+    
     public Texture2D tex;
-    IEnumerator Mapping(string imgFile, string ts)
-    {
-        //yield return new WaitForEndOfFrame();
-        yield return new WaitForFixedUpdate();
-        byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
-        tex.LoadImage(byteTexture);
-        background.texture = tex;
-        byte[] webCamByteData = tex.EncodeToJPG(90);
-
-        string addr = SystemManager.Instance.ServerAddr + "/ReceiveAndDetect?user=" + SystemManager.Instance.User + "&map=" + SystemManager.Instance.Map + "&id=" + ts;
-        UnityWebRequest request = new UnityWebRequest(addr);
-        request.method = "POST";
-        UploadHandlerRaw uH = new UploadHandlerRaw(webCamByteData);
-        uH.contentType = "application/json";
-        request.uploadHandler = uH;
-        request.downloadHandler = new DownloadHandlerBuffer();
-
-        UnityWebRequestAsyncOperation res = request.SendWebRequest();
-        while (request.uploadHandler.progress < 1f)
-        {
-            yield return new WaitForFixedUpdate();
-            //progress = request.uploadHandler.progress;
-        }
-
-        //ts, id
-
-        mbSended = true;
-
-    }
-    IEnumerator Test2(string imgFile)
-    {
-        byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
-        tex.LoadImage(byteTexture);
-        background.texture = tex;
-        //Debug.Log(imgFile);
-        yield return null;
-    }
+    
     private Thread thread;
     public bool bProcessThread = false;
     public bool bThreadStart = false;
@@ -217,21 +164,11 @@ public class UVRSystem : MonoBehaviour
             Thread.Sleep(33);
             EditorCoroutineUtility.StartCoroutine(MappingCoroutine(), this);
             EditorCoroutineUtility.StartCoroutine(GetReferenceInfoCoroutine(), this);
-
-            //string imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
-            //++mnFrameID;
-
-            //if (mbSended && mnFrameID % 3 == 0)
-            //{
-            //    mbSended = false;
-            //    string ts = (DateTime.Now.ToLocalTime() - baseTime).ToString();
-            //    EditorCoroutineUtility.StartCoroutine(Mapping(imgFile, ts), this);                
-            //}
         }
 
     }
     public GameObject Bullet;
-    public Transform FirePos;
+    
     public Vector3 Center = new Vector3(0f, 0f, 0f);
     public Vector3 DIR = new Vector3(0f, 0f, 0f);
     int prevID = -1;
@@ -279,7 +216,7 @@ public class UVRSystem : MonoBehaviour
             float mAngle = mAxis.magnitude * Mathf.Rad2Deg;
             mAxis = mAxis.normalized;
             Quaternion rotation = Quaternion.AngleAxis(mAngle, mAxis);
-            Camera.main.transform.SetPositionAndRotation(Center, rotation);
+            targetObj.transform.SetPositionAndRotation(Center, rotation);
             prevID = nRefID;
         }
     }
@@ -294,7 +231,6 @@ public class UVRSystem : MonoBehaviour
         string ts = (DateTime.Now.ToLocalTime() - baseTime).ToString();
         byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
         tex.LoadImage(byteTexture);
-        background.texture = tex;
         if (mnFrameID % 3 == 0)
         {
             mbSended = false;
@@ -325,52 +261,7 @@ public class UVRSystem : MonoBehaviour
             sw.Reset();
             mbSended = true;
         }
-
-
-        //while (bProcessThread) {
-        //    if (bWaitThread) {
-        //        yield return null;
-        //        continue;
-        //    }
-        //    if (nImgFrameIDX >= nMaxImageIndex)
-        //    {
-        //        Init();
-        //        break;
-        //    }
-        //    yield return new WaitForSecondsRealtime(0.033f);
-        //    Debug.Log(Time.deltaTime);
-        //    fTime += Time.deltaTime;
-
-        //    string imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
-        //    ++mnFrameID;
-
-        //    if (mnFrameID % 3 == 0)
-        //    {
-        //        string ts = (DateTime.Now.ToLocalTime() - baseTime).ToString();
-
-        //        byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
-        //        tex.LoadImage(byteTexture);
-        //        background.texture = tex;
-        //        byte[] webCamByteData = tex.EncodeToJPG(90);
-
-        //        string addr = SystemManager.Instance.ServerAddr + "/ReceiveAndDetect?user=" + SystemManager.Instance.User + "&map=" + SystemManager.Instance.Map + "&id=" + ts;
-        //        UnityWebRequest request = new UnityWebRequest(addr);
-        //        request.method = "POST";
-        //        UploadHandlerRaw uH = new UploadHandlerRaw(webCamByteData);
-        //        uH.contentType = "application/json";
-        //        request.uploadHandler = uH;
-        //        request.downloadHandler = new DownloadHandlerBuffer();
-
-        //        UnityWebRequestAsyncOperation res = request.SendWebRequest();
-        //        while (request.uploadHandler.progress < 1f)
-        //        {
-        //            yield return new WaitForFixedUpdate();
-        //            //progress = request.uploadHandler.progress;
-        //        }
-        //    }
-
-        //}
-        //Debug.Log("thread end!! " + fTime);
+        
     }
 
     ///
@@ -454,47 +345,11 @@ public class UVRSystem : MonoBehaviour
         mf.mesh = m;
         m.RecalculateBounds();
         m.RecalculateNormals();
-        mr.material = new Material(Shader.Find("Legacy Shaders/Transparent/Diffuse"));
-        mr.material.color = acolor;
+        mr.sharedMaterial = new Material(Shader.Find("Legacy Shaders/Transparent/Diffuse"));
+        mr.sharedMaterial.color = acolor;
         return go;
     }
-    public void ContentStart(Vector3 pos, Vector3 rot)
-    {
-        try
-        {
-            Debug.Log("ContentStart");
-            float mAngle = rot.magnitude * Mathf.Rad2Deg;
-            Quaternion q = Quaternion.AngleAxis(mAngle, rot.normalized);
-            //try
-            //{
-            //    Debug.Log("Create Bullet!!");
-            //    Instantiate(Bullet, pos, q);
-            //}
-            //catch (Exception e)
-            //{
-            //    Debug.Log(e.ToString());
-            //}
-            EditorCoroutineUtility.StartCoroutine(CreateBullet(pos, q), this);
-        }
-        catch (Exception e)
-        {
-            Debug.Log(e.ToString());
-        }
-
-    }
-    IEnumerator CreateBullet(Vector3 pos, Quaternion q)
-    {
-        try
-        {
-            Debug.Log("Create Bullet!!");
-            Instantiate(Bullet, pos, q);
-        }
-        catch (Exception e)
-        {
-            Debug.Log(e.ToString());
-        }
-        yield return null;
-    }
+    
 
     private Thread socthread;
     public bool bSocThreadStart = false;
@@ -523,9 +378,9 @@ public class UVRSystem : MonoBehaviour
         {
             try
             {
-                EndPoint ep = AsyncSocketReceiver.Instance.EP;
+                EndPoint ep = AsyncSocketReceiver.Instance.RemoteEP;
                 int bytes = AsyncSocketReceiver.Instance.SOCKET.ReceiveFrom(AsyncSocketReceiver.Instance.BUFFER, AsyncSocketReceiver.Instance.BUFSIZE, SocketFlags.None, ref ep);
-                AsyncSocketReceiver.Instance.EP = ep;
+                AsyncSocketReceiver.Instance.RemoteEP = ep;
                 float[] rdata = new float[bytes / 4];
                 Buffer.BlockCopy(AsyncSocketReceiver.Instance.BUFFER, 0, rdata, 0, bytes);
                 Debug.Log(rdata[0] + " " + rdata[1] + " " + rdata[2] + ":" + rdata[3] + " " + rdata[4] + " " + rdata[5]);
@@ -544,23 +399,7 @@ public class UVRSystem : MonoBehaviour
             //receiveDone.WaitOne();
         }
     }
-    public void TestCoroutine(Vector3 pos, Vector3 rot)
-    {
-        //try
-        //{
-        //    //모델의 위치와 회전
-            
-        //    //그후 스레딩거리까지 이동
-
-        //    //거리 되면 삭제
-        //}
-        //catch (Exception e)
-        //{
-        //    Debug.Log(e.ToString());
-        //}
-       
-    }
-
+   
     class ContentObject
     {
         public GameObject obj;
