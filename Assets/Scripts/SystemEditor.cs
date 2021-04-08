@@ -23,7 +23,7 @@ public class SystemEditor : Editor
         }
     }
     float fx, fy, fz;
-    bool bConnect = false;
+    
     public override void OnInspectorGUI()
     {
         SystemManager.Instance.User = EditorGUILayout.TextField("User Name", SystemManager.Instance.User);
@@ -113,7 +113,7 @@ public class SystemEditor : Editor
 
         GUILayout.BeginHorizontal();
 
-        if (mSystem.bThreadStart)
+        if (SystemManager.Instance.Start)
         {
             if (GUILayout.Button("Stop", GUILayout.Width(100)))
             {

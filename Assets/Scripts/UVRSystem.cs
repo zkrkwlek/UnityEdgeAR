@@ -28,7 +28,7 @@ public class UVRSystem : MonoBehaviour
 
     public RawImage background;
     int mnFrameID = 0; //start 시에 초기화 시키기?
-    bool mbSended = true; //start 시에 초기화 시키기?
+    
     public int nImgFrameIDX = 3;
 
     public int nTargetID = -1;
@@ -39,10 +39,9 @@ public class UVRSystem : MonoBehaviour
     public void Init()
     {
         mnFrameID = 0;
-        mbSended = true;
 
         bProcessThread = false;
-        bThreadStart = false;
+        SystemManager.Instance.Start = false;
         bWaitThread = true;
 
         sw = new Stopwatch();
@@ -141,10 +140,8 @@ public class UVRSystem : MonoBehaviour
     
     private Thread thread;
     public bool bProcessThread = false;
-    public bool bThreadStart = false;
+    //public bool bThreadStart = false;
     public bool bWaitThread = true;
-
-    private float fTime = 0.0f;
 
     private void Run()
     {
@@ -233,7 +230,6 @@ public class UVRSystem : MonoBehaviour
         tex.LoadImage(byteTexture);
         if (mnFrameID % 3 == 0)
         {
-            mbSended = false;
 
             sw.Start();
             byte[] webCamByteData = tex.EncodeToJPG(90);
@@ -259,7 +255,7 @@ public class UVRSystem : MonoBehaviour
             sw.Stop();
             Debug.Log("time = " + mnFrameID + "::" + sw.ElapsedMilliseconds.ToString() + "ms");
             sw.Reset();
-            mbSended = true;
+            
         }
         
     }
@@ -268,11 +264,11 @@ public class UVRSystem : MonoBehaviour
     public void ThreadStart()
     {
         Debug.Log("thread start!!");
-        if (!bThreadStart)
+        if (!SystemManager.Instance.Start)
         {
             bProcessThread = true;
             bWaitThread = false;
-            bThreadStart = true;
+            SystemManager.Instance.Start = true;
             thread = new Thread(Run);
             thread.Start();
             //EditorCoroutineUtility.StartCoroutine(MappingCoroutine(), this);
@@ -398,12 +394,6 @@ public class UVRSystem : MonoBehaviour
             //ReceiveMessage();
             //receiveDone.WaitOne();
         }
-    }
-   
-    class ContentObject
-    {
-        public GameObject obj;
-        bool bEnd;
     }
 
     IEnumerator TestCR(Vector3 pos, Vector3 rot, float dist)

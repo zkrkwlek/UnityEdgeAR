@@ -7,22 +7,22 @@ public class DepthMeshGenerator : MonoBehaviour
 {
     private const float k_TriangleConnectivityCutOff = 0.5f;
     private static readonly Vector3 k_DefaultMeshOffset = new Vector3(-100, -100, -100);
-    private static readonly string k_VertexModelTransformPropertyName = "_VertexModelTransform";
+    //private static readonly string k_VertexModelTransformPropertyName = "_VertexModelTransform";
 
     private Mesh m_Mesh;
     private bool m_FreezeMesh = false;
     private bool m_Initialized = false;
-    private Texture2D m_StaticDepthTexture = null;
+    //private Texture2D m_StaticDepthTexture = null;
 
     float fx, fy, cx, cy;
 
     // Start is called before the first frame update
     void Start()
     {
-        fx = CameraManager.FocalLengthX;
-        fy = CameraManager.FocalLengthY;
-        cx = CameraManager.PrincipalPointX;
-        cy = CameraManager.PrincipalPointY;
+        fx = SystemManager.Instance.FocalLengthX;
+        fy = SystemManager.Instance.FocalLengthY;
+        cx = SystemManager.Instance.PrincipalPointX;
+        cy = SystemManager.Instance.PrincipalPointY;
     }
 
     private static int[] GenerateTriangles(int width, int height)
@@ -99,12 +99,12 @@ public class DepthMeshGenerator : MonoBehaviour
         //// Sets camera intrinsics for depth reprojection.
         Material material = GetComponent<MeshRenderer>().material;
         material.SetTexture("_CurrentDepthTexture", DepthSource.DepthTexture);
-        material.SetFloat("_FocalLengthX", CameraManager.FocalLengthX);
-        material.SetFloat("_FocalLengthY", CameraManager.FocalLengthY);
-        material.SetFloat("_PrincipalPointX", CameraManager.PrincipalPointX);
-        material.SetFloat("_PrincipalPointY", CameraManager.PrincipalPointY);
-        material.SetInt("_ImageDimensionsX", CameraManager.ImageWidth);
-        material.SetInt("_ImageDimensionsY", CameraManager.ImageWidth);
+        material.SetFloat("_FocalLengthX", SystemManager.Instance.FocalLengthX);
+        material.SetFloat("_FocalLengthY", SystemManager.Instance.FocalLengthY);
+        material.SetFloat("_PrincipalPointX", SystemManager.Instance.PrincipalPointX);
+        material.SetFloat("_PrincipalPointY", SystemManager.Instance.PrincipalPointY);
+        material.SetInt("_ImageDimensionsX", SystemManager.Instance.ImageWidth);
+        material.SetInt("_ImageDimensionsY", SystemManager.Instance.ImageWidth);
         material.SetFloat("_TriangleConnectivityCutOff", k_TriangleConnectivityCutOff);
         m_Initialized = true;
     }
@@ -123,46 +123,47 @@ public class DepthMeshGenerator : MonoBehaviour
             InitializeMesh();
         }
 
-        Matrix3x3 R = TrckingManager.R;
-        Vector3 T = TrckingManager.T;
 
-        if (m_Initialized && DepthSource.Updated && !DepthSource.Updating)
-        {
-            //Material material = GetComponent<Renderer>().material;
-            //material.SetTexture("_CurrentDepthTexture", DepthSource.DepthTexture);
-            Vector3[] vertices = new Vector3[DepthSource.Height * DepthSource.Width];
-            byte[] data = DepthSource.Data;
-            float[] fdata = new float[data.Length / 4];
-            Buffer.BlockCopy(data, 0, fdata, 0, data.Length);
+        //Matrix3x3 R;// = TrckingManager.R;
+        //Vector3 T;// = TrckingManager.T;
 
-            //m_Mesh.GetVertices(vertices);
-            for (int y = 0; y < DepthSource.Height; y++)
-            {
-                for (int x = 0; x < DepthSource.Width; x++)
-                {
-                    int idx = DepthSource.Width * y + x;
-                    float val = fdata[idx];
+        //if (m_Initialized && DepthSource.Updated && !DepthSource.Updating)
+        //{
+        //    //Material material = GetComponent<Renderer>().material;
+        //    //material.SetTexture("_CurrentDepthTexture", DepthSource.DepthTexture);
+        //    Vector3[] vertices = new Vector3[DepthSource.Height * DepthSource.Width];
+        //    byte[] data = DepthSource.Data;
+        //    float[] fdata = new float[data.Length / 4];
+        //    Buffer.BlockCopy(data, 0, fdata, 0, data.Length);
 
-                    Vector3 v = new Vector3((x - cx) / fx, (y - cy) / fy, 1.0f) * val;
-                    v = R.Transpose() * (v - T);
+        //    //m_Mesh.GetVertices(vertices);
+        //    for (int y = 0; y < DepthSource.Height; y++)
+        //    {
+        //        for (int x = 0; x < DepthSource.Width; x++)
+        //        {
+        //            int idx = DepthSource.Width * y + x;
+        //            float val = fdata[idx];
 
-                    //Vector3 v = new Vector3(x * 0.01f, -y * 0.01f, (float)val);// + k_DefaultMeshOffset;
-                    vertices[idx] = v;
-                    //Debug.Log(DepthSource.DepthTexture.GetPixel(x, y).r);
-                    //Vector3 v = new Vector3(x * 0.01f, -y * 0.01f, x);// + k_DefaultMeshOffset;
-                    //vertices.Add(v);
-                    //normals.Add(Vector3.back);
-                }
-            }
-            if (m_Mesh.isReadable)
-            {
-                m_Mesh.vertices = vertices;
-                Debug.Log("true");
-            }
-            else
-                Debug.Log("False");
-            DepthSource.Updated = false;
-        }
+        //            Vector3 v = new Vector3((x - cx) / fx, (y - cy) / fy, 1.0f) * val;
+        //            v = R.Transpose() * (v - T);
+
+        //            //Vector3 v = new Vector3(x * 0.01f, -y * 0.01f, (float)val);// + k_DefaultMeshOffset;
+        //            vertices[idx] = v;
+        //            //Debug.Log(DepthSource.DepthTexture.GetPixel(x, y).r);
+        //            //Vector3 v = new Vector3(x * 0.01f, -y * 0.01f, x);// + k_DefaultMeshOffset;
+        //            //vertices.Add(v);
+        //            //normals.Add(Vector3.back);
+        //        }
+        //    }
+        //    if (m_Mesh.isReadable)
+        //    {
+        //        m_Mesh.vertices = vertices;
+        //        Debug.Log("true");
+        //    }
+        //    else
+        //        Debug.Log("False");
+        //    DepthSource.Updated = false;
+        //}
 
     }
 }

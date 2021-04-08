@@ -136,6 +136,28 @@ public class SystemManager {
             bconnect = value;
         }
     }
+
+    static bool bstart = false;
+    public bool Start {
+        get
+        {
+            return bstart;
+        }
+        set
+        {
+            bstart = value;
+        }
+    }
+
+    static bool bCam = false;
+    public bool Cam
+    {
+        get
+        {
+            return bCam;
+        }
+    }
+
     static bool bMapping;
     public bool Mapping
     {
@@ -175,11 +197,6 @@ public class SystemManager {
         }
     }
     
-
-    
-    static bool bCam = false;
-    
-
     public void LoadParameter(string path)
     {
         string[] paramText = File.ReadAllLines(path);
@@ -191,16 +208,24 @@ public class SystemManager {
         bMapping = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
         strMapName = (paramText[nUserData++].Split('=')[1]);
         string datafile = (paramText[nUserData++].Split('=')[1]);
-
-        int numLine = 0;
         string[] dataText = File.ReadAllLines(Application.persistentDataPath + datafile); //데이터 읽기
-        string imgFileTxt = Application.persistentDataPath + Convert.ToString(dataText[numLine++].Split('=')[1]);
-        imgFileLIst = File.ReadAllLines(imgFileTxt);
-        Debug.Log("Load Datase = " + (imgFileLIst.Length - 3));
-        imgPathTxt = Convert.ToString(dataText[numLine++].Split('=')[1]);
-        if (Application.platform == RuntimePlatform.Android)
-            imgPathTxt = Application.persistentDataPath + imgPathTxt;
+        int numLine = 0;
+        if (datafile == "/File/cam.txt")
+        {
+            bCam = true;
+            numLine = 2;
+        }
 
+        if (!bCam)
+        {
+            string imgFileTxt = Application.persistentDataPath + Convert.ToString(dataText[numLine++].Split('=')[1]);
+            imgFileLIst = File.ReadAllLines(imgFileTxt);
+            Debug.Log("Load Datase = " + (imgFileLIst.Length - 3));
+            imgPathTxt = Convert.ToString(dataText[numLine++].Split('=')[1]);
+            if (Application.platform == RuntimePlatform.Android)
+                imgPathTxt = Application.persistentDataPath + imgPathTxt;
+        }     
+                
         fx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         fy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         cx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);

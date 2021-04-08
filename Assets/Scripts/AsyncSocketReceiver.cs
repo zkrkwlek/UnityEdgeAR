@@ -98,14 +98,14 @@ public class AsyncSocketReceiver
     public void SendData(byte[] data)
     {
         socket.SendTo(data, data.Length, SocketFlags.None, socket.RemoteEndPoint);
-        try
-        {
-            Debug.Log("Port = " + ((IPEndPoint)socket.LocalEndPoint).Port + "");
-        }
-        catch (Exception e)
-        {
-            Debug.Log(e.ToString());
-        }
+        //try
+        //{
+        //    Debug.Log("Port = " + ((IPEndPoint)socket.LocalEndPoint).Port + "");
+        //}
+        //catch (Exception e)
+        //{
+        //    Debug.Log(e.ToString());
+        //}
     }
 
     

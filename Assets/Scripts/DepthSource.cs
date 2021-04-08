@@ -90,48 +90,48 @@ public class DepthSource : MonoBehaviour
     IEnumerator UpdateDepthTexture()
     {
         yield return new WaitForEndOfFrame();
-        string addr = CameraManager.ServerAddr + "/GetLastFrameID?map="+CameraManager.Map+ "&key=rdepth";
+        //string addr = SystemManager.Instance.ServerAddr + "/GetLastFrameID?map="+ SystemManager.Instance.Map+ "&key=rdepth";
 
-        UnityWebRequest request = new UnityWebRequest(addr);
-        request.method = "POST";
-        //UploadHandlerRaw uH = new UploadHandlerRaw(abytes);
-        //uH.contentType = "application/json";
-        //request.uploadHandler = uH;
-        request.downloadHandler = new DownloadHandlerBuffer();
-        UnityWebRequestAsyncOperation res = request.SendWebRequest();
-        while (!request.isDone)
-        {
-            yield return new WaitForFixedUpdate();
-        }
-        JsonDeepData data = JsonUtility.FromJson<JsonDeepData>(request.downloadHandler.text);
-        if(data.n != -1 && data.n != lastUpdatedID)
-        {
-            updating = true;
-            lastUpdatedID = data.n;
-            string addr2 = CameraManager.ServerAddr + "/SendData?map="+CameraManager.Map+"&id=" + lastUpdatedID + "&key=rdepth";
-            UnityWebRequest request2 = new UnityWebRequest(addr2);
-            request2.method = "POST";
-            request2.downloadHandler = new DownloadHandlerBuffer();
-            request2.SendWebRequest();
-            while (!request2.isDone)
-            {
-                yield return new WaitForFixedUpdate();
-            }
-            ////이걸 텍스쳐화 해야함.
-            Data = request2.downloadHandler.data;
+        //UnityWebRequest request = new UnityWebRequest(addr);
+        //request.method = "POST";
+        ////UploadHandlerRaw uH = new UploadHandlerRaw(abytes);
+        ////uH.contentType = "application/json";
+        ////request.uploadHandler = uH;
+        //request.downloadHandler = new DownloadHandlerBuffer();
+        //UnityWebRequestAsyncOperation res = request.SendWebRequest();
+        //while (!request.isDone)
+        //{
+        //    yield return new WaitForFixedUpdate();
+        //}
+        //JsonDeepData data = JsonUtility.FromJson<JsonDeepData>(request.downloadHandler.text);
+        //if(data.n != -1 && data.n != lastUpdatedID)
+        //{
+        //    updating = true;
+        //    lastUpdatedID = data.n;
+        //    string addr2 = SystemManager.Instance.ServerAddr + "/SendData?map="+ SystemManager.Instance.Map+"&id=" + lastUpdatedID + "&key=rdepth";
+        //    UnityWebRequest request2 = new UnityWebRequest(addr2);
+        //    request2.method = "POST";
+        //    request2.downloadHandler = new DownloadHandlerBuffer();
+        //    request2.SendWebRequest();
+        //    while (!request2.isDone)
+        //    {
+        //        yield return new WaitForFixedUpdate();
+        //    }
+        //    ////이걸 텍스쳐화 해야함.
+        //    Data = request2.downloadHandler.data;
 
-            if (!initialized)
-            {
-                depthTexture = new Texture2D(w, h, TextureFormat.RFloat, false); //나중에 Rfloat으로 교체
-            }
-            Debug.Log("Depth ID = " + data.n + "::" + Data.Length);
-            depthTexture.LoadImage(Data);
-            depthTexture.Apply();
-            if (!initialized)
-                initialized = true;
-            updated = true;
-            updating = false;
-        }
+        //    if (!initialized)
+        //    {
+        //        depthTexture = new Texture2D(w, h, TextureFormat.RFloat, false); //나중에 Rfloat으로 교체
+        //    }
+        //    Debug.Log("Depth ID = " + data.n + "::" + Data.Length);
+        //    depthTexture.LoadImage(Data);
+        //    depthTexture.Apply();
+        //    if (!initialized)
+        //        initialized = true;
+        //    updated = true;
+        //    updating = false;
+        //}
     }
 
 }
