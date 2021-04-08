@@ -50,7 +50,7 @@ public class ContentEchoServer : MonoBehaviour
                 Vector3 pos = new Vector3(rdata[0], rdata[1], rdata[2]);
                 Vector3 rot = new Vector3(rdata[3], rdata[4], rdata[5]);
                 Debug.Log("asdf");
-                StartCoroutine(CretaeContentTest());
+                //StartCoroutine(CretaeContentTest());
                 //StartCoroutine(CretaeContent(pos, rot, 100f));
                 Debug.Log("defgh");
             }
