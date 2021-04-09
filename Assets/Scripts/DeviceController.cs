@@ -104,13 +104,13 @@ public class DeviceController : MonoBehaviour
     //코드 재정리
     //21.04.08
     private ContentEchoServer mEchoServer;
-    private int rectWidth = 80;
-    private int rectHeight = 30;
+    private int rectWidth = 200;
+    private int rectHeight = 80;
     void OnGUI()
     {
         if (SystemManager.Instance.Connect)
         {
-            if (GUI.Button(new Rect(20, 20, rectWidth, rectHeight), "Disconnect"))
+            if (GUI.Button(new Rect(60, 60, rectWidth, rectHeight), "Disconnect"))
             {
                 SystemManager.Instance.Connect = false;
                 Disconnect();
@@ -128,7 +128,7 @@ public class DeviceController : MonoBehaviour
         }
         else
         {
-            if (GUI.Button(new Rect(20, 20, rectWidth, rectHeight), "Connect"))
+            if (GUI.Button(new Rect(60, 60, rectWidth, rectHeight), "Connect"))
             {
                 SystemManager.Instance.Connect = true;
                 Connect();
@@ -146,20 +146,20 @@ public class DeviceController : MonoBehaviour
         }
         if (SystemManager.Instance.Start)
         {
-            if (GUI.Button(new Rect(30+ rectWidth, 20, rectWidth, rectHeight), "Stop"))
+            if (GUI.Button(new Rect(120+ rectWidth, 60, rectWidth, rectHeight), "Stop"))
             {
                 SystemManager.Instance.Start = false;
             }
         }
         else
         {
-            if (GUI.Button(new Rect(30+ rectWidth, 20, rectWidth, rectHeight), "Start"))
+            if (GUI.Button(new Rect(120+ rectWidth, 60, rectWidth, rectHeight), "Start"))
             {
                 SystemManager.Instance.Start = true;
             }
         }
 
-        if (GUI.Button(new Rect(40 + rectWidth*2, 20, rectWidth, rectHeight), "Load Model"))
+        if (GUI.Button(new Rect(180 + rectWidth*2, 60, rectWidth, rectHeight), "Load Model"))
         {
             
         }
@@ -401,39 +401,38 @@ public class DeviceController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (!SystemManager.Instance.Start)
-            return;
-
-        StartCoroutine("GetReferenceInfoCoroutine");
-
-        if (bCam)
+        if (SystemManager.Instance.Start)
         {
+            StartCoroutine("GetReferenceInfoCoroutine");
 
-        }
-        else
-        {
-            string imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
-            ++mnFrameID;
-            
-            byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
-            tex.LoadImage(byteTexture);
-            background.texture = tex;
-            if (mbSended && mnFrameID % 3 == 0)
+            if (bCam)
             {
-                mbSended = false;
-                StartCoroutine("MappingCoroutine");
+
+            }
+            else
+            {
+                string imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
+                ++mnFrameID;
+
+                byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
+                tex.LoadImage(byteTexture);
+                background.texture = tex;
+                if (mbSended && mnFrameID % 3 == 0)
+                {
+                    mbSended = false;
+                    StartCoroutine("MappingCoroutine");
+                }
             }
         }
-
+        
         bool bTouch = false;
-        Vector3 touchDir = new Vector3();
+        Ray ray = new Ray();
         if (Application.platform == RuntimePlatform.Android)
         {
             if (Input.touchCount > 0)
             {
                 Touch touch = Input.GetTouch(0);
-                Ray ray = Camera.main.ScreenPointToRay(touch.position);
-                touchDir = ray.direction;
+                ray = Camera.main.ScreenPointToRay(touch.position);
                 bTouch = true;
             }
         }
@@ -441,10 +440,8 @@ public class DeviceController : MonoBehaviour
             if (Input.GetMouseButtonDown(0))
             {
                 try {
-                    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                    touchDir = ray.direction;
+                    ray = Camera.main.ScreenPointToRay(Input.mousePosition);
                     bTouch = true;
-                    
                 } catch(Exception e)
                 {
                     Debug.Log(e.ToString());
@@ -457,14 +454,17 @@ public class DeviceController : MonoBehaviour
         {
             try {
                 //Debug.Log("dir = "+touchDir.x+" "+touchDir.y+ " "+touchDir.z);
-                float[] fdata = new float[6];
-                fdata[0] = Center.x;
-                fdata[1] = Center.y;
-                fdata[2] = Center.z;
-                fdata[3] = touchDir.x;
-                fdata[4] = touchDir.y;
-                fdata[5] = touchDir.z;
-                byte[] bdata = new byte[24];
+                float[] fdata = new float[8];
+                int nIDX = 0;
+                fdata[nIDX++] = 1f;
+                fdata[nIDX++] = 0f;
+                fdata[nIDX++] = ray.origin.x;//Center.x;
+                fdata[nIDX++] = ray.origin.y;//Center.y;
+                fdata[nIDX++] = ray.origin.z;//Center.z;
+                fdata[nIDX++] = ray.direction.x;
+                fdata[nIDX++] = ray.direction.y;
+                fdata[nIDX++] = ray.direction.z;
+                byte[] bdata = new byte[fdata.Length*4];
                 Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
                 AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
             } catch(Exception e)
@@ -608,6 +608,10 @@ public class DeviceController : MonoBehaviour
             float mAngle = mAxis.magnitude * Mathf.Rad2Deg;
             mAxis = mAxis.normalized;
             Quaternion rotation = Quaternion.AngleAxis(mAngle, mAxis);
+            if(rotation.w < 0.0)
+            {
+                Debug.Log(rotation.ToString());
+            }
             gameObject.transform.SetPositionAndRotation(Center, rotation);
             prevID = nRefID;
         }
