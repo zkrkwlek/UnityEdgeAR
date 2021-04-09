@@ -257,4 +257,45 @@ public class Matrix3x3
         else
             return val;
     }
+
+    //https://d3cw3dd2w32x2b.cloudfront.net/wp-content/uploads/2015/01/matrix-to-quat.pdf
+    static Quaternion ConvertQuaternion(Matrix3x3 mat)
+    {
+        Quaternion q = Quaternion.identity;
+        float t = 0f;
+        if (mat.m22 < 0)
+        {
+            if (mat.m00 > mat.m11)
+            {
+                t = 1 + mat.m00 - mat.m11 - mat.m22;
+                q = new Quaternion(t, mat.m01 + mat.m10, mat.m20 + mat.m02, mat.m12 - mat.m21);
+            }
+            else
+            {
+                t = 1 - mat.m00 + mat.m11 - mat.m22;
+                q = new Quaternion(mat.m01 + mat.m10, t, mat.m12 + mat.m21, mat.m20 - mat.m02);
+            }
+        }
+        else
+        {
+            if (mat.m00 < -mat.m11)
+            {
+                t = 1 - mat.m00 - mat.m11 + mat.m22;
+                q = new Quaternion(mat.m20 + mat.m02, mat.m12 + mat.m21, t, mat.m01 - mat.m10);
+            }
+            else
+            {
+                t = 1 + mat.m00 + mat.m11 + mat.m22;
+                q = new Quaternion(mat.m12 - mat.m21, mat.m20 - mat.m02, mat.m01 - mat.m10, t);
+            }
+        }
+        float fscale = 0.5f / Mathf.Sqrt(t);
+        q.x *= fscale;
+        q.y *= fscale;
+        q.z *= fscale;
+        q.w *= fscale;
+
+        return q;
+    }
+
 }
