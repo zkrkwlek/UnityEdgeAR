@@ -379,9 +379,12 @@ public class UVRSystem : MonoBehaviour
                 AsyncSocketReceiver.Instance.RemoteEP = ep;
                 float[] rdata = new float[bytes / 4];
                 Buffer.BlockCopy(AsyncSocketReceiver.Instance.BUFFER, 0, rdata, 0, bytes);
-                Debug.Log(rdata[0] + " " + rdata[1] + " " + rdata[2] + ":" + rdata[3] + " " + rdata[4] + " " + rdata[5]);
-                Vector3 pos = new Vector3(rdata[0], rdata[1], rdata[2]);
-                Vector3 rot = new Vector3(rdata[3], rdata[4], rdata[5]);
+                Debug.Log(rdata[1] +"="+rdata[2] + " " + rdata[3] + " " + rdata[4] + ":" + rdata[3] + " " + rdata[4] + " " + rdata[5]);
+                int nContentID = (int)rdata[1];
+
+                int nIDX = 2;
+                Vector3 pos = new Vector3(rdata[nIDX++], rdata[nIDX++], rdata[nIDX++]);
+                Vector3 rot = new Vector3(rdata[nIDX++], rdata[nIDX++], rdata[nIDX++]);
                 //ContentStart(pos, rot);
                 //TestCoroutine(pos, rot);
                 EditorCoroutineUtility.StartCoroutine(TestCR(pos, rot, 100f), this);
