@@ -259,7 +259,7 @@ public class Matrix3x3
     }
 
     //https://d3cw3dd2w32x2b.cloudfront.net/wp-content/uploads/2015/01/matrix-to-quat.pdf
-    static Quaternion ConvertQuaternion(Matrix3x3 mat)
+    public static Quaternion RotToQuar(Matrix3x3 mat)
     {
         Quaternion q = Quaternion.identity;
         float t = 0f;
