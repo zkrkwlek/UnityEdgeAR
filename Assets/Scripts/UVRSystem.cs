@@ -14,6 +14,7 @@ using UnityEngine.Networking;
 using UnityEngine.UI;
 using System.Net.Sockets;
 using System.Net;
+using System.Collections.Concurrent;
 
 [ExecuteInEditMode]
 public class UVRSystem : MonoBehaviour
@@ -39,11 +40,8 @@ public class UVRSystem : MonoBehaviour
     public void Init()
     {
         mnFrameID = 0;
-
-        bProcessThread = false;
         SystemManager.Instance.Start = false;
         bWaitThread = true;
-
         sw = new Stopwatch();
     }
 
@@ -51,6 +49,7 @@ public class UVRSystem : MonoBehaviour
     /// <summary>
     /// 접속 devices 관리 용
     /// </summary>
+    ConcurrentQueue<float[]> cq = new ConcurrentQueue<float[]>();
     Dictionary<int, GameObject> mConnectedDevices = new Dictionary<int, GameObject>();
 
     void Start() {
@@ -72,28 +71,27 @@ public class UVRSystem : MonoBehaviour
         int size = e.bdata.Length;
         float[] fdata = new float[size / 4];
         Buffer.BlockCopy(e.bdata, 0, fdata, 0, size);
+        cq.Enqueue(fdata);
         int id = (int)fdata[1];
-
-        Debug.Log("Event Test!! " + fdata[0]+"::"+id);
-        try {
-            if (fdata[0] == 1f)
-            {
-                mConnectedDevices[id] = Instantiate(Bullet);
-            }
-            else if (fdata[0] == 2f)
-            {
-                DestroyImmediate(mConnectedDevices[id]);
-                mConnectedDevices[id] = null;
-            }
-            else if (fdata[0] == 3f)
-            {
-
-            }
-        } catch(Exception ex)
-        {
-            Debug.Log(ex.ToString());
-        }
         
+        //try {
+        //    if (fdata[0] == 1f)
+        //    {
+        //        mConnectedDevices[id] = Instantiate(Bullet);
+        //    }
+        //    else if (fdata[0] == 2f)
+        //    {
+        //        DestroyImmediate(mConnectedDevices[id]);
+        //        mConnectedDevices[id] = null;
+        //    }
+        //    else if (fdata[0] == 3f)
+        //    {
+
+        //    }
+        //} catch(Exception ex)
+        //{
+        //    Debug.Log(ex.ToString());
+        //}
     }
 
 
@@ -116,6 +114,9 @@ public class UVRSystem : MonoBehaviour
         request.downloadHandler = new DownloadHandlerBuffer();
         UnityWebRequestAsyncOperation res = request.SendWebRequest();
 
+        ////thread start
+        ThreadStart();
+
         //targetObj = Instantiate(Bullet);
 
         MapManager.Instance.DeviceDataReceived += DeviceDataReceivedProcess;
@@ -135,8 +136,15 @@ public class UVRSystem : MonoBehaviour
         request.downloadHandler = new DownloadHandlerBuffer();
         UnityWebRequestAsyncOperation res = request.SendWebRequest();
         Debug.Log("Disconnect!!" + addr);
-
+        ThreadStop();
         MapManager.Instance.DeviceDataReceived -= DeviceDataReceivedProcess;
+
+        ////모든 기기 오브젝트 삭제
+        for(int i = 0, iend = Devices.transform.childCount; i < iend; i++)
+        {
+            DestroyImmediate(Devices.transform.GetChild(i).gameObject);
+        }
+        Devices.transform.DetachChildren();
 
         //DestroyImmediate(targetObj);
         //targetObj = null;
@@ -197,33 +205,29 @@ public class UVRSystem : MonoBehaviour
     }
     
     public Texture2D tex;
-    
     private Thread thread;
-    public bool bProcessThread = false;
-    //public bool bThreadStart = false;
     public bool bWaitThread = true;
 
     private void Run()
     {
-        while (bProcessThread)
+        while (SystemManager.Instance.Connect)
         {
-            if (!SystemManager.Instance.Connect)
-                continue;
+            Thread.Sleep(33);
+            EditorCoroutineUtility.StartCoroutine(DeviceControl(), this);
             if (bWaitThread)
-            {
                 continue;
-            }
+            
             if (nImgFrameIDX >= nMaxImageIndex)
             {
                 Init();
                 break;
             }
-            Thread.Sleep(33);
             EditorCoroutineUtility.StartCoroutine(MappingCoroutine(), this);
-            EditorCoroutineUtility.StartCoroutine(GetReferenceInfoCoroutine(), this);
+            //EditorCoroutineUtility.StartCoroutine(GetReferenceInfoCoroutine(), this);
         }
 
     }
+    public GameObject Devices;
     public GameObject Bullet;
     
     public Vector3 Center = new Vector3(0f, 0f, 0f);
@@ -320,14 +324,55 @@ public class UVRSystem : MonoBehaviour
         
     }
 
+    IEnumerator DeviceControl()
+    {
+        yield return null;
+        float[] fdata;
+        while(cq.TryDequeue(out fdata))
+        {
+            yield return new WaitForFixedUpdate();
+            try
+            {
+                int id = (int)fdata[1];
+
+                if (fdata[0] == 1f)
+                {
+                    mConnectedDevices[id] = Instantiate(Bullet);
+                    mConnectedDevices[id].transform.SetParent(Devices.transform);
+                }
+                else if (fdata[0] == 2f)
+                {
+                    DestroyImmediate(mConnectedDevices[id]);
+                    mConnectedDevices[id] = null;
+                }
+                else if (fdata[0] == 3f)
+                {
+                    GameObject obj = mConnectedDevices[id];
+                    Matrix3x3 R = new Matrix3x3(fdata[2], fdata[3], fdata[4], fdata[5], fdata[6], fdata[7], fdata[8], fdata[9], fdata[10]);
+                    Vector3 t = new Vector3(fdata[11], fdata[12], fdata[13]);
+                    Center = -(R.Transpose() * t);
+
+                    ////업데이트 카메라 포즈
+                    Vector3 mAxis = R.LOG();
+                    float mAngle = mAxis.magnitude * Mathf.Rad2Deg;
+                    mAxis = mAxis.normalized;
+                    Quaternion rotation = Quaternion.AngleAxis(mAngle, mAxis);
+                    obj.transform.SetPositionAndRotation(Center, rotation);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Log(ex.ToString());
+            }
+        }
+        
+    }
     ///
     public void ThreadStart()
     {
-        Debug.Log("thread start!!");
-        if (!SystemManager.Instance.Start)
+        if (SystemManager.Instance.Connect)
         {
-            bProcessThread = true;
-            bWaitThread = false;
+            bWaitThread = true;
             SystemManager.Instance.Start = true;
             thread = new Thread(Run);
             thread.Start();
@@ -340,9 +385,11 @@ public class UVRSystem : MonoBehaviour
     }
     public void ThreadStop()
     {
-        Debug.Log("thread stop!!");
-        Init();
-        thread.Join();
+        if (SystemManager.Instance.Connect)
+        {
+            Init();
+            thread.Join();
+        }
     }
 
     public void GetModel()

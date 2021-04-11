@@ -79,7 +79,6 @@ public class SystemEditor : Editor
                 byte[] bdata = new byte[4];
                 Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
                 AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
-
                 AsyncSocketReceiver.Instance.Disconnect();
                 
             }
@@ -118,26 +117,26 @@ public class SystemEditor : Editor
 
         GUILayout.BeginHorizontal();
 
-        if (SystemManager.Instance.Start)
-        {
-            if (GUILayout.Button("Stop", GUILayout.Width(100)))
-            {
-                //selected.transform.localScale = Vector3.one * Random.Range(0.5f, 1f);
-                mSystem.ThreadStop();
-            }
-        }
-        else
-        {
-            if (GUILayout.Button("Start", GUILayout.Width(100)))
-            {
-                //selected.transform.localScale = Vector3.one * Random.Range(0.5f, 1f);
-                mSystem.ThreadStart();
-            }
-        }
-        string btnname = "Pause";
+        //if (SystemManager.Instance.Start)
+        //{
+        //    if (GUILayout.Button("Stop", GUILayout.Width(100)))
+        //    {
+        //        //selected.transform.localScale = Vector3.one * Random.Range(0.5f, 1f);
+        //        mSystem.ThreadStop();
+        //    }
+        //}
+        //else
+        //{
+        //    if (GUILayout.Button("Start", GUILayout.Width(100)))
+        //    {
+        //        //selected.transform.localScale = Vector3.one * Random.Range(0.5f, 1f);
+        //        mSystem.ThreadStart();
+        //    }
+        //}
+        string btnname = "STOP";
         if (mSystem.bWaitThread)
         {
-            btnname = "Resume";
+            btnname = "START";
         }
         
         if (GUILayout.Button(btnname, GUILayout.Width(100)))
@@ -157,6 +156,7 @@ public class SystemEditor : Editor
             //mSystem.ThreadStop();
         }
 
+        mSystem.Devices = (GameObject)EditorGUILayout.ObjectField("Devices", mSystem.Devices, typeof(GameObject), true);
         mSystem.Bullet = (GameObject)EditorGUILayout.ObjectField("오브젝트", mSystem.Bullet, typeof(GameObject), true);
 
         GUILayout.BeginHorizontal();
