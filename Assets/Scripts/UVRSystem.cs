@@ -46,6 +46,57 @@ public class UVRSystem : MonoBehaviour
 
         sw = new Stopwatch();
     }
+
+
+    /// <summary>
+    /// 접속 devices 관리 용
+    /// </summary>
+    Dictionary<int, GameObject> mConnectedDevices = new Dictionary<int, GameObject>();
+
+    void Start() {
+        //while (true)
+        //{
+        //    if (!SystemManager.Instance.Connect)
+        //        return;
+        //    Debug.Log("Queue = " + MapManager.Instance.MessageQueue.Count);
+        //}
+    }
+
+    void Update() {
+        
+    }
+
+    void DeviceDataReceivedProcess(object sender, DeviceEventArgs e)
+    {
+        
+        int size = e.bdata.Length;
+        float[] fdata = new float[size / 4];
+        Buffer.BlockCopy(e.bdata, 0, fdata, 0, size);
+        int id = (int)fdata[1];
+
+        Debug.Log("Event Test!! " + fdata[0]+"::"+id);
+        try {
+            if (fdata[0] == 1f)
+            {
+                mConnectedDevices[id] = Instantiate(Bullet);
+            }
+            else if (fdata[0] == 2f)
+            {
+                DestroyImmediate(mConnectedDevices[id]);
+                mConnectedDevices[id] = null;
+            }
+            else if (fdata[0] == 3f)
+            {
+
+            }
+        } catch(Exception ex)
+        {
+            Debug.Log(ex.ToString());
+        }
+        
+    }
+
+
     public GameObject targetObj = null;
     public void Connect()
     {
@@ -53,14 +104,21 @@ public class UVRSystem : MonoBehaviour
         string msg = JsonUtility.ToJson(data);
         byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
 
-        UnityWebRequest request = new UnityWebRequest(SystemManager.Instance.ServerAddr + "/Connect");
+        string msg2 = "/Connect";
+        if (SystemManager.Instance.Manager)
+            msg2 += "?port=40000";
+
+        UnityWebRequest request = new UnityWebRequest(SystemManager.Instance.ServerAddr + msg2);
         request.method = "POST";
         UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
         uH.contentType = "application/json";
         request.uploadHandler = uH;
         request.downloadHandler = new DownloadHandlerBuffer();
         UnityWebRequestAsyncOperation res = request.SendWebRequest();
-        targetObj = Instantiate(Bullet);
+
+        //targetObj = Instantiate(Bullet);
+
+        MapManager.Instance.DeviceDataReceived += DeviceDataReceivedProcess;
     }
 
     public void Disconnect()
@@ -78,8 +136,10 @@ public class UVRSystem : MonoBehaviour
         UnityWebRequestAsyncOperation res = request.SendWebRequest();
         Debug.Log("Disconnect!!" + addr);
 
-        DestroyImmediate(targetObj);
-        targetObj = null;
+        MapManager.Instance.DeviceDataReceived -= DeviceDataReceivedProcess;
+
+        //DestroyImmediate(targetObj);
+        //targetObj = null;
     }
 
     public void Reset()
@@ -365,7 +425,7 @@ public class UVRSystem : MonoBehaviour
     {
         bSocDoThread = false;
         bSocThreadStart = false;
-        socthread.Abort();
+        socthread.Join();
     }
 
     private void SocRun()

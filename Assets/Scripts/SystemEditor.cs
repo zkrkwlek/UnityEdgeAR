@@ -11,6 +11,7 @@ using UnityEngine.UI;
 public class SystemEditor : Editor
 {
     public UVRSystem mSystem;
+    //public MapManager mMapManager = new MapManager();
 
     private void OnEnable()
     {
@@ -68,8 +69,10 @@ public class SystemEditor : Editor
             {
                 SystemManager.Instance.Connect = false;
                 mSystem.Disconnect();
-                mSystem.SocThreadStop();
-                //AsyncSocketReceiver.Instance.SendMessage("Disconnect");
+                MapManager.Instance.Disconnect();
+                //mSystem.SocThreadStop();
+                //mMapManager.ThreadStop();
+                
 
                 float[] fdata = new float[1];
                 fdata[0] = 10001f;
@@ -87,10 +90,10 @@ public class SystemEditor : Editor
             {
                 SystemManager.Instance.Connect = true;
                 AsyncSocketReceiver.Instance.Connect("143.248.6.143", 35001);
-                mSystem.SocThreadStart();
-                //AsyncSocketReceiver.Instance.ReceiveMessage();
-                //AsyncSocketReceiver.Instance.SendMessage("Connect");//"143.248.6.143", 35001, 
+                //mSystem.SocThreadStart();
                 mSystem.Connect();
+                //mMapManager.ThreadStart();
+                MapManager.Instance.Connect();
 
                 float[] fdata = new float[1];
                 fdata[0] = 10000f;

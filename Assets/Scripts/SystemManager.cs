@@ -170,7 +170,7 @@ public class SystemManager {
             bMapping = value;
         }
     }
-    static bool bManagerMode = false;
+    static bool bManagerMode = true;
     public bool Manager
     {
         get
