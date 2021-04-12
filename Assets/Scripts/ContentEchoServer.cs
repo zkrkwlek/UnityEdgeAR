@@ -7,26 +7,6 @@ using System.Net.Sockets;
 using System.Threading;
 using UnityEngine;
 
-public class ContentData
-{
-    public ContentData()
-    {
-
-    }
-    public ContentData(GameObject o, Vector3 p, Vector3 r)
-    {
-        pos = p;
-        obj = o;
-        float fAngle = r.magnitude * Mathf.Rad2Deg;
-        q = Quaternion.AngleAxis(fAngle, r.normalized);
-    }
-
-    int id;
-    public Vector3 pos;
-    public Quaternion q;
-    public GameObject obj;
-}
-
 public class ContentEchoServer : MonoBehaviour
 {
     [HideInInspector]
