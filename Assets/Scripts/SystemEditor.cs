@@ -74,12 +74,9 @@ public class SystemEditor : Editor
                 //mMapManager.ThreadStop();
                 
 
-                float[] fdata = new float[1];
-                fdata[0] = 10001f;
-                byte[] bdata = new byte[4];
-                Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-                AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
-                AsyncSocketReceiver.Instance.Disconnect();
+                
+                //AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
+                //AsyncSocketReceiver.Instance.Disconnect();
                 
             }
         }
@@ -88,17 +85,17 @@ public class SystemEditor : Editor
             if (GUILayout.Button("Connect", GUILayout.Width(100)))
             {
                 SystemManager.Instance.Connect = true;
-                AsyncSocketReceiver.Instance.Connect("143.248.6.143", 35001);
+                //AsyncSocketReceiver.Instance.Connect("143.248.6.143", 35001);
                 //mSystem.SocThreadStart();
                 mSystem.Connect();
                 //mMapManager.ThreadStart();
                 MapManager.Instance.Connect();
 
-                float[] fdata = new float[1];
-                fdata[0] = 10000f;
-                byte[] bdata = new byte[4];
-                Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-                AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
+                //float[] fdata = new float[1];
+                //fdata[0] = 10000f;
+                //byte[] bdata = new byte[4];
+                //Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
+                //AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
 
             }
         }
@@ -179,7 +176,7 @@ public class SystemEditor : Editor
         {
             float[] fdata = new float[8];
             int nIdx = 0;
-            fdata[nIdx++] = 1f;         //type : 나중에 다른 것이 추가될 수 있기 떄문에. 콘텐츠만이 아닌 다른 사용자의 위치를 전달할 때 등
+            fdata[nIdx++] = 2f;         //type : 나중에 다른 것이 추가될 수 있기 떄문에. 콘텐츠만이 아닌 다른 사용자의 위치를 전달할 때 등
             fdata[nIdx++] = nContentID; //content id : ray 뿐만이 아닌 배치 이동 등을 수행할 때 구분하기 위함.
             fdata[nIdx++] = mSystem.Center.x;
             fdata[nIdx++] = mSystem.Center.y;
@@ -189,7 +186,8 @@ public class SystemEditor : Editor
             fdata[nIdx++] = mSystem.DIR.z;
             byte[] bdata = new byte[fdata.Length*4];
             Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-            AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
+            mSystem.mListUDPs[0].udp.Send(bdata, bdata.Length);
+            //AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
             //메세지 보낸 후 받은 곳에서 생성하기
         }
         GUILayout.EndHorizontal();

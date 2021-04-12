@@ -16,6 +16,16 @@ using System.Net.Sockets;
 using System.Net;
 using System.Collections.Concurrent;
 
+public struct UdpState
+{
+    public UdpClient udp;
+    public IPEndPoint rep, lep;
+}
+public class UdpEventArgs : EventArgs
+{
+    public byte[] bdata { get; set; }
+}
+
 [ExecuteInEditMode]
 public class UVRSystem : MonoBehaviour
 {
@@ -43,6 +53,98 @@ public class UVRSystem : MonoBehaviour
         SystemManager.Instance.Start = false;
         bWaitThread = true;
         sw = new Stopwatch();
+    }
+    /////////////////////
+    ///UDP 변경
+    /////////////////////
+
+    public List<UdpState> mListUDPs = new List<UdpState>();
+    public UdpState UdpConnect(int port) {
+        UdpState stat = new UdpState();
+        IPEndPoint localEP = new IPEndPoint(IPAddress.Any, port);
+        IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
+        UdpClient udp = new UdpClient(localEP);
+        stat.udp = udp;
+        stat.lep = localEP;
+        stat.rep = remoteEP;
+        //mListUDPs.Add(stat);
+        udp.BeginReceive(new AsyncCallback(ReceiveCallback), stat);
+        return stat;
+    }
+    public UdpState UdpConnect(string rermoteip, int remoteport, int localport)
+    {
+        UdpState stat = new UdpState();
+        IPEndPoint localEP = new IPEndPoint(IPAddress.Any, localport);
+        IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
+        UdpClient udp = new UdpClient(localEP);
+        udp.Connect(IPAddress.Parse(rermoteip), remoteport);
+        stat.udp = udp;
+        stat.lep = localEP;
+        stat.rep = remoteEP;
+        //mListUDPs.Add(stat);
+        udp.BeginReceive(new AsyncCallback(ReceiveCallback), stat);
+        return stat;
+    }
+    public void SendData(UdpState stat,byte[] data)
+    {
+        stat.udp.Send(data, data.Length);
+    }
+    public void UdpDisconnect()
+    {
+        foreach(UdpState stat in mListUDPs)
+        {
+            stat.udp.Close();
+        }
+        mListUDPs.Clear();
+    }
+    public void ReceiveCallback(IAsyncResult ar)
+    {
+        UdpClient udp = ((UdpState)(ar.AsyncState)).udp;
+        IPEndPoint remoteEP = ((UdpState)(ar.AsyncState)).rep;
+        byte[] receiveBytes = udp.EndReceive(ar, ref remoteEP);
+        if (receiveBytes.Length > 0)
+        {
+            UdpEventArgs args = new UdpEventArgs();
+            args.bdata = receiveBytes;
+            OnUdpDataReceived(args);
+            udp.BeginReceive(new AsyncCallback(ReceiveCallback), (UdpState)ar.AsyncState);
+        }
+    }
+    public event EventHandler<UdpEventArgs> UdpDataReceived;
+    public virtual void OnUdpDataReceived(UdpEventArgs e)
+    {
+        EventHandler<UdpEventArgs> handler = UdpDataReceived;
+        if (handler != null)
+        {
+            handler(this, e);
+        }
+    }
+    void UdpDataReceivedProcess(object sender, UdpEventArgs e)
+    {
+
+        int size = e.bdata.Length;
+        float[] fdata = new float[size / 4];
+        Buffer.BlockCopy(e.bdata, 0, fdata, 0, size);
+        cq.Enqueue(fdata);
+        
+        //try {
+        //    if (fdata[0] == 1f)
+        //    {
+        //        mConnectedDevices[id] = Instantiate(Bullet);
+        //    }
+        //    else if (fdata[0] == 2f)
+        //    {
+        //        DestroyImmediate(mConnectedDevices[id]);
+        //        mConnectedDevices[id] = null;
+        //    }
+        //    else if (fdata[0] == 3f)
+        //    {
+
+        //    }
+        //} catch(Exception ex)
+        //{
+        //    Debug.Log(ex.ToString());
+        //}
     }
 
 
@@ -117,6 +219,29 @@ public class UVRSystem : MonoBehaviour
         ////thread start
         ThreadStart();
 
+        //regist event handler
+        UdpDataReceived += UdpDataReceivedProcess;
+
+        //content server
+        try
+        {
+            UdpState cstat = UdpConnect("143.248.6.143", 35001, 40001);
+            mListUDPs.Add(cstat);
+            //connect contetn server
+            float[] fdata = new float[1];
+            fdata[0] = 10000f;
+            byte[] bdata2 = new byte[4];
+            Buffer.BlockCopy(fdata, 0, bdata2, 0, bdata2.Length);
+            cstat.udp.Send(bdata2, bdata2.Length);
+        }
+        catch(Exception ex)
+        {
+            Debug.Log(ex.ToString());
+        }
+        
+
+        //AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
+
         //targetObj = Instantiate(Bullet);
 
         MapManager.Instance.DeviceDataReceived += DeviceDataReceivedProcess;
@@ -137,6 +262,17 @@ public class UVRSystem : MonoBehaviour
         UnityWebRequestAsyncOperation res = request.SendWebRequest();
         Debug.Log("Disconnect!!" + addr);
         ThreadStop();
+
+        //disconnect contents echo server
+        float[] fdata = new float[1];
+        fdata[0] = 10001f;
+        byte[] bdata = new byte[4];
+        Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
+        mListUDPs[0].udp.Send(bdata, 4);
+        UdpDisconnect();
+
+        //remove event handler
+        UdpDataReceived -= UdpDataReceivedProcess;
         MapManager.Instance.DeviceDataReceived -= DeviceDataReceivedProcess;
 
         ////모든 기기 오브젝트 삭제
@@ -326,44 +462,58 @@ public class UVRSystem : MonoBehaviour
 
     IEnumerator DeviceControl()
     {
-        yield return null;
         float[] fdata;
         while(cq.TryDequeue(out fdata))
         {
+            Debug.Log(fdata[0] + " " + fdata[1] + " " + fdata[2]);
             yield return new WaitForFixedUpdate();
-            try
+            if (fdata[0] == 2f)
             {
-                int id = (int)fdata[1];
+                //Debug.Log(rdata[1] + "=" + rdata[2] + " " + rdata[3] + " " + rdata[4] + ":" + rdata[3] + " " + rdata[4] + " " + rdata[5]);
+                int nContentID = (int)fdata[1];
+                int nIDX = 2;
+                Vector3 pos = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                Vector3 rot = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                EditorCoroutineUtility.StartCoroutine(TestCR(pos, rot, 100f), this);
+            }else if(fdata[0] == 1f)
+            {
+                int id = (int)fdata[2];
 
-                if (fdata[0] == 1f)
+                if (fdata[1] == 1f)
                 {
                     mConnectedDevices[id] = Instantiate(Bullet);
                     mConnectedDevices[id].transform.SetParent(Devices.transform);
                 }
-                else if (fdata[0] == 2f)
+                else if (fdata[1] == 2f)
                 {
                     DestroyImmediate(mConnectedDevices[id]);
                     mConnectedDevices[id] = null;
                 }
-                else if (fdata[0] == 3f)
+                else if (fdata[1] == 3f)
                 {
                     GameObject obj = mConnectedDevices[id];
-                    Matrix3x3 R = new Matrix3x3(fdata[2], fdata[3], fdata[4], fdata[5], fdata[6], fdata[7], fdata[8], fdata[9], fdata[10]);
-                    Vector3 t = new Vector3(fdata[11], fdata[12], fdata[13]);
-                    Center = -(R.Transpose() * t);
+                    int nIDX = 3;
+                    Matrix3x3 R = new Matrix3x3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                    Vector3 t = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                    Vector3 pos = -(R.Transpose() * t);
 
                     ////업데이트 카메라 포즈
                     Vector3 mAxis = R.LOG();
                     float mAngle = mAxis.magnitude * Mathf.Rad2Deg;
                     mAxis = mAxis.normalized;
                     Quaternion rotation = Quaternion.AngleAxis(mAngle, mAxis);
-                    obj.transform.SetPositionAndRotation(Center, rotation);
+                    obj.transform.SetPositionAndRotation(pos, rotation);
                 }
             }
-            catch (Exception ex)
-            {
-                Debug.Log(ex.ToString());
-            }
+            
+            //try
+            //{
+                
+            //}
+            //catch (Exception ex)
+            //{
+            //    Debug.Log(ex.ToString());
+            //}
         }
         
     }
