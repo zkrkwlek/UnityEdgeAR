@@ -134,7 +134,6 @@ public class UVRSystem : MonoBehaviour
     /// </summary>
     ConcurrentQueue<float[]> cq = new ConcurrentQueue<float[]>();
     public Dictionary<int, GameObject> mConnectedDevices = new Dictionary<int, GameObject>();
-    int nFirstKey = -1;
 
     void Start() {
         //while (true)
@@ -446,8 +445,6 @@ public class UVRSystem : MonoBehaviour
 
                 if (fdata[1] == 1f)
                 {
-                    if (mConnectedDevices.Count == 0)
-                        nFirstKey = id;
                     mConnectedDevices[id] = Instantiate(Bullet);
                     mConnectedDevices[id].transform.SetParent(Devices.transform);
                 }
