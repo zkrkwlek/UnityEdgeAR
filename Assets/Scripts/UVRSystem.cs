@@ -242,55 +242,7 @@ public class UVRSystem : MonoBehaviour
     public Vector3 Center = new Vector3(0f, 0f, 0f);
     public Vector3 DIR = new Vector3(0f, 0f, 0f);
     int prevID = -1;
-    public GameObject targetObj; //삭제 예정
-    IEnumerator GetReferenceInfoCoroutine()
-    {
-        yield return null;
-        string addr = SystemManager.Instance.ServerAddr + "/SendData?map=" + SystemManager.Instance.Map + "&attr=Users&id=" + SystemManager.Instance.User + "&key=refid";
-        UnityWebRequest request = new UnityWebRequest(addr);
-        request.method = "POST";
-        request.downloadHandler = new DownloadHandlerBuffer();
-        UnityWebRequestAsyncOperation res = request.SendWebRequest();
-        while (!request.downloadHandler.isDone)
-        {
-            yield return new WaitForFixedUpdate();
-        }
-        nRefID = BitConverter.ToInt32(request.downloadHandler.data, 0);
-        if (nRefID != -1 && nRefID != prevID)
-        {
-            string addr2 = SystemManager.Instance.ServerAddr + "/SendData?map=" + SystemManager.Instance.Map + "&id=" + nRefID + "&key=bpose";
-            request = new UnityWebRequest(addr2);
-            request.method = "POST";
-            request.downloadHandler = new DownloadHandlerBuffer();
-            res = request.SendWebRequest();
-            while (!request.downloadHandler.isDone)
-            {
-                yield return new WaitForFixedUpdate();
-            }
-
-            byte[] bdata = request.downloadHandler.data;
-            float[] framepose = new float[bdata.Length / 4];
-            Buffer.BlockCopy(bdata, 0, framepose, 0, bdata.Length);
-            //Debug.Log(framedata.Length+" "+framepose.Length);
-
-            ////카메라 자세 획득 및 카메라 위치 추정
-            Matrix3x3 R = new Matrix3x3(framepose[0], framepose[1], framepose[2], framepose[3], framepose[4], framepose[5], framepose[6], framepose[7], framepose[8]);
-
-            Vector3 t = new Vector3(framepose[9], framepose[10], framepose[11]);
-            Debug.Log(prevID + "::" + t.ToString());
-            Center = -(R.Transpose() * t);
-
-            ////업데이트 카메라 포즈
-            Vector3 mAxis = R.LOG();
-            DIR = mAxis;
-
-            float mAngle = mAxis.magnitude * Mathf.Rad2Deg;
-            mAxis = mAxis.normalized;
-            Quaternion rotation = Quaternion.AngleAxis(mAngle, mAxis);
-            targetObj.transform.SetPositionAndRotation(Center, rotation);
-            prevID = nRefID;
-        }
-    }
+    
     Stopwatch sw;
 
     IEnumerator MappingCoroutine()
@@ -477,61 +429,6 @@ public class UVRSystem : MonoBehaviour
         return go;
     }
     
-    /// <summary>
-    /// 소켓 쓰레드는 전부 삭제 예정
-    /// </summary>
-    private Thread socthread;
-    public bool bSocThreadStart = false;
-    public bool bSocDoThread = false;
-    public void SocThreadStart()
-    {
-        Debug.Log("thread start!!");
-        if (!bSocThreadStart)
-        {
-            bSocDoThread = true;
-            bSocThreadStart = true;
-            socthread = new Thread(SocRun);
-            socthread.Start();
-        }
-    }
-    public void SocThreadStop()
-    {
-        bSocDoThread = false;
-        bSocThreadStart = false;
-        socthread.Join();
-    }
-
-    private void SocRun()
-    {
-        while (bSocDoThread)
-        {
-            try
-            {
-                //EndPoint ep = AsyncSocketReceiver.Instance.RemoteEP;
-                //int bytes = AsyncSocketReceiver.Instance.SOCKET.ReceiveFrom(AsyncSocketReceiver.Instance.BUFFER, AsyncSocketReceiver.Instance.BUFSIZE, SocketFlags.None, ref ep);
-                //AsyncSocketReceiver.Instance.RemoteEP = ep;
-                //float[] rdata = new float[bytes / 4];
-                //Buffer.BlockCopy(AsyncSocketReceiver.Instance.BUFFER, 0, rdata, 0, bytes);
-                //Debug.Log(rdata[1] +"="+rdata[2] + " " + rdata[3] + " " + rdata[4] + ":" + rdata[3] + " " + rdata[4] + " " + rdata[5]);
-                //int nContentID = (int)rdata[1];
-
-                //int nIDX = 2;
-                //Vector3 pos = new Vector3(rdata[nIDX++], rdata[nIDX++], rdata[nIDX++]);
-                //Vector3 rot = new Vector3(rdata[nIDX++], rdata[nIDX++], rdata[nIDX++]);
-                ////ContentStart(pos, rot);
-                ////TestCoroutine(pos, rot);
-                //EditorCoroutineUtility.StartCoroutine(TestCR(pos, rot, 100f), this);
-            }
-            catch (Exception e)
-            {
-                e.ToString();
-            }
-
-            //ReceiveMessage();
-            //receiveDone.WaitOne();
-        }
-    }
-
     IEnumerator TestCR(Vector3 pos, Vector3 rot, float dist)
     {
         GameObject go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
