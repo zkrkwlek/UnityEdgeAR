@@ -19,9 +19,9 @@ public class ContentManager
     }
 
     static void LoadContentNames() {
-        objs.Add("Prefab/Device.prefab");
-        objs.Add("Prefab/Bullet.prefab");
-        objs.Add("Prefab/GrassBlock.prefab");
+        objs.Add("Prefabs/Device");
+        objs.Add("Prefabs/Bullet");
+        objs.Add("Prefabs/GrassBlock");
     }
 
     public enum ContentIDs :int
