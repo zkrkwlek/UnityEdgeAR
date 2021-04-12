@@ -126,25 +126,6 @@ public class UVRSystem : MonoBehaviour
         float[] fdata = new float[size / 4];
         Buffer.BlockCopy(e.bdata, 0, fdata, 0, size);
         cq.Enqueue(fdata);
-        
-        //try {
-        //    if (fdata[0] == 1f)
-        //    {
-        //        mConnectedDevices[id] = Instantiate(Bullet);
-        //    }
-        //    else if (fdata[0] == 2f)
-        //    {
-        //        DestroyImmediate(mConnectedDevices[id]);
-        //        mConnectedDevices[id] = null;
-        //    }
-        //    else if (fdata[0] == 3f)
-        //    {
-
-        //    }
-        //} catch(Exception ex)
-        //{
-        //    Debug.Log(ex.ToString());
-        //}
     }
 
 
@@ -153,6 +134,7 @@ public class UVRSystem : MonoBehaviour
     /// </summary>
     ConcurrentQueue<float[]> cq = new ConcurrentQueue<float[]>();
     Dictionary<int, GameObject> mConnectedDevices = new Dictionary<int, GameObject>();
+    int nFirstKey = -1;
 
     void Start() {
         //while (true)
@@ -176,24 +158,6 @@ public class UVRSystem : MonoBehaviour
         cq.Enqueue(fdata);
         int id = (int)fdata[1];
         
-        //try {
-        //    if (fdata[0] == 1f)
-        //    {
-        //        mConnectedDevices[id] = Instantiate(Bullet);
-        //    }
-        //    else if (fdata[0] == 2f)
-        //    {
-        //        DestroyImmediate(mConnectedDevices[id]);
-        //        mConnectedDevices[id] = null;
-        //    }
-        //    else if (fdata[0] == 3f)
-        //    {
-
-        //    }
-        //} catch(Exception ex)
-        //{
-        //    Debug.Log(ex.ToString());
-        //}
     }
 
 
@@ -281,6 +245,7 @@ public class UVRSystem : MonoBehaviour
             DestroyImmediate(Devices.transform.GetChild(i).gameObject);
         }
         Devices.transform.DetachChildren();
+        mConnectedDevices.Clear();
 
         //DestroyImmediate(targetObj);
         //targetObj = null;
@@ -481,6 +446,8 @@ public class UVRSystem : MonoBehaviour
 
                 if (fdata[1] == 1f)
                 {
+                    if (mConnectedDevices.Count == 0)
+                        nFirstKey = id;
                     mConnectedDevices[id] = Instantiate(Bullet);
                     mConnectedDevices[id].transform.SetParent(Devices.transform);
                 }

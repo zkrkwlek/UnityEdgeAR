@@ -13,7 +13,6 @@ public class BulletControl : MonoBehaviour
 
     void Start()
     {
-        Debug.Log("Start bullet!!");
         tr = this.GetComponent<Transform>();
         spawnPoint = tr.position;
     }

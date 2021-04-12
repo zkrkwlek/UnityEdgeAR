@@ -1,26 +1,54 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using UnityEngine;
 
+public class ContentData
+{
+    public ContentData()
+    {
+
+    }
+    public ContentData(GameObject o, Vector3 p, Vector3 r)
+    {
+        pos = p;
+        obj = o;
+        float fAngle = r.magnitude * Mathf.Rad2Deg;
+        q = Quaternion.AngleAxis(fAngle, r.normalized);
+    }
+
+    int id;
+    public Vector3 pos;
+    public Quaternion q;
+    public GameObject obj;
+}
+
 public class ContentEchoServer : MonoBehaviour
 {
     [HideInInspector]
     public bool bConnect = false;
+    public GameObject rayPrefab;
 
+    ConcurrentQueue<ContentData> cq;
 
     // Start is called before the first frame update
     void Start()
     {
-        
+        cq = new ConcurrentQueue<ContentData>();
     }
 
     // Update is called once per frame
     void Update()
     {
+        ContentData cd;
+        if(cq.TryDequeue(out cd))
+        {
+            Instantiate(cd.obj, cd.pos, cd.q);
+        }
     }
 
     private Thread socthread;
@@ -47,10 +75,14 @@ public class ContentEchoServer : MonoBehaviour
                 float[] rdata = new float[bytes / 4];
                 Buffer.BlockCopy(AsyncSocketReceiver.Instance.BUFFER, 0, rdata, 0, bytes);
                 Debug.Log("Received = "+rdata[0] + " " + rdata[1] + " " + rdata[2] + ":" + rdata[3] + " " + rdata[4] + " " + rdata[5]);
-                Vector3 pos = new Vector3(rdata[0], rdata[1], rdata[2]);
-                Vector3 rot = new Vector3(rdata[3], rdata[4], rdata[5]);
-                Debug.Log("asdf");
-                StartCoroutine(CretaeContentTest());
+                int nIDX = 2;
+                Vector3 pos = new Vector3(rdata[nIDX++], rdata[nIDX++], rdata[nIDX++]);
+                Vector3 rot = new Vector3(rdata[nIDX++], rdata[nIDX++], rdata[nIDX++]);
+                cq.Enqueue(new ContentData(rayPrefab, pos, rot));
+                //float fAngle = rot.magnitude * Mathf.Rad2Deg;
+                //Quaternion q = Quaternion.AngleAxis(fAngle, rot.normalized);
+                ////StartCoroutine("CretaeContentTest");
+                //Instantiate(rayPrefab, pos, q);
                 //StartCoroutine(CretaeContent(pos, rot, 100f));
                 Debug.Log("defgh");
             }
