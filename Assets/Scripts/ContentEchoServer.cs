@@ -69,22 +69,23 @@ public class ContentEchoServer : MonoBehaviour
         {
             try
             {
-                EndPoint ep = AsyncSocketReceiver.Instance.RemoteEP;
-                int bytes = AsyncSocketReceiver.Instance.SOCKET.ReceiveFrom(AsyncSocketReceiver.Instance.BUFFER, AsyncSocketReceiver.Instance.BUFSIZE, SocketFlags.None, ref ep);
-                AsyncSocketReceiver.Instance.RemoteEP = ep;
-                float[] rdata = new float[bytes / 4];
-                Buffer.BlockCopy(AsyncSocketReceiver.Instance.BUFFER, 0, rdata, 0, bytes);
-                Debug.Log("Received = "+rdata[0] + " " + rdata[1] + " " + rdata[2] + ":" + rdata[3] + " " + rdata[4] + " " + rdata[5]);
-                int nIDX = 2;
-                Vector3 pos = new Vector3(rdata[nIDX++], rdata[nIDX++], rdata[nIDX++]);
-                Vector3 rot = new Vector3(rdata[nIDX++], rdata[nIDX++], rdata[nIDX++]);
-                cq.Enqueue(new ContentData(rayPrefab, pos, rot));
-                //float fAngle = rot.magnitude * Mathf.Rad2Deg;
-                //Quaternion q = Quaternion.AngleAxis(fAngle, rot.normalized);
-                ////StartCoroutine("CretaeContentTest");
-                //Instantiate(rayPrefab, pos, q);
-                //StartCoroutine(CretaeContent(pos, rot, 100f));
-                Debug.Log("defgh");
+                //EndPoint ep = AsyncSocketReceiver.Instance.RemoteEP;
+                //int bytes = AsyncSocketReceiver.Instance.SOCKET.ReceiveFrom(AsyncSocketReceiver.Instance.BUFFER, AsyncSocketReceiver.Instance.BUFSIZE, SocketFlags.None, ref ep);
+                //AsyncSocketReceiver.Instance.RemoteEP = ep;
+                //float[] rdata = new float[bytes / 4];
+                //Buffer.BlockCopy(AsyncSocketReceiver.Instance.BUFFER, 0, rdata, 0, bytes);
+                //Debug.Log("Received = "+rdata[0] + " " + rdata[1] + " " + rdata[2] + ":" + rdata[3] + " " + rdata[4] + " " + rdata[5]);
+                //int nIDX = 2;
+                //Vector3 pos = new Vector3(rdata[nIDX++], rdata[nIDX++], rdata[nIDX++]);
+                //Vector3 rot = new Vector3(rdata[nIDX++], rdata[nIDX++], rdata[nIDX++]);
+                //cq.Enqueue(new ContentData(rayPrefab, pos, rot));
+                ////float fAngle = rot.magnitude * Mathf.Rad2Deg;
+                ////Quaternion q = Quaternion.AngleAxis(fAngle, rot.normalized);
+                //////StartCoroutine("CretaeContentTest");
+                ////Instantiate(rayPrefab, pos, q);
+                ////StartCoroutine(CretaeContent(pos, rot, 100f));
+                //Debug.Log("defgh");
+
             }
             catch (Exception e)
             {

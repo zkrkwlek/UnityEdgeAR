@@ -477,7 +477,9 @@ public class UVRSystem : MonoBehaviour
         return go;
     }
     
-
+    /// <summary>
+    /// 소켓 쓰레드는 전부 삭제 예정
+    /// </summary>
     private Thread socthread;
     public bool bSocThreadStart = false;
     public bool bSocDoThread = false;
@@ -505,20 +507,20 @@ public class UVRSystem : MonoBehaviour
         {
             try
             {
-                EndPoint ep = AsyncSocketReceiver.Instance.RemoteEP;
-                int bytes = AsyncSocketReceiver.Instance.SOCKET.ReceiveFrom(AsyncSocketReceiver.Instance.BUFFER, AsyncSocketReceiver.Instance.BUFSIZE, SocketFlags.None, ref ep);
-                AsyncSocketReceiver.Instance.RemoteEP = ep;
-                float[] rdata = new float[bytes / 4];
-                Buffer.BlockCopy(AsyncSocketReceiver.Instance.BUFFER, 0, rdata, 0, bytes);
-                Debug.Log(rdata[1] +"="+rdata[2] + " " + rdata[3] + " " + rdata[4] + ":" + rdata[3] + " " + rdata[4] + " " + rdata[5]);
-                int nContentID = (int)rdata[1];
+                //EndPoint ep = AsyncSocketReceiver.Instance.RemoteEP;
+                //int bytes = AsyncSocketReceiver.Instance.SOCKET.ReceiveFrom(AsyncSocketReceiver.Instance.BUFFER, AsyncSocketReceiver.Instance.BUFSIZE, SocketFlags.None, ref ep);
+                //AsyncSocketReceiver.Instance.RemoteEP = ep;
+                //float[] rdata = new float[bytes / 4];
+                //Buffer.BlockCopy(AsyncSocketReceiver.Instance.BUFFER, 0, rdata, 0, bytes);
+                //Debug.Log(rdata[1] +"="+rdata[2] + " " + rdata[3] + " " + rdata[4] + ":" + rdata[3] + " " + rdata[4] + " " + rdata[5]);
+                //int nContentID = (int)rdata[1];
 
-                int nIDX = 2;
-                Vector3 pos = new Vector3(rdata[nIDX++], rdata[nIDX++], rdata[nIDX++]);
-                Vector3 rot = new Vector3(rdata[nIDX++], rdata[nIDX++], rdata[nIDX++]);
-                //ContentStart(pos, rot);
-                //TestCoroutine(pos, rot);
-                EditorCoroutineUtility.StartCoroutine(TestCR(pos, rot, 100f), this);
+                //int nIDX = 2;
+                //Vector3 pos = new Vector3(rdata[nIDX++], rdata[nIDX++], rdata[nIDX++]);
+                //Vector3 rot = new Vector3(rdata[nIDX++], rdata[nIDX++], rdata[nIDX++]);
+                ////ContentStart(pos, rot);
+                ////TestCoroutine(pos, rot);
+                //EditorCoroutineUtility.StartCoroutine(TestCR(pos, rot, 100f), this);
             }
             catch (Exception e)
             {

@@ -119,8 +119,10 @@ public class DeviceController : MonoBehaviour
                 fdata[0] = 10001f;
                 byte[] bdata = new byte[4];
                 Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-                AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
-                AsyncSocketReceiver.Instance.Disconnect();
+
+                //AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
+                //AsyncSocketReceiver.Instance.Disconnect();
+                
                 //////Disconnect Echo Server
                 mEchoServer.bConnect = false;
                 mEchoServer.StopEchoClient();
@@ -135,12 +137,13 @@ public class DeviceController : MonoBehaviour
                 mEchoServer.bConnect = true;
                 mEchoServer.StartEchoClient();
                 //////Connect Echo Server
-                AsyncSocketReceiver.Instance.Connect("143.248.6.143", 35001);
+
+                //AsyncSocketReceiver.Instance.Connect("143.248.6.143", 35001);
                 float[] fdata = new float[1];
                 fdata[0] = 10000f;
                 byte[] bdata = new byte[4];
                 Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-                AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
+                //AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
                 //////Connect Echo Server
             }
         }
@@ -466,7 +469,7 @@ public class DeviceController : MonoBehaviour
                 fdata[nIDX++] = ray.direction.z;
                 byte[] bdata = new byte[fdata.Length*4];
                 Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-                AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
+                //AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
             } catch(Exception e)
             {
                 Debug.Log(e.ToString());
