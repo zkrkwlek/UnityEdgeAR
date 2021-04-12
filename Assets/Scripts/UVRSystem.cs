@@ -232,13 +232,11 @@ public class UVRSystem : MonoBehaviour
                 break;
             }
             EditorCoroutineUtility.StartCoroutine(MappingCoroutine(), this);
-            //EditorCoroutineUtility.StartCoroutine(GetReferenceInfoCoroutine(), this);
         }
 
     }
     public GameObject Devices;
-    public GameObject Bullet;
-    
+        
     public Vector3 Center = new Vector3(0f, 0f, 0f);
     public Vector3 DIR = new Vector3(0f, 0f, 0f);
     int prevID = -1;
@@ -285,7 +283,17 @@ public class UVRSystem : MonoBehaviour
         }
         
     }
-
+    /// <summary>
+    /// 인덱스 0 = 전체 메소드= 1:접속 기기 관리, 2: 컨텐츠
+    /// ##접속기기 관리
+    /// 1 = 메소드 = 1:등록, 2:삭제, 3:갱신
+    /// 이후는 필요한 추가 데이터
+    /// ##콘텐츠 관리
+    /// 1 = 메소드 = 정리 필요
+    /// 2 = 모델ID = 0:기기, 1:불렛, 2:블락, 이후 추가
+    /// 이후는 필요한 추가 데이터
+    /// </summary>
+    /// <returns></returns>
     IEnumerator DeviceControl()
     {
         float[] fdata;

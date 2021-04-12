@@ -134,8 +134,7 @@ public class SystemEditor : Editor
         }
 
         mSystem.Devices = (GameObject)EditorGUILayout.ObjectField("Devices", mSystem.Devices, typeof(GameObject), true);
-        mSystem.Bullet = (GameObject)EditorGUILayout.ObjectField("오브젝트", mSystem.Bullet, typeof(GameObject), true);
-
+        
         GUILayout.BeginHorizontal();
         EditorGUILayout.LabelField("POS", GUILayout.Width(75f));
         EditorGUILayout.FloatField(mSystem.Center.x, GUILayout.Width(75f));
