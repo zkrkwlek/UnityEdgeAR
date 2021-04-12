@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 3299945237045297634}
   - component: {fileID: 7716442140428572998}
   - component: {fileID: 3833730254420491983}
-  - component: {fileID: -5392021905072684602}
+  - component: {fileID: 5646566101061789177}
   m_Layer: 0
   m_Name: Bullet
   m_TagString: Untagged
@@ -59,7 +59,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: c6cada9b1457dea47aec2a6ba5a0ce04, type: 2}
+  - {fileID: 2100000, guid: 065d5f620c463424d9a3c93627727f11, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -93,7 +93,7 @@ SphereCollider:
   serializedVersion: 2
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &-5392021905072684602
+--- !u!114 &5646566101061789177
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -102,7 +102,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 2593380700681886557}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aad963706a7179a4abfb6ae06f93624b, type: 3}
+  m_Script: {fileID: 11500000, guid: a302c04bc380b1e4da35bb80ecf2c295, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 10
