@@ -336,7 +336,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 7, y: -8, z: 7, w: 1.5e-44}
+  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
@@ -743,6 +743,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bConnect: 0
+  rayPrefab: {fileID: 2593380700681886557, guid: ea26b949b3c322f48aaca37cd1332b4a,
+    type: 3}
 --- !u!114 &1845856405
 MonoBehaviour:
   m_ObjectHideFlags: 0

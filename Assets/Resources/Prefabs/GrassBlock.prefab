@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 8891449469399653437}
   - component: {fileID: 8891449469399653434}
   m_Layer: 0
-  m_Name: MinecraftBlock
+  m_Name: GrassBlock
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -59,7 +59,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: d8e32f21524fece459ae8de5d8c03d33, type: 2}
+  - {fileID: 2100000, guid: 33528e9c712955b4493fbcfc26685cc4, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
