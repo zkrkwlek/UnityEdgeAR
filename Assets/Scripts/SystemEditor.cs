@@ -69,15 +69,6 @@ public class SystemEditor : Editor
             {
                 SystemManager.Instance.Connect = false;
                 mSystem.Disconnect();
-                MapManager.Instance.Disconnect();
-                //mSystem.SocThreadStop();
-                //mMapManager.ThreadStop();
-                
-
-                
-                //AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
-                //AsyncSocketReceiver.Instance.Disconnect();
-                
             }
         }
         else
@@ -85,18 +76,7 @@ public class SystemEditor : Editor
             if (GUILayout.Button("Connect", GUILayout.Width(100)))
             {
                 SystemManager.Instance.Connect = true;
-                //AsyncSocketReceiver.Instance.Connect("143.248.6.143", 35001);
-                //mSystem.SocThreadStart();
                 mSystem.Connect();
-                //mMapManager.ThreadStart();
-                MapManager.Instance.Connect();
-
-                //float[] fdata = new float[1];
-                //fdata[0] = 10000f;
-                //byte[] bdata = new byte[4];
-                //Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-                //AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
-
             }
         }
 
