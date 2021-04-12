@@ -174,21 +174,26 @@ public class SystemEditor : Editor
         nContentID = EditorGUILayout.FloatField(nContentID, GUILayout.Width(75f));
         if (GUILayout.Button("Echo test : send", GUILayout.Width(100)))
         {
-            float[] fdata = new float[8];
-            int nIdx = 0;
-            fdata[nIdx++] = 2f;         //type : 나중에 다른 것이 추가될 수 있기 떄문에. 콘텐츠만이 아닌 다른 사용자의 위치를 전달할 때 등
-            fdata[nIdx++] = nContentID; //content id : ray 뿐만이 아닌 배치 이동 등을 수행할 때 구분하기 위함.
-            fdata[nIdx++] = mSystem.Center.x;
-            fdata[nIdx++] = mSystem.Center.y;
-            fdata[nIdx++] = mSystem.Center.z;
-            fdata[nIdx++] = mSystem.DIR.x;
-            fdata[nIdx++] = mSystem.DIR.y;
-            fdata[nIdx++] = mSystem.DIR.z;
-            byte[] bdata = new byte[fdata.Length*4];
-            Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-            mSystem.mListUDPs[0].udp.Send(bdata, bdata.Length);
-            //AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
-            //메세지 보낸 후 받은 곳에서 생성하기
+            //float[] fdata = new float[8];
+            //int nIdx = 0;
+            //fdata[nIdx++] = 2f;         //type : 나중에 다른 것이 추가될 수 있기 떄문에. 콘텐츠만이 아닌 다른 사용자의 위치를 전달할 때 등
+            //fdata[nIdx++] = nContentID; //content id : ray 뿐만이 아닌 배치 이동 등을 수행할 때 구분하기 위함.
+            //if (mSystem.nFirstKey != -1)
+            //{
+            //    Transform tran = mSystem.mConnectedDevices[mSystem.nFirstKey].transform;
+            //    tran.ro
+            //}
+            //fdata[nIdx++] = mSystem.Center.x;
+            //fdata[nIdx++] = mSystem.Center.y;
+            //fdata[nIdx++] = mSystem.Center.z;
+            //fdata[nIdx++] = mSystem.DIR.x;
+            //fdata[nIdx++] = mSystem.DIR.y;
+            //fdata[nIdx++] = mSystem.DIR.z;
+            //byte[] bdata = new byte[fdata.Length*4];
+            //Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
+            //mSystem.mListUDPs[0].udp.Send(bdata, bdata.Length);
+            ////AsyncSocketReceiver.Instance.SendData(bdata);//"143.248.6.143", 35001, 
+            ////메세지 보낸 후 받은 곳에서 생성하기
         }
         GUILayout.EndHorizontal();
     }
