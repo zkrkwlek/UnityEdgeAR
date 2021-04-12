@@ -305,17 +305,22 @@ public class UVRSystem : MonoBehaviour
             {
                 //Debug.Log(rdata[1] + "=" + rdata[2] + " " + rdata[3] + " " + rdata[4] + ":" + rdata[3] + " " + rdata[4] + " " + rdata[5]);
                 int nContentID = (int)fdata[1];
-                int nIDX = 2;
+                int nModelID = (int)fdata[2];
+                int nIDX = 3;
                 Vector3 pos = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
                 Vector3 rot = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-                EditorCoroutineUtility.StartCoroutine(TestCR(pos, rot, 100f), this);
-            }else if(fdata[0] == 1f)
+                ContentData c = new ContentData(ContentManager.Instance.ContentNames[nModelID],pos, rot);
+                Instantiate(c.obj, c.pos, c.q);
+                //EditorCoroutineUtility.StartCoroutine(TestCR(pos, rot, 100f), this);
+            }
+            else if(fdata[0] == 1f)
             {
                 int id = (int)fdata[2];
 
                 if (fdata[1] == 1f)
                 {
-                    mConnectedDevices[id] = Instantiate(Bullet);
+                    ContentData c = new ContentData(ContentManager.Instance.ContentNames[0], Vector3.zero, Vector3.zero);
+                    mConnectedDevices[id] = Instantiate(c.obj);
                     mConnectedDevices[id].transform.SetParent(Devices.transform);
                 }
                 else if (fdata[1] == 2f)
@@ -339,15 +344,7 @@ public class UVRSystem : MonoBehaviour
                     obj.transform.SetPositionAndRotation(pos, rotation);
                 }
             }
-            
-            //try
-            //{
-                
-            //}
-            //catch (Exception ex)
-            //{
-            //    Debug.Log(ex.ToString());
-            //}
+         
         }
         
     }
