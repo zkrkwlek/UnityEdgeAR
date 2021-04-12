@@ -15,3 +15,4 @@ Assets/Plugins
 *.csproj
 *.sln
 *.VC.db
+Assets/Scenes/DesktopManager.unity
