@@ -133,7 +133,7 @@ public class UVRSystem : MonoBehaviour
     /// 접속 devices 관리 용
     /// </summary>
     ConcurrentQueue<float[]> cq = new ConcurrentQueue<float[]>();
-    Dictionary<int, GameObject> mConnectedDevices = new Dictionary<int, GameObject>();
+    public Dictionary<int, GameObject> mConnectedDevices = new Dictionary<int, GameObject>();
     int nFirstKey = -1;
 
     void Start() {
