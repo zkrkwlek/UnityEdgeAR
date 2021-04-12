@@ -47,9 +47,7 @@ public class ContentEchoServer : MonoBehaviour
         ContentData cd;
         if(cq.TryDequeue(out cd))
         {
-            Debug.Log("start");
             Instantiate(cd.obj, cd.pos, cd.q);
-            Debug.Log("end");
         }
     }
 

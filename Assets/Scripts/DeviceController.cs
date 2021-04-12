@@ -456,11 +456,11 @@ public class DeviceController : MonoBehaviour
                 //Debug.Log("dir = "+touchDir.x+" "+touchDir.y+ " "+touchDir.z);
                 float[] fdata = new float[8];
                 int nIDX = 0;
-                fdata[nIDX++] = 1f;
-                fdata[nIDX++] = 0f;
-                fdata[nIDX++] = ray.origin.x;//Center.x;
-                fdata[nIDX++] = ray.origin.y;//Center.y;
-                fdata[nIDX++] = ray.origin.z;//Center.z;
+                fdata[nIDX++] = 2f; //method type = 1 : manager, 2 = content
+                fdata[nIDX++] = 0f; //content id
+                fdata[nIDX++] = Center.x; //ray.origin.x;//Center.x;
+                fdata[nIDX++] = Center.y; //ray.origin.y;//Center.y;
+                fdata[nIDX++] = Center.z; //ray.origin.z;//Center.z;
                 fdata[nIDX++] = ray.direction.x;
                 fdata[nIDX++] = ray.direction.y;
                 fdata[nIDX++] = ray.direction.z;
@@ -584,6 +584,7 @@ public class DeviceController : MonoBehaviour
             request.method = "POST";
             request.downloadHandler = new DownloadHandlerBuffer();
             res = request.SendWebRequest();
+            
             while (!request.downloadHandler.isDone)
             {
                 yield return new WaitForFixedUpdate();
@@ -608,11 +609,8 @@ public class DeviceController : MonoBehaviour
             float mAngle = mAxis.magnitude * Mathf.Rad2Deg;
             mAxis = mAxis.normalized;
             Quaternion rotation = Quaternion.AngleAxis(mAngle, mAxis);
-            if(rotation.w < 0.0)
-            {
-                Debug.Log(rotation.ToString());
-            }
-            gameObject.transform.SetPositionAndRotation(Center, rotation);
+            Quaternion q = Matrix3x3.RotToQuar(R);
+            gameObject.transform.SetPositionAndRotation(Center, q);
             prevID = nRefID;
         }
     }
