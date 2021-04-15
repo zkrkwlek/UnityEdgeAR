@@ -12,8 +12,8 @@ public class Matrix3x3
     //로우별
     //곱하기
     //인버스
-    Vector3 row1, row2, row3;
-    Vector3 col1, col2, col3;
+    public Vector3 row1, row2, row3;
+    public Vector3 col1, col2, col3;
     public float m00, m01, m02;
     public float m10, m11, m12;
     public float m20, m21, m22;
