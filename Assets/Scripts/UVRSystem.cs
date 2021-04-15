@@ -64,13 +64,9 @@ public class UVRSystem : MonoBehaviour
     public Dictionary<int, GameObject> mConnectedDevices = new Dictionary<int, GameObject>();
 
     void Start() {
-        //while (true)
-        //{
-        //    if (!SystemManager.Instance.Connect)
-        //        return;
-        //    Debug.Log("Queue = " + MapManager.Instance.MessageQueue.Count);
-        //}
+        
     }
+    
 
     void Update() {
         
@@ -150,7 +146,9 @@ public class UVRSystem : MonoBehaviour
         ////모든 기기 오브젝트 삭제
         for(int i = 0, iend = Devices.transform.childCount; i < iend; i++)
         {
-            DestroyImmediate(Devices.transform.GetChild(i).gameObject);
+            GameObject go = Devices.transform.GetChild(i).gameObject;
+            if(go!=null)
+                DestroyImmediate(Devices.transform.GetChild(i).gameObject);
         }
         Devices.transform.DetachChildren();
         mConnectedDevices.Clear();
