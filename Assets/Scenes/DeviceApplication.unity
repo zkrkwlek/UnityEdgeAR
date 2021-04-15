@@ -336,7 +336,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 3.1993887e+21}
   m_UseBoundingSphereOverride: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
@@ -431,7 +431,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -10}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 1845856403}
@@ -605,7 +605,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1272706955}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -10}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 1845856403}
@@ -706,7 +706,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1845856403}
   - component: {fileID: 1845856405}
-  - component: {fileID: 1845856404}
   m_Layer: 0
   m_Name: UVRCamera
   m_TagString: Untagged
@@ -730,21 +729,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1845856404
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1845856402}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8fc8ad77b984afd468a138824d4a1a23, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  bConnect: 0
-  rayPrefab: {fileID: 2593380700681886557, guid: ea26b949b3c322f48aaca37cd1332b4a,
-    type: 3}
 --- !u!114 &1845856405
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -754,7 +738,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1845856402}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 66723a10a6aac684eaa7f3644fed9e5d, type: 3}
+  m_Script: {fileID: 11500000, guid: 45b843a2a8baed94f836d56d6f6dcf01, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   Center: {x: 0, y: 0, z: 0}
