@@ -18,15 +18,6 @@ public class TouchEventArgs : EventArgs
     public Vector2 pos;
     public Ray ray;
 }
-public class DeviceOrientationChangeEventArgs : EventArgs
-{
-    ////screen과 image scale
-    //public float Scale;
-    ////버튼 생성시 추가
-    //public Rect rect1, rect2, rect3, rect4;
-    ////백그라운드 image의 위치 조정
-    //int additional;
-}
 
 public class DeviceController : MonoBehaviour
 {
@@ -48,67 +39,24 @@ public class DeviceController : MonoBehaviour
     private int rectWidth = 200;
     private int rectHeight = 80;
     Rect rect1, rect2, rect3, rect4;
-
-    public event EventHandler<DeviceOrientationChangeEventArgs> OrientationChanged;
-    public virtual void OnOrientationChanged(DeviceOrientationChangeEventArgs ev) {
-        EventHandler<DeviceOrientationChangeEventArgs> handler = OrientationChanged;
-        if (handler != null)
-            handler(this, ev);
-    }
+        
     public void OrientationUI()
     {
-        if (Screen.orientation == ScreenOrientation.Landscape)
-        {
-            Scale = Screen.height / SystemManager.Instance.ImageHeight;
-            
-            Scaler.matchWidthOrHeight = 1f;
-            float Width = (SystemManager.Instance.ImageWidth * Scale);
-            BackGroundRect = new Rect(0f, 0f, Width, Screen.height);
-            background.rectTransform.anchoredPosition = new Vector2(BackGroundRect.width * 0.5f, BackGroundRect.height * 0.5f);
-            rect1 = new Rect(Width, 60f, rectWidth, rectHeight);
-            rect2 = new Rect(Width, 60f + (60f + rectHeight), rectWidth, rectHeight);
-            rect3 = new Rect(Width, 60f + (60f + rectHeight) * 2, rectWidth, rectHeight);
-            rect4 = new Rect(Width, 60f + (60f + rectHeight) * 3, rectWidth, rectHeight);
-        }
-        else if (Screen.orientation == ScreenOrientation.Portrait)
-        {//
-            Scale = Screen.width / SystemManager.Instance.ImageWidth;
-            Scaler.matchWidthOrHeight = 0f;
-            //Debug.Log("scale " + Scale+"::"+ SystemManager.Instance.ImageHeight+", "+Screen.width);
-            float Height = (SystemManager.Instance.ImageWidth * Scale);
-            BackGroundRect = new Rect(0f, Screen.height, Screen.width, Height);
-            background.rectTransform.anchoredPosition = new Vector2(BackGroundRect.width * 0.5f, Screen.height - Height * 0.5f);
+        Scale = ((float)Screen.height) / SystemManager.Instance.ImageHeight;
+        Scaler.matchWidthOrHeight = 1f;
+        float Width = (SystemManager.Instance.ImageWidth * Scale);
+        float Height = (SystemManager.Instance.ImageHeight * Scale);
 
-            rect1 = new Rect(10, Height + 60f, rectWidth, rectHeight);
-            rect2 = new Rect(10, Height + 60f + (60f + rectHeight), rectWidth, rectHeight);
-            rect3 = new Rect(10, Height + 60f + (60f + rectHeight) * 2, rectWidth, rectHeight);
-            rect4 = new Rect(10, Height + 60f + (60f + rectHeight) * 3, rectWidth, rectHeight);
-        }
+        Scaler.referenceResolution = new Vector2(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight); //(Width, Height);
+        Debug.Log("width = " + Width+"::Scale"+Scale);
+        BackGroundRect = new Rect(0f, 0f, Width, Height);
+        
+        rect1 = new Rect(Width, 60f, rectWidth, rectHeight);
+        rect2 = new Rect(Width, 60f + (60f + rectHeight), rectWidth, rectHeight);
+        rect3 = new Rect(Width, 60f + (60f + rectHeight) * 2, rectWidth, rectHeight);
+        rect4 = new Rect(Width, 60f + (60f + rectHeight) * 3, rectWidth, rectHeight);
     }
-    public void OrientationChangeProcess(object sender, DeviceOrientationChangeEventArgs e)
-    {
-        Debug.Log("as;dlkajsdf");
-        OrientationUI();
-    }
-
-    ///////////Click Event Handler
-    public event EventHandler<UIClickEventArgs> UIClicked;
-    public virtual void OnUIClicked(UIClickEventArgs e)
-    {
-        EventHandler<UIClickEventArgs> handler = UIClicked;
-        if (handler != null)
-            handler(this, e);
-    }
-
-    bool bClickUI = false;
-    public void UIClickProcess(object sender, UIClickEventArgs e)
-    {
-        Debug.Log("ui click!!");
-        bClickUI = true;
-
-    }
-    ///////////Click Event Handler
-
+    
     ///////////Touch Event Handler
     public Rect screenRect;
     public event EventHandler<TouchEventArgs> Touched;
@@ -124,28 +72,30 @@ public class DeviceController : MonoBehaviour
     public void TouchProcess(object sender, TouchEventArgs e)
     {
 
-        //Debug.Log("Touch!!" + e.ray.origin.x + " " + e.ray.origin.y + " " + e.ray.origin.z);
-        //if (!bClickUI && SystemManager.Instance.Connect)
-        //{
-
-        //} else
-        //{
-        //    bClickUI = false;
-        //}
-
-        if (Screen.safeArea.Contains(e.pos))
+        if (BackGroundRect.Contains(e.pos))
         {
             float[] fdata = new float[9];
             int nIDX = 0;
+            float modelID = 2f;
             fdata[nIDX++] = 2f; //method type = 1 : manager, 2 = content
             fdata[nIDX++] = 0f; //content id : 레이, 생성, 삭제 등
-            fdata[nIDX++] = 2f; //model id
+            fdata[nIDX++] = modelID; //model id
             fdata[nIDX++] = Center.x; //ray.origin.x;//Center.x;
             fdata[nIDX++] = Center.y; //ray.origin.y;//Center.y;
             fdata[nIDX++] = Center.z; //ray.origin.z;//Center.z;
-            fdata[nIDX++] = e.ray.direction.x;
-            fdata[nIDX++] = e.ray.direction.y;
-            fdata[nIDX++] = e.ray.direction.z;
+            if(modelID == 2f)
+            {
+                fdata[nIDX++] = 0f;
+                fdata[nIDX++] = 0f;
+                fdata[nIDX++] = 0f;
+            }
+            else
+            {
+                fdata[nIDX++] = e.ray.direction.x;
+                fdata[nIDX++] = e.ray.direction.y;
+                fdata[nIDX++] = e.ray.direction.z;
+            }
+            
             byte[] bdata = new byte[fdata.Length * 4];
             Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
             UdpAsyncHandler.Instance.ConnectedUDPs[0].udp.Send(bdata, bdata.Length);
@@ -167,9 +117,6 @@ public class DeviceController : MonoBehaviour
             
             if (GUI.Button(rect1, "Disconnect"))
             {
-                //ui click event
-                UIClickEventArgs args = new UIClickEventArgs();
-                OnUIClicked(args);
                 SystemManager.Instance.Connect = false;
                 Disconnect();
                 //////Disconnect Echo Server
@@ -188,25 +135,8 @@ public class DeviceController : MonoBehaviour
         {
             if (GUI.Button(rect1, "Connect"))
             {
-                //ui click event
-                UIClickEventArgs args = new UIClickEventArgs();
-                OnUIClicked(args);
-
                 SystemManager.Instance.Connect = true;
                 Connect();
-
-                //background 위치를 canvas와 일치
-                
-                
-                //ui button 설정
-                rect1.x = 10;
-                rect1.y = 60;
-                rect2.x = 10;
-                rect2.y = 120 + rectHeight;
-                rect3.x = 10;
-                rect3.y = 180 + rectHeight * 2;
-                rect4.x = 10;
-                rect4.y = 60 + (60 + rectHeight) * 3;
                 
                 //regist event handler
                 UdpAsyncHandler.Instance.UdpDataReceived += UdpDataReceivedProcess;
@@ -229,9 +159,6 @@ public class DeviceController : MonoBehaviour
             if (GUI.Button(rect2, "Stop"))
             {
                 SystemManager.Instance.Start = false;
-                //ui click event
-                UIClickEventArgs args = new UIClickEventArgs();
-                OnUIClicked(args);
             }
         }
         else
@@ -240,18 +167,12 @@ public class DeviceController : MonoBehaviour
             if (GUI.Button(rect2, "Start"))
             {
                 SystemManager.Instance.Start = true;
-                //ui click event
-                UIClickEventArgs args = new UIClickEventArgs();
-                OnUIClicked(args);
             }
         }
 
         if (GUI.Button(rect3, "Load Model"))
         {
-
-            //ui click event
-            UIClickEventArgs args = new UIClickEventArgs();
-            OnUIClicked(args);
+            GetModel();
         }
 
         GUI.Label(rect4, Screen.width + " " + Screen.height+","+touchEvent.pos.x+" "+touchEvent.pos.y);
@@ -365,24 +286,9 @@ public class DeviceController : MonoBehaviour
         //rect4 = new Rect(0, 240 + rectHeight * 3, rectWidth, rectHeight);
         Canvas = GameObject.Find("Canvas");
         Scaler = Canvas.GetComponentInChildren<CanvasScaler>();
-        Scaler.referenceResolution = new Vector2(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight);
-        if (Application.platform == RuntimePlatform.WindowsEditor)
-        {
-            if(Screen.width > Screen.height)
-            {
-                Debug.Log("be = " + Screen.orientation.ToString());
-                Screen.orientation = ScreenOrientation.Landscape;
-                Debug.Log("af = " + Screen.orientation.ToString()+" "+Input.deviceOrientation);
-            }
-            else
-                Screen.orientation = ScreenOrientation.Portrait;
-        }
-
-        OrientationUI();
-        Debug.Log("Start = "+Screen.orientation.ToString()+"::"+Screen.width+" "+Screen.height);
-        StartCoroutine("CheckDeviceOrientation");
+        //Scaler.referenceResolution = new Vector2(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight);
         
-        UIClicked += UIClickProcess;
+        OrientationUI();
         Touched += TouchProcess;
     }
 
@@ -401,18 +307,11 @@ public class DeviceController : MonoBehaviour
             {
                 string imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
                 ++mnFrameID;
-
                 byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
-                
                 tex.LoadImage(byteTexture);
-                
                 background.texture = tex;
-                
                 background.SetNativeSize();
-                                
-                //Debug.Log("Screen = " + Screen.width + ", " + Screen.height+"::"+tex.width+" "+tex.height+":"+ background.texture.dimension.ToString());
-                //Debug.Log(background.rectTransform.anchoredPosition.x + " " + background.rectTransform.anchoredPosition.y +"::"+ background.transform.localPosition+" "+ background.transform.localPosition.y);
-
+                background.rectTransform.anchoredPosition = new Vector2(SystemManager.Instance.ImageWidth*0.5f, SystemManager.Instance.ImageHeight*0.5f);//(Width * 0.5f, Height * 0.5f);
                 if (mbSended && mnFrameID % 3 == 0)
                 {
                     mbSended = false;
@@ -458,26 +357,9 @@ public class DeviceController : MonoBehaviour
             touchEvent.ray = ray;
             touchEvent.pos = touchPos;
             OnTouched(touchEvent);
-            StatusTxt.text = "Touch = " + touchPos.x + ", " + touchPos.y + "||Screen=" + Screen.width + " " + Screen.height;
+            StatusTxt.text = "Touch = " + touchPos.x + ", " + touchPos.y + "||Screen=" + Screen.width + " " + Screen.height+":"+Scale+"::"+BackGroundRect.ToString();
         }
-        
-        if (bTouch && !bClickUI && SystemManager.Instance.Connect)
-        {
-            try
-            {
-                //Debug.Log("dir = "+touchDir.x+" "+touchDir.y+ " "+touchDir.z);
-                
-
-            }
-            catch (Exception ex)
-            {
-                Debug.Log(ex.ToString());
-            }
-        }
-        if (bClickUI)
-        {
-            bClickUI = false;
-        }
+       
         StartCoroutine("DeviceControl");
     }
 
@@ -572,23 +454,68 @@ public class DeviceController : MonoBehaviour
 
         mbSended = true;
     }
-    IEnumerator CheckDeviceOrientation() {
 
-        OrientationChanged += OrientationChangeProcess;
-        DeviceOrientationChangeEventArgs ev = new DeviceOrientationChangeEventArgs();
-        ScreenOrientation deviceOri = Screen.orientation;
-        
-        while (isAlive)
+    public void GetModel()
+    {
+        string addr = SystemManager.Instance.ServerAddr + "/SendData?map=" + SystemManager.Instance.Map + "&attr=Models&id=1&key=bregion";
+        UnityWebRequest request = new UnityWebRequest(addr);
+        request.method = "POST";
+        request.downloadHandler = new DownloadHandlerBuffer();
+        UnityWebRequestAsyncOperation res = request.SendWebRequest();
+        while (!request.downloadHandler.isDone)
         {
-            if (deviceOri != Screen.orientation)
-            {
-                OnOrientationChanged(ev);
-                deviceOri = Screen.orientation;
-            }
-                
-            yield return new WaitForSecondsRealtime(CheckOrientationDelay);
+            continue;
         }
+
+        float[] pdata = new float[12];
+        Buffer.BlockCopy(request.downloadHandler.data, 0, pdata, 0, request.downloadHandler.data.Length);
+        Debug.Log(pdata[0] + " " + pdata[1]);
+        Vector3[] points = new Vector3[4];
+        for (int i = 0; i < 4; i++)
+        {
+            Vector3 temp = new Vector3(pdata[3 * i], pdata[3 * i + 1], pdata[3 * i + 2]);
+            points[i] = temp;
+            Debug.Log(points[i]);
+        }
+        createPlane(points, "plane1", new Color(1.0f, 0.0f, 0.0f, 0.6f), 0, 1, 2, 3);
     }
+
+    public GameObject createPlane(Vector3[] points, string oname, Color acolor, int idx1, int idx2, int idx3, int idx4)
+    {
+        GameObject go = new GameObject("Plane");
+        go.name = oname;
+        MeshFilter mf = go.AddComponent(typeof(MeshFilter)) as MeshFilter;
+        MeshRenderer mr = go.AddComponent(typeof(MeshRenderer)) as MeshRenderer;
+
+        Mesh m = new Mesh();
+
+        m.vertices = new Vector3[] {
+            points [idx4],
+            points [idx3],
+            points [idx2],
+            points [idx1]
+        };
+        m.uv = new Vector2[] {
+            new Vector2 (0, 0),
+            new Vector2 (0, 1),
+            new Vector2 (1, 1),
+            new Vector2 (1, 0)
+        };
+        m.triangles = new int[] { 0, 1, 2, 0, 2, 3 };
+        /*
+		m.colors = new Color[] {
+			acolor, acolor, acolor, acolor
+		};
+		*/
+        mf.mesh = m;
+        m.RecalculateBounds();
+        m.RecalculateNormals();
+        mr.sharedMaterial = new Material(Shader.Find("Legacy Shaders/Transparent/Diffuse"));
+        mr.sharedMaterial.color = acolor;
+        return go;
+    }
+
+
     void OnDestroy()
     {
         isAlive = false;
