@@ -15,8 +15,17 @@ public class UIClickEventArgs : EventArgs
 }
 public class TouchEventArgs : EventArgs
 {
-
+    public Vector2 pos;
     public Ray ray;
+}
+public class DeviceOrientationChangeEventArgs : EventArgs
+{
+    ////screen과 image scale
+    //public float Scale;
+    ////버튼 생성시 추가
+    //public Rect rect1, rect2, rect3, rect4;
+    ////백그라운드 image의 위치 조정
+    //int additional;
 }
 
 public class DeviceController : MonoBehaviour
@@ -27,6 +36,60 @@ public class DeviceController : MonoBehaviour
     private static extern void SetTrackingFrame(IntPtr addr, int w, int h);
     [DllImport("edgeslam")]
     private static extern void SetParam(float fx, float fy, float cx, float cy);
+
+    ////Orientation event
+    float Scale;
+    int additional;
+    Rect BackGroundRect;
+    GameObject Canvas;
+    CanvasScaler Scaler;
+    float CheckOrientationDelay = 0.5f;
+    bool isAlive = true;
+    private int rectWidth = 200;
+    private int rectHeight = 80;
+    Rect rect1, rect2, rect3, rect4;
+
+    public event EventHandler<DeviceOrientationChangeEventArgs> OrientationChanged;
+    public virtual void OnOrientationChanged(DeviceOrientationChangeEventArgs ev) {
+        EventHandler<DeviceOrientationChangeEventArgs> handler = OrientationChanged;
+        if (handler != null)
+            handler(this, ev);
+    }
+    public void OrientationUI()
+    {
+        if (Screen.orientation == ScreenOrientation.Landscape)
+        {
+            Scale = Screen.height / SystemManager.Instance.ImageHeight;
+            
+            Scaler.matchWidthOrHeight = 1f;
+            float Width = (SystemManager.Instance.ImageWidth * Scale);
+            BackGroundRect = new Rect(0f, 0f, Width, Screen.height);
+            background.rectTransform.anchoredPosition = new Vector2(BackGroundRect.width * 0.5f, BackGroundRect.height * 0.5f);
+            rect1 = new Rect(Width, 60f, rectWidth, rectHeight);
+            rect2 = new Rect(Width, 60f + (60f + rectHeight), rectWidth, rectHeight);
+            rect3 = new Rect(Width, 60f + (60f + rectHeight) * 2, rectWidth, rectHeight);
+            rect4 = new Rect(Width, 60f + (60f + rectHeight) * 3, rectWidth, rectHeight);
+        }
+        else if (Screen.orientation == ScreenOrientation.Portrait)
+        {//
+            Scale = Screen.width / SystemManager.Instance.ImageWidth;
+            Scaler.matchWidthOrHeight = 0f;
+            //Debug.Log("scale " + Scale+"::"+ SystemManager.Instance.ImageHeight+", "+Screen.width);
+            float Height = (SystemManager.Instance.ImageWidth * Scale);
+            BackGroundRect = new Rect(0f, Screen.height, Screen.width, Height);
+            background.rectTransform.anchoredPosition = new Vector2(BackGroundRect.width * 0.5f, Screen.height - Height * 0.5f);
+
+            rect1 = new Rect(10, Height + 60f, rectWidth, rectHeight);
+            rect2 = new Rect(10, Height + 60f + (60f + rectHeight), rectWidth, rectHeight);
+            rect3 = new Rect(10, Height + 60f + (60f + rectHeight) * 2, rectWidth, rectHeight);
+            rect4 = new Rect(10, Height + 60f + (60f + rectHeight) * 3, rectWidth, rectHeight);
+        }
+    }
+    public void OrientationChangeProcess(object sender, DeviceOrientationChangeEventArgs e)
+    {
+        Debug.Log("as;dlkajsdf");
+        OrientationUI();
+    }
 
     ///////////Click Event Handler
     public event EventHandler<UIClickEventArgs> UIClicked;
@@ -47,6 +110,7 @@ public class DeviceController : MonoBehaviour
     ///////////Click Event Handler
 
     ///////////Touch Event Handler
+    public Rect screenRect;
     public event EventHandler<TouchEventArgs> Touched;
     TouchEventArgs touchEvent = new TouchEventArgs();
     public virtual void OnTouched(TouchEventArgs e)
@@ -59,17 +123,33 @@ public class DeviceController : MonoBehaviour
     //bool bClickUI = false;
     public void TouchProcess(object sender, TouchEventArgs e)
     {
-        
-        Debug.Log("Touch!!"+e.ray.origin.x+" "+ e.ray.origin.y+" "+ e.ray.origin.z);
-        if (!bClickUI && SystemManager.Instance.Connect)
-        {
-            
-        }else
-        {
-            bClickUI = false;
-        }
-       
 
+        //Debug.Log("Touch!!" + e.ray.origin.x + " " + e.ray.origin.y + " " + e.ray.origin.z);
+        //if (!bClickUI && SystemManager.Instance.Connect)
+        //{
+
+        //} else
+        //{
+        //    bClickUI = false;
+        //}
+
+        if (Screen.safeArea.Contains(e.pos))
+        {
+            float[] fdata = new float[9];
+            int nIDX = 0;
+            fdata[nIDX++] = 2f; //method type = 1 : manager, 2 = content
+            fdata[nIDX++] = 0f; //content id : 레이, 생성, 삭제 등
+            fdata[nIDX++] = 2f; //model id
+            fdata[nIDX++] = Center.x; //ray.origin.x;//Center.x;
+            fdata[nIDX++] = Center.y; //ray.origin.y;//Center.y;
+            fdata[nIDX++] = Center.z; //ray.origin.z;//Center.z;
+            fdata[nIDX++] = e.ray.direction.x;
+            fdata[nIDX++] = e.ray.direction.y;
+            fdata[nIDX++] = e.ray.direction.z;
+            byte[] bdata = new byte[fdata.Length * 4];
+            Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
+            UdpAsyncHandler.Instance.ConnectedUDPs[0].udp.Send(bdata, bdata.Length);
+        }
     }
     ///////////Touch Event Handler
 
@@ -79,10 +159,7 @@ public class DeviceController : MonoBehaviour
     //21.04.08
     //private ContentEchoServer mEchoServer; //이거 삭제 해도 될 듯
 
-    private int rectWidth = 200;
-    private int rectHeight = 80;
-
-    Rect rect1, rect2, rect3; 
+    
     void OnGUI()
     {
         if (SystemManager.Instance.Connect)
@@ -93,7 +170,6 @@ public class DeviceController : MonoBehaviour
                 //ui click event
                 UIClickEventArgs args = new UIClickEventArgs();
                 OnUIClicked(args);
-
                 SystemManager.Instance.Connect = false;
                 Disconnect();
                 //////Disconnect Echo Server
@@ -119,6 +195,19 @@ public class DeviceController : MonoBehaviour
                 SystemManager.Instance.Connect = true;
                 Connect();
 
+                //background 위치를 canvas와 일치
+                
+                
+                //ui button 설정
+                rect1.x = 10;
+                rect1.y = 60;
+                rect2.x = 10;
+                rect2.y = 120 + rectHeight;
+                rect3.x = 10;
+                rect3.y = 180 + rectHeight * 2;
+                rect4.x = 10;
+                rect4.y = 60 + (60 + rectHeight) * 3;
+                
                 //regist event handler
                 UdpAsyncHandler.Instance.UdpDataReceived += UdpDataReceivedProcess;
 
@@ -131,8 +220,7 @@ public class DeviceController : MonoBehaviour
                 Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
                 cstat.udp.Send(bdata, bdata.Length);
                 //////Connect Echo Server
-
-                
+                                
             }
         }
         
@@ -165,6 +253,9 @@ public class DeviceController : MonoBehaviour
             UIClickEventArgs args = new UIClickEventArgs();
             OnUIClicked(args);
         }
+
+        GUI.Label(rect4, Screen.width + " " + Screen.height+","+touchEvent.pos.x+" "+touchEvent.pos.y);
+
     }
 
     void UdpDataReceivedProcess(object sender, UdpEventArgs e)
@@ -193,9 +284,7 @@ public class DeviceController : MonoBehaviour
     
     void Connect()
     {
-        string path = Application.persistentDataPath + "/param.txt";
         
-        SystemManager.Instance.LoadParameter(path);
         tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.RGB24, false);
         nImgFrameIDX = 3;
 
@@ -266,14 +355,33 @@ public class DeviceController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
-        //int w = SystemManager.Instance.ImageWidth;
-        //int h = SystemManager.Instance.ImageHeight;
-        //Screen.SetResolution(w, h, true);
         sw = new Stopwatch();
-        rect1 = new Rect(60, 60, rectWidth, rectHeight);
-        rect2 = new Rect(120 + rectWidth, 60, rectWidth, rectHeight);
-        rect3 = new Rect(180 + rectWidth * 2, 60, rectWidth, rectHeight);
+        string path = Application.persistentDataPath + "/param.txt";
+        SystemManager.Instance.LoadParameter(path);
+
+        //rect1 = new Rect(0, 60, rectWidth, rectHeight);
+        //rect2 = new Rect(0, 120 + rectHeight, rectWidth, rectHeight);
+        //rect3 = new Rect(0, 180 + rectHeight * 2, rectWidth, rectHeight);
+        //rect4 = new Rect(0, 240 + rectHeight * 3, rectWidth, rectHeight);
+        Canvas = GameObject.Find("Canvas");
+        Scaler = Canvas.GetComponentInChildren<CanvasScaler>();
+        Scaler.referenceResolution = new Vector2(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight);
+        if (Application.platform == RuntimePlatform.WindowsEditor)
+        {
+            if(Screen.width > Screen.height)
+            {
+                Debug.Log("be = " + Screen.orientation.ToString());
+                Screen.orientation = ScreenOrientation.Landscape;
+                Debug.Log("af = " + Screen.orientation.ToString()+" "+Input.deviceOrientation);
+            }
+            else
+                Screen.orientation = ScreenOrientation.Portrait;
+        }
+
+        OrientationUI();
+        Debug.Log("Start = "+Screen.orientation.ToString()+"::"+Screen.width+" "+Screen.height);
+        StartCoroutine("CheckDeviceOrientation");
+        
         UIClicked += UIClickProcess;
         Touched += TouchProcess;
     }
@@ -297,12 +405,14 @@ public class DeviceController : MonoBehaviour
                 byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
                 
                 tex.LoadImage(byteTexture);
+                
                 background.texture = tex;
+                
                 background.SetNativeSize();
+                                
+                //Debug.Log("Screen = " + Screen.width + ", " + Screen.height+"::"+tex.width+" "+tex.height+":"+ background.texture.dimension.ToString());
+                //Debug.Log(background.rectTransform.anchoredPosition.x + " " + background.rectTransform.anchoredPosition.y +"::"+ background.transform.localPosition+" "+ background.transform.localPosition.y);
 
-                background.rectTransform.anchoredPosition = new Vector2(320f, 240f);
-                Debug.Log("Screen = " + Screen.width + ", " + Screen.height);
-                Debug.Log(background.rectTransform.anchoredPosition.x + " " + background.rectTransform.anchoredPosition.y +"::"+ background.transform.localPosition+" "+ background.transform.localPosition.y);
                 if (mbSended && mnFrameID % 3 == 0)
                 {
                     mbSended = false;
@@ -313,15 +423,15 @@ public class DeviceController : MonoBehaviour
         
         bool bTouch = false;
         Ray ray = new Ray();
-
-        
+        Vector2 touchPos = Vector2.zero;        
         if (Application.platform == RuntimePlatform.Android)
         {
             if (Input.touchCount > 0)
             {
-                    
-                Touch touch = Input.GetTouch(0);
+                Touch[] touches = Input.touches;
+                Touch touch = touches[0];//Input.GetTouch(0);
                 ray = Camera.main.ScreenPointToRay(touch.position);
+                touchPos = touch.position;
                 bTouch = true;
             }
         }
@@ -333,6 +443,7 @@ public class DeviceController : MonoBehaviour
                 {
                     ray = Camera.main.ScreenPointToRay(Input.mousePosition);
                     Debug.Log("mouse = " + Input.mousePosition.ToString());
+                    touchPos = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
                     bTouch = true;
                 }
                 catch (Exception ex)
@@ -345,7 +456,9 @@ public class DeviceController : MonoBehaviour
         if(bTouch && SystemManager.Instance.Connect)
         {
             touchEvent.ray = ray;
+            touchEvent.pos = touchPos;
             OnTouched(touchEvent);
+            StatusTxt.text = "Touch = " + touchPos.x + ", " + touchPos.y + "||Screen=" + Screen.width + " " + Screen.height;
         }
         
         if (bTouch && !bClickUI && SystemManager.Instance.Connect)
@@ -353,20 +466,7 @@ public class DeviceController : MonoBehaviour
             try
             {
                 //Debug.Log("dir = "+touchDir.x+" "+touchDir.y+ " "+touchDir.z);
-                float[] fdata = new float[9];
-                int nIDX = 0;
-                fdata[nIDX++] = 2f; //method type = 1 : manager, 2 = content
-                fdata[nIDX++] = 0f; //content id : 레이, 생성, 삭제 등
-                fdata[nIDX++] = 2f; //model id
-                fdata[nIDX++] = Center.x; //ray.origin.x;//Center.x;
-                fdata[nIDX++] = Center.y; //ray.origin.y;//Center.y;
-                fdata[nIDX++] = Center.z; //ray.origin.z;//Center.z;
-                fdata[nIDX++] = ray.direction.x;
-                fdata[nIDX++] = ray.direction.y;
-                fdata[nIDX++] = ray.direction.z;
-                byte[] bdata = new byte[fdata.Length * 4];
-                Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-                UdpAsyncHandler.Instance.ConnectedUDPs[0].udp.Send(bdata, bdata.Length);
+                
 
             }
             catch (Exception ex)
@@ -432,20 +532,11 @@ public class DeviceController : MonoBehaviour
 
             ////카메라 자세 획득 및 카메라 위치 추정
             Matrix3x3 R = new Matrix3x3(framepose[0], framepose[1], framepose[2], framepose[3], framepose[4], framepose[5], framepose[6], framepose[7], framepose[8]);
-
             Vector3 t = new Vector3(framepose[9], framepose[10], framepose[11]);
-            //Debug.Log(prevID + "::" + t.ToString());
             Center = -(R.Transpose() * t);
-
+            gameObject.transform.forward = R.row3;
+            gameObject.transform.position = Center;
             ////업데이트 카메라 포즈
-            Vector3 mAxis = R.LOG();
-            DIR = mAxis;
-
-            float mAngle = mAxis.magnitude * Mathf.Rad2Deg;
-            mAxis = mAxis.normalized;
-            Quaternion rotation = Quaternion.AngleAxis(mAngle, mAxis);
-            Quaternion q = Matrix3x3.RotToQuar(R);
-            gameObject.transform.SetPositionAndRotation(Center, q);
             prevID = nRefID;
         }
     }
@@ -481,5 +572,25 @@ public class DeviceController : MonoBehaviour
 
         mbSended = true;
     }
-    
+    IEnumerator CheckDeviceOrientation() {
+
+        OrientationChanged += OrientationChangeProcess;
+        DeviceOrientationChangeEventArgs ev = new DeviceOrientationChangeEventArgs();
+        ScreenOrientation deviceOri = Screen.orientation;
+        
+        while (isAlive)
+        {
+            if (deviceOri != Screen.orientation)
+            {
+                OnOrientationChanged(ev);
+                deviceOri = Screen.orientation;
+            }
+                
+            yield return new WaitForSecondsRealtime(CheckOrientationDelay);
+        }
+    }
+    void OnDestroy()
+    {
+        isAlive = false;
+    }
 }
