@@ -71,35 +71,50 @@ public class DeviceController : MonoBehaviour
     //bool bClickUI = false;
     public void TouchProcess(object sender, TouchEventArgs e)
     {
-
-        if (BackGroundRect.Contains(e.pos))
+        RaycastHit hit;
+        if (Physics.Raycast(e.ray, out hit))
         {
+            Debug.Log("Hit!!!");
+            Debug.DrawRay(e.ray.origin, e.ray.direction*100f, Color.red, 1000f, false);
+
             float[] fdata = new float[9];
             int nIDX = 0;
             float modelID = 2f;
+
+            Vector3 pos = hit.distance * e.ray.direction + e.ray.origin;
+
             fdata[nIDX++] = 2f; //method type = 1 : manager, 2 = content
             fdata[nIDX++] = 0f; //content id : 레이, 생성, 삭제 등
             fdata[nIDX++] = modelID; //model id
-            fdata[nIDX++] = Center.x; //ray.origin.x;//Center.x;
-            fdata[nIDX++] = Center.y; //ray.origin.y;//Center.y;
-            fdata[nIDX++] = Center.z; //ray.origin.z;//Center.z;
-            if(modelID == 2f)
+            
+            if (modelID == 2f)
             {
+                fdata[nIDX++] = pos.x;
+                fdata[nIDX++] = pos.y;
+                fdata[nIDX++] = pos.z;
                 fdata[nIDX++] = 0f;
                 fdata[nIDX++] = 0f;
                 fdata[nIDX++] = 0f;
             }
             else
             {
+                fdata[nIDX++] = Center.x;
+                fdata[nIDX++] = Center.y; //ray.origin.y;//Center.y;
+                fdata[nIDX++] = Center.z; //ray.origin.z;//Center.z;
                 fdata[nIDX++] = e.ray.direction.x;
                 fdata[nIDX++] = e.ray.direction.y;
                 fdata[nIDX++] = e.ray.direction.z;
             }
-            
+
             byte[] bdata = new byte[fdata.Length * 4];
             Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
             UdpAsyncHandler.Instance.ConnectedUDPs[0].udp.Send(bdata, bdata.Length);
         }
+        else
+        {
+            Debug.Log("No Hit!!!");
+        }
+            
     }
     ///////////Touch Event Handler
 
@@ -142,8 +157,10 @@ public class DeviceController : MonoBehaviour
                 UdpAsyncHandler.Instance.UdpDataReceived += UdpDataReceivedProcess;
 
                 //connect to echo server
-                UdpState cstat = UdpAsyncHandler.Instance.UdpConnect("143.248.6.143", 35001, 40002);
+                UdpState cstat = UdpAsyncHandler.Instance.UdpConnect("143.248.6.143", 35001, 40003);
+                UdpState mstat = UdpAsyncHandler.Instance.UdpConnect(40002);
                 UdpAsyncHandler.Instance.ConnectedUDPs.Add(cstat);
+                UdpAsyncHandler.Instance.ConnectedUDPs.Add(mstat);
                 float[] fdata = new float[1];
                 fdata[0] = 10000f;
                 byte[] bdata = new byte[4];
@@ -175,7 +192,7 @@ public class DeviceController : MonoBehaviour
             GetModel();
         }
 
-        GUI.Label(rect4, Screen.width + " " + Screen.height+","+touchEvent.pos.x+" "+touchEvent.pos.y);
+        //GUI.Label(rect4, Screen.width + " " + Screen.height+","+touchEvent.pos.x+" "+touchEvent.pos.y);
 
     }
 
@@ -226,7 +243,7 @@ public class DeviceController : MonoBehaviour
         string msg = JsonUtility.ToJson(data);
         byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
 
-        UnityWebRequest request = new UnityWebRequest(SystemManager.Instance.ServerAddr + "/Connect");
+        UnityWebRequest request = new UnityWebRequest(SystemManager.Instance.ServerAddr + "/Connect?port=40002");
         request.method = "POST";
         UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
         uH.contentType = "application/json";
@@ -297,7 +314,7 @@ public class DeviceController : MonoBehaviour
     {
         if (SystemManager.Instance.Start)
         {
-            StartCoroutine("GetReferenceInfoCoroutine");
+            //StartCoroutine("GetReferenceInfoCoroutine");
 
             if (bCam)
             {
@@ -341,8 +358,10 @@ public class DeviceController : MonoBehaviour
                 try
                 {
                     ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                    Debug.Log("mouse = " + Input.mousePosition.ToString());
                     touchPos = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
+
+                    
+
                     bTouch = true;
                 }
                 catch (Exception ex)
@@ -354,15 +373,21 @@ public class DeviceController : MonoBehaviour
         
         if(bTouch && SystemManager.Instance.Connect)
         {
-            touchEvent.ray = ray;
-            touchEvent.pos = touchPos;
-            OnTouched(touchEvent);
-            StatusTxt.text = "Touch = " + touchPos.x + ", " + touchPos.y + "||Screen=" + Screen.width + " " + Screen.height+":"+Scale+"::"+BackGroundRect.ToString();
+            if (BackGroundRect.Contains(touchPos)) { 
+                touchEvent.ray = ray;
+                touchEvent.pos = touchPos;
+                OnTouched(touchEvent);
+            }
+            //StatusTxt.text = "Touch = " + touchPos.x + ", " + touchPos.y + "||Screen=" + Screen.width + " " + Screen.height+":"+Scale+"::"+BackGroundRect.ToString();
         }
        
         StartCoroutine("DeviceControl");
     }
 
+    Matrix3x3 FloorRotationMat = new Matrix3x3();
+    Vector4 FloorParam = Vector4.zero;
+    GameObject FloorObject;
+    bool bFloor = false;
     IEnumerator DeviceControl()
     {
         float[] fdata;
@@ -378,6 +403,54 @@ public class DeviceController : MonoBehaviour
                 Vector3 rot = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
                 ContentData c = new ContentData(ContentManager.Instance.ContentNames[nModelID], pos, rot);
                 Instantiate(c.obj, c.pos, c.q);
+            }
+            else if (fdata[0] == 1f && fdata[1] == 3f) {
+                ////center와 dir로 변경하기
+                int nIDX = 3;
+                Matrix3x3 R = new Matrix3x3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                Vector3 t = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                Vector3 pos = -(R.Transpose() * t);
+                pos = FloorRotationMat *pos;
+                pos.y *= -1f;
+                Center = pos;
+                gameObject.transform.position = pos;
+                gameObject.transform.forward = FloorRotationMat.Transpose()*R.row3;
+            }
+            else if (fdata[0] == 3f && fdata[1] == 1f)
+            {
+                ////평면 모델 관련
+                if (fdata[2] == 1f)
+                {
+                    int nIDX = 3;
+                    FloorRotationMat = new Matrix3x3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                }
+                else if (fdata[2] == 2f)
+                {
+                    int nIDX = 3;
+                    FloorParam = new Vector4(fdata[nIDX++], -fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                    float y = -FloorParam.w;
+
+                    Vector3[] points = new Vector3[4];
+                    float val = 100f;
+                    points[0] = new Vector3(val, y, val);
+                    points[1] = new Vector3(val, y, -val);
+                    points[2] = new Vector3(-val, y, -val);
+                    points[3] = new Vector3(-val, y, val);
+
+                    if (bFloor)
+                    {
+                        //변경
+                        FloorObject.GetComponent<MeshFilter>().mesh.vertices = points;
+                    }else
+                    {
+                        //생성
+                        bFloor = true;
+                        
+                        FloorObject = createPlane(points, "plane1", new Color(1.0f, 0.0f, 0.0f, 0.6f), 0, 1, 2, 3);
+                    }
+
+                }
+
             }
         }
     }
@@ -488,12 +561,12 @@ public class DeviceController : MonoBehaviour
         MeshRenderer mr = go.AddComponent(typeof(MeshRenderer)) as MeshRenderer;
 
         Mesh m = new Mesh();
-
+        
         m.vertices = new Vector3[] {
-            points [idx4],
-            points [idx3],
+            points [idx1],
             points [idx2],
-            points [idx1]
+            points [idx3],
+            points [idx4]
         };
         m.uv = new Vector2[] {
             new Vector2 (0, 0),
@@ -512,6 +585,9 @@ public class DeviceController : MonoBehaviour
         m.RecalculateNormals();
         mr.sharedMaterial = new Material(Shader.Find("Legacy Shaders/Transparent/Diffuse"));
         mr.sharedMaterial.color = acolor;
+
+        MeshCollider mc = go.AddComponent(typeof(MeshCollider)) as MeshCollider;
+        mc.sharedMesh = m;
         return go;
     }
 
