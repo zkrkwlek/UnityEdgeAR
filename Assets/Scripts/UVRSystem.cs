@@ -74,13 +74,14 @@ public class UVRSystem : MonoBehaviour
     
     public void Connect()
     {
+        Contents = GameObject.Find("Contents");
+        Devices = GameObject.Find("Devices");
+
         SystemManager.InitConnectData data = SystemManager.Instance.GetConnectData();
         string msg = JsonUtility.ToJson(data);
         byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
 
-        string msg2 = "/Connect";
-        if (SystemManager.Instance.Manager)
-            msg2 += "?port=40000";
+        string msg2 = "/Connect?port=40000";
 
         UnityWebRequest request = new UnityWebRequest(SystemManager.Instance.ServerAddr + msg2);
         request.method = "POST";
@@ -104,11 +105,11 @@ public class UVRSystem : MonoBehaviour
             UdpAsyncHandler.Instance.ConnectedUDPs.Add(cstat);
             UdpAsyncHandler.Instance.ConnectedUDPs.Add(mstat);
             //connect contetn server
-            float[] fdata = new float[1];
-            fdata[0] = 10000f;
-            byte[] bdata2 = new byte[4];
-            Buffer.BlockCopy(fdata, 0, bdata2, 0, bdata2.Length);
-            cstat.udp.Send(bdata2, bdata2.Length);
+            //float[] fdata = new float[1];
+            //fdata[0] = 10000f;
+            //byte[] bdata2 = new byte[4];
+            //Buffer.BlockCopy(fdata, 0, bdata2, 0, bdata2.Length);
+            //cstat.udp.Send(bdata2, bdata2.Length);
         }
         catch(Exception ex)
         {
@@ -133,11 +134,11 @@ public class UVRSystem : MonoBehaviour
         ThreadStop();
 
         //disconnect contents echo server
-        float[] fdata = new float[1];
-        fdata[0] = 10001f;
-        byte[] bdata = new byte[4];
-        Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-        UdpAsyncHandler.Instance.ConnectedUDPs[0].udp.Send(bdata, 4);
+        //float[] fdata = new float[1];
+        //fdata[0] = 10001f;
+        //byte[] bdata = new byte[4];
+        //Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
+        //UdpAsyncHandler.Instance.ConnectedUDPs[0].udp.Send(bdata, 4);
         UdpAsyncHandler.Instance.UdpDisconnect();
 
         //remove event handler
@@ -152,7 +153,14 @@ public class UVRSystem : MonoBehaviour
         }
         Devices.transform.DetachChildren();
         mConnectedDevices.Clear();
-
+        ////현재 남아있는 모든 콘텐츠 삭제
+        for (int i = 0, iend = Contents.transform.childCount; i < iend; i++)
+        {
+            GameObject go = Contents.transform.GetChild(i).gameObject;
+            if (go != null)
+                DestroyImmediate(go);
+        }
+        Contents.transform.DetachChildren();
         //DestroyImmediate(targetObj);
         //targetObj = null;
     }
@@ -233,7 +241,7 @@ public class UVRSystem : MonoBehaviour
         }
 
     }
-    public GameObject Devices;
+    public GameObject Devices, Contents;
         
     public Vector3 Center = new Vector3(0f, 0f, 0f);
     public Vector3 DIR = new Vector3(0f, 0f, 0f);
@@ -292,6 +300,8 @@ public class UVRSystem : MonoBehaviour
     /// 이후는 필요한 추가 데이터
     /// </summary>
     /// <returns></returns>
+    Matrix3x3 FloorRotationMat = new Matrix3x3();
+    Vector4 FloorParam = Vector4.zero;
     IEnumerator DeviceControl()
     {
         float[] fdata;
@@ -308,7 +318,8 @@ public class UVRSystem : MonoBehaviour
                 Vector3 pos = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
                 Vector3 rot = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
                 ContentData c = new ContentData(ContentManager.Instance.ContentNames[nModelID],pos, rot);
-                Instantiate(c.obj, c.pos, c.q);
+                GameObject go = Instantiate(c.obj, c.pos, c.q);
+                go.transform.SetParent(Contents.transform);
                 //EditorCoroutineUtility.StartCoroutine(TestCR(pos, rot, 100f), this);
             }
             else if(fdata[0] == 1f)
@@ -333,14 +344,23 @@ public class UVRSystem : MonoBehaviour
                     Matrix3x3 R = new Matrix3x3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
                     Vector3 t = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
                     Vector3 pos = -(R.Transpose() * t);
-
-                    ////업데이트 카메라 포즈
-                    Vector3 mAxis = R.LOG();
-                    float mAngle = mAxis.magnitude * Mathf.Rad2Deg;
-                    mAxis = mAxis.normalized;
-                    Quaternion rotation = Quaternion.AngleAxis(mAngle, mAxis);
-                    obj.transform.SetPositionAndRotation(pos, rotation);
+                    pos = FloorRotationMat * pos;
+                    pos.y *= -1f;
+                    obj.transform.position = pos;
+                    obj.transform.forward = FloorRotationMat*R.row3;
                 }
+            }else if(fdata[0] == 3f && fdata[1] == 1f)
+            {
+                if(fdata[2] == 1f)
+                {
+                    int nIDX = 3;
+                    FloorRotationMat = new Matrix3x3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                }else if(fdata[2] == 2f)
+                {
+                    int nIDX = 3;
+                    FloorParam = new Vector4(fdata[nIDX++], -fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                }
+                
             }
          
         }
@@ -406,7 +426,6 @@ public class UVRSystem : MonoBehaviour
         Mesh m = new Mesh();
 
         m.vertices = new Vector3[] {
-			//입력의 3,4를 바꿈.
 			points [idx1],
             points [idx2],
             points [idx3],

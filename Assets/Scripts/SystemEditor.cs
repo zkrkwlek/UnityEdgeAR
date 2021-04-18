@@ -132,8 +132,6 @@ public class SystemEditor : Editor
             mSystem.GetModel();
             //mSystem.ThreadStop();
         }
-
-        mSystem.Devices = (GameObject)EditorGUILayout.ObjectField("Devices", mSystem.Devices, typeof(GameObject), true);
         
         GUILayout.BeginHorizontal();
         EditorGUILayout.LabelField("POS", GUILayout.Width(75f));
