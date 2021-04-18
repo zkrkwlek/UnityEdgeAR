@@ -426,9 +426,12 @@ public class DeviceController : MonoBehaviour
                         Vector3 pos = -(R.Transpose() * t);
                         pos = FloorRotationMat * pos;
                         pos.y *= -1f;
+                        Vector3 dir = R.row3 * FloorRotationMat.Transpose();
+                        dir.y *= -1f;
                         Center = pos;
+
                         gameObject.transform.position = pos;
-                        gameObject.transform.forward = FloorRotationMat.Transpose() * R.row3;
+                        gameObject.transform.forward = dir;
                 
                 
                 }
