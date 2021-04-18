@@ -16,3 +16,4 @@ Assets/Plugins
 *.sln
 *.VC.db
 Assets/Scenes/DesktopManager.unity
+Assets/Scenes/DeviceApplication.unity
