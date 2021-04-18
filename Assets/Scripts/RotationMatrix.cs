@@ -138,6 +138,7 @@ public class Matrix3x3
         Vector3.Dot(mat1.row2, mat2.col1), Vector3.Dot(mat1.row2, mat2.col2), Vector3.Dot(mat1.row2, mat2.col3),
         Vector3.Dot(mat1.row3, mat2.col1), Vector3.Dot(mat1.row3, mat2.col2), Vector3.Dot(mat1.row3, mat2.col3));
     public static Vector3 operator *(Matrix3x3 mat, Vector3 vec) => new Vector3(Vector3.Dot(mat.row1, vec), Vector3.Dot(mat.row2, vec), Vector3.Dot(mat.row3, vec));
+    public static Vector3 operator *(Vector3 vec, Matrix3x3 mat) => new Vector3(Vector3.Dot(mat.col1, vec), Vector3.Dot(mat.col2, vec), Vector3.Dot(mat.col3, vec));
     public static Matrix3x3 operator *(float f, Matrix3x3 mat) => new Matrix3x3(f * mat.row1, f * mat.row2, f * mat.row3);
     public static Matrix3x3 operator *(Matrix3x3 mat, float f) => new Matrix3x3(f * mat.row1, f * mat.row2, f * mat.row3);
     //public static Matrix3x3 operator =(Matrix3x3 mat) => new Matrix3x3(mat.row1, mat.row2, mat.row3);
