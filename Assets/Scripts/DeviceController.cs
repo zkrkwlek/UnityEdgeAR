@@ -46,7 +46,7 @@ public class DeviceController : MonoBehaviour
         Scaler.matchWidthOrHeight = 1f;
         float Width = (SystemManager.Instance.ImageWidth * Scale);
         float Height = (SystemManager.Instance.ImageHeight * Scale);
-
+        Debug.Log(Screen.width + " " + Screen.height+"::"+SystemManager.Instance.ImageWidth);
         Scaler.referenceResolution = new Vector2(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight); //(Width, Height);
         Debug.Log("width = " + Width+"::Scale"+Scale);
         BackGroundRect = new Rect(0f, 0f, Width, Height);
@@ -108,7 +108,8 @@ public class DeviceController : MonoBehaviour
 
             byte[] bdata = new byte[fdata.Length * 4];
             Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-            UdpAsyncHandler.Instance.ConnectedUDPs[0].udp.Send(bdata, bdata.Length);
+            UdpState stat = UdpAsyncHandler.Instance.ConnectedUDPs[0];
+            stat.udp.Send(bdata, bdata.Length, stat.hep);
         }
         else
         {
@@ -135,11 +136,12 @@ public class DeviceController : MonoBehaviour
                 SystemManager.Instance.Connect = false;
                 Disconnect();
                 //////Disconnect Echo Server
-                float[] fdata = new float[1];
-                fdata[0] = 10001f;
-                byte[] bdata = new byte[4];
-                Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-                UdpAsyncHandler.Instance.ConnectedUDPs[0].udp.Send(bdata, 4);
+                //float[] fdata = new float[1];
+                //fdata[0] = 10001f;
+                //byte[] bdata = new byte[4];
+                //Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
+                //UdpState stat = UdpAsyncHandler.Instance.ConnectedUDPs[0];
+                //stat.udp.Send(bdata, 4, stat.hep);
                 UdpAsyncHandler.Instance.UdpDisconnect();
                 //////Disconnect Echo Server
                 //remove event handler
@@ -158,14 +160,14 @@ public class DeviceController : MonoBehaviour
 
                 //connect to echo server
                 UdpState cstat = UdpAsyncHandler.Instance.UdpConnect("143.248.6.143", 35001, 40003);
-                UdpState mstat = UdpAsyncHandler.Instance.UdpConnect(40002);
+                //UdpState mstat = UdpAsyncHandler.Instance.UdpConnect(40010);
                 UdpAsyncHandler.Instance.ConnectedUDPs.Add(cstat);
-                UdpAsyncHandler.Instance.ConnectedUDPs.Add(mstat);
-                float[] fdata = new float[1];
-                fdata[0] = 10000f;
-                byte[] bdata = new byte[4];
-                Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-                cstat.udp.Send(bdata, bdata.Length);
+                //UdpAsyncHandler.Instance.ConnectedUDPs.Add(mstat);
+                //float[] fdata = new float[1];
+                //fdata[0] = 10000f;
+                //byte[] bdata = new byte[4];
+                //Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
+                //cstat.udp.Send(bdata, bdata.Length, cstat.hep);
                 //////Connect Echo Server
                                 
             }
@@ -219,7 +221,7 @@ public class DeviceController : MonoBehaviour
 
     public Vector3 Center = new Vector3(0f, 0f, 0f);
     public Vector3 DIR = new Vector3(0f, 0f, 0f);
-    
+    int nUserID = -1;
     void Connect()
     {
         
@@ -243,13 +245,21 @@ public class DeviceController : MonoBehaviour
         string msg = JsonUtility.ToJson(data);
         byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
 
-        UnityWebRequest request = new UnityWebRequest(SystemManager.Instance.ServerAddr + "/Connect?port=40002");
+        UnityWebRequest request = new UnityWebRequest(SystemManager.Instance.ServerAddr + "/Connect?port=40003");
         request.method = "POST";
         UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
         uH.contentType = "application/json";
         request.uploadHandler = uH;
         request.downloadHandler = new DownloadHandlerBuffer();
         UnityWebRequestAsyncOperation res = request.SendWebRequest();
+
+        while (!request.downloadHandler.isDone)
+        {
+            continue;
+        }
+        Debug.Log("len = " + request.downloadHandler.data.Length);
+        nUserID = BitConverter.ToInt32(request.downloadHandler.data, 0);
+        Debug.Log("Connect = " + nUserID);
     }
     public void Disconnect()
     {
@@ -394,63 +404,74 @@ public class DeviceController : MonoBehaviour
         while (cq.TryDequeue(out fdata))
         {
             yield return new WaitForFixedUpdate();
-            if (fdata[0] == 2f)
+            try
             {
-                int nContentID = (int)fdata[1];
-                int nModelID = (int)fdata[2];
-                int nIDX = 3;
-                Vector3 pos = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-                Vector3 rot = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-                ContentData c = new ContentData(ContentManager.Instance.ContentNames[nModelID], pos, rot);
-                Instantiate(c.obj, c.pos, c.q);
-            }
-            else if (fdata[0] == 1f && fdata[1] == 3f) {
-                ////center와 dir로 변경하기
-                int nIDX = 3;
-                Matrix3x3 R = new Matrix3x3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-                Vector3 t = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-                Vector3 pos = -(R.Transpose() * t);
-                pos = FloorRotationMat *pos;
-                pos.y *= -1f;
-                Center = pos;
-                gameObject.transform.position = pos;
-                gameObject.transform.forward = FloorRotationMat.Transpose()*R.row3;
-            }
-            else if (fdata[0] == 3f && fdata[1] == 1f)
-            {
-                ////평면 모델 관련
-                if (fdata[2] == 1f)
+                Debug.Log("Received = " + fdata.Length);
+                if (fdata[0] == 2f)
                 {
+                    int nContentID = (int)fdata[1];
+                    int nModelID = (int)fdata[2];
                     int nIDX = 3;
-                    FloorRotationMat = new Matrix3x3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                    Vector3 pos = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                    Vector3 rot = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                    ContentData c = new ContentData(ContentManager.Instance.ContentNames[nModelID], pos, rot);
+                    Instantiate(c.obj, c.pos, c.q);
                 }
-                else if (fdata[2] == 2f)
+                else if (fdata[0] == 1f && fdata[1] == 3f) {
+               
+                        ////center와 dir로 변경하기
+                        int nIDX = 3;
+                        Matrix3x3 R = new Matrix3x3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                        Vector3 t = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                        Vector3 pos = -(R.Transpose() * t);
+                        pos = FloorRotationMat * pos;
+                        pos.y *= -1f;
+                        Center = pos;
+                        gameObject.transform.position = pos;
+                        gameObject.transform.forward = FloorRotationMat.Transpose() * R.row3;
+                
+                
+                }
+                else if (fdata[0] == 3f && fdata[1] == 1f)
                 {
-                    int nIDX = 3;
-                    FloorParam = new Vector4(fdata[nIDX++], -fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-                    float y = -FloorParam.w;
-
-                    Vector3[] points = new Vector3[4];
-                    float val = 100f;
-                    points[0] = new Vector3(val, y, val);
-                    points[1] = new Vector3(val, y, -val);
-                    points[2] = new Vector3(-val, y, -val);
-                    points[3] = new Vector3(-val, y, val);
-
-                    if (bFloor)
+                    ////평면 모델 관련
+                    if (fdata[2] == 1f)
                     {
-                        //변경
-                        FloorObject.GetComponent<MeshFilter>().mesh.vertices = points;
-                    }else
+                        int nIDX = 3;
+                        FloorRotationMat = new Matrix3x3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                    }
+                    else if (fdata[2] == 2f)
                     {
-                        //생성
-                        bFloor = true;
+                        int nIDX = 3;
+                        FloorParam = new Vector4(fdata[nIDX++], -fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                        float y = -FloorParam.w;
+
+                        Vector3[] points = new Vector3[4];
+                        float val = 100f;
+                        points[0] = new Vector3(val, y, val);
+                        points[1] = new Vector3(val, y, -val);
+                        points[2] = new Vector3(-val, y, -val);
+                        points[3] = new Vector3(-val, y, val);
+
+                        if (bFloor)
+                        {
+                            //변경
+                            FloorObject.GetComponent<MeshFilter>().mesh.vertices = points;
+                        }else
+                        {
+                            //생성
+                            bFloor = true;
                         
-                        FloorObject = createPlane(points, "plane1", new Color(1.0f, 0.0f, 0.0f, 0.6f), 0, 1, 2, 3);
+                            FloorObject = createPlane(points, "plane1", new Color(1.0f, 0.0f, 0.0f, 0.6f), 0, 1, 2, 3);
+                        }
+
                     }
 
                 }
-
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e.ToString());
             }
         }
     }
