@@ -346,8 +346,10 @@ public class UVRSystem : MonoBehaviour
                     Vector3 pos = -(R.Transpose() * t);
                     pos = FloorRotationMat * pos;
                     pos.y *= -1f;
+                    Vector3 dir = R.row3 * FloorRotationMat.Transpose();
+                    dir.y *= -1f;
                     obj.transform.position = pos;
-                    obj.transform.forward = FloorRotationMat*R.row3;
+                    obj.transform.forward = dir;
                 }
             }else if(fdata[0] == 3f && fdata[1] == 1f)
             {
