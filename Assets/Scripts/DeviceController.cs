@@ -44,6 +44,12 @@ public class DeviceController : MonoBehaviour
     {
         Scale = ((float)Screen.height) / SystemManager.Instance.ImageHeight;
         Scaler.matchWidthOrHeight = 1f;
+        SystemManager.Instance.K = new Matrix3x3(
+            SystemManager.Instance.FocalLengthX*Scale, 0f, SystemManager.Instance.PrincipalPointX * Scale, 
+            0f, SystemManager.Instance.FocalLengthY * Scale, SystemManager.Instance.PrincipalPointY * Scale, 
+            0f, 0f, 1f);
+
+        Debug.Log(SystemManager.Instance.K.ToString());
         float Width = (SystemManager.Instance.ImageWidth * Scale);
         float Height = (SystemManager.Instance.ImageHeight * Scale);
         Debug.Log(Screen.width + " " + Screen.height+"::"+SystemManager.Instance.ImageWidth);
