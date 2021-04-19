@@ -85,6 +85,18 @@ public class SystemManager {
             k = value;
         }
     }
+    static private float dis_scale = 1f;
+    public float DisplayScale
+    {
+        get
+        {
+            return dis_scale;
+        }
+        set
+        {
+            dis_scale = value;
+        }
+    }
 
     private static string strUserID, strMapName;
     public string User
