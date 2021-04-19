@@ -74,21 +74,21 @@ public class DeviceController : MonoBehaviour
         RaycastHit hit;
         if (Physics.Raycast(e.ray, out hit))
         {
+            
             Debug.Log("Hit!!!");
             Debug.DrawRay(e.ray.origin, e.ray.direction*100f, Color.red, 1000f, false);
 
             float[] fdata = new float[9];
             int nIDX = 0;
             float modelID = 2f;
-
-            Vector3 pos = hit.distance * e.ray.direction + e.ray.origin;
-
+            float contentID = 1f;
             fdata[nIDX++] = 2f; //method type = 1 : manager, 2 = content
-            fdata[nIDX++] = 0f; //content id : 레이, 생성, 삭제 등
+            fdata[nIDX++] = contentID; //content id : 레이, 생성, 삭제 등
             fdata[nIDX++] = modelID; //model id
             
-            if (modelID == 2f)
+            if (contentID == 1f)
             {
+                Vector3 pos = Camera.main.ScreenToWorldPoint(e.ray.origin + e.ray.direction * hit.distance);//hit.distance * e.ray.direction + e.ray.origin;
                 fdata[nIDX++] = pos.x;
                 fdata[nIDX++] = pos.y;
                 fdata[nIDX++] = pos.z;
@@ -369,9 +369,7 @@ public class DeviceController : MonoBehaviour
                 {
                     ray = Camera.main.ScreenPointToRay(Input.mousePosition);
                     touchPos = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
-
-                    
-
+                    Debug.Log(ray.origin.ToString() + Center.ToString());
                     bTouch = true;
                 }
                 catch (Exception ex)
@@ -406,7 +404,6 @@ public class DeviceController : MonoBehaviour
             yield return new WaitForFixedUpdate();
             try
             {
-                Debug.Log("Received = " + fdata.Length);
                 if (fdata[0] == 2f)
                 {
                     int nContentID = (int)fdata[1];
@@ -432,7 +429,6 @@ public class DeviceController : MonoBehaviour
 
                         gameObject.transform.position = pos;
                         gameObject.transform.forward = dir;
-                
                 
                 }
                 else if (fdata[0] == 3f && fdata[1] == 1f)
@@ -464,7 +460,6 @@ public class DeviceController : MonoBehaviour
                         {
                             //생성
                             bFloor = true;
-                        
                             FloorObject = createPlane(points, "plane1", new Color(1.0f, 0.0f, 0.0f, 0.6f), 0, 1, 2, 3);
                         }
 
