@@ -72,6 +72,20 @@ public class SystemManager {
             return cy;
         }
     }
+
+    static private Matrix3x3 k;
+    public Matrix3x3 K
+    {
+        get
+        {
+            return k;
+        }
+        set
+        {
+            k = value;
+        }
+    }
+
     private static string strUserID, strMapName;
     public string User
     {
@@ -232,6 +246,8 @@ public class SystemManager {
         cy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         w = Convert.ToInt32(dataText[numLine++].Split('=')[1]);
         h = Convert.ToInt32(dataText[numLine++].Split('=')[1]);
+
+        k = new Matrix3x3(fx, 0f, cx, 0f, fy, cy, 0f, 0f, 1f);
     }
     public void LoadParameter()
     {
