@@ -81,7 +81,7 @@ public class UVRSystem : MonoBehaviour
         string msg = JsonUtility.ToJson(data);
         byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
 
-        string msg2 = "/Connect?port=40000";
+        string msg2 = "/Connect?port=40001";
 
         UnityWebRequest request = new UnityWebRequest(SystemManager.Instance.ServerAddr + msg2);
         request.method = "POST";
@@ -101,15 +101,15 @@ public class UVRSystem : MonoBehaviour
         try
         {
             UdpState cstat = UdpAsyncHandler.Instance.UdpConnect("143.248.6.143", 35001, 40001);
-            UdpState mstat = UdpAsyncHandler.Instance.UdpConnect(40000);
+            //UdpState mstat = UdpAsyncHandler.Instance.UdpConnect(40001);
             UdpAsyncHandler.Instance.ConnectedUDPs.Add(cstat);
-            UdpAsyncHandler.Instance.ConnectedUDPs.Add(mstat);
+            //UdpAsyncHandler.Instance.ConnectedUDPs.Add(mstat);
             //connect contetn server
-            //float[] fdata = new float[1];
-            //fdata[0] = 10000f;
-            //byte[] bdata2 = new byte[4];
-            //Buffer.BlockCopy(fdata, 0, bdata2, 0, bdata2.Length);
-            //cstat.udp.Send(bdata2, bdata2.Length);
+            float[] fdata = new float[1];
+            fdata[0] = 10000f;
+            byte[] bdata2 = new byte[4];
+            Buffer.BlockCopy(fdata, 0, bdata2, 0, bdata2.Length);
+            cstat.udp.Send(bdata2, bdata2.Length);
         }
         catch(Exception ex)
         {
