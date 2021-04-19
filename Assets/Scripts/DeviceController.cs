@@ -76,7 +76,6 @@ public class DeviceController : MonoBehaviour
         {
             
             Debug.Log("Hit!!!");
-            Debug.DrawRay(e.ray.origin, e.ray.direction*100f, Color.red, 1000f, false);
 
             float[] fdata = new float[9];
             int nIDX = 0;
@@ -88,7 +87,9 @@ public class DeviceController : MonoBehaviour
             
             if (contentID == 1f)
             {
-                Vector3 pos = Camera.main.ScreenToWorldPoint(e.ray.origin + e.ray.direction * hit.distance);//hit.distance * e.ray.direction + e.ray.origin;
+                Debug.DrawRay(e.ray.origin, e.ray.direction * 100f, Color.blue, 1000f, false);
+                Debug.DrawRay(e.ray.origin, e.ray.direction * hit.distance, Color.red, 1000f, false);
+                Vector3 pos = hit.distance * e.ray.direction + e.ray.origin;//Camera.main.ViewportToWorldPoint(e.ray.origin + e.ray.direction * hit.distance);
                 fdata[nIDX++] = pos.x;
                 fdata[nIDX++] = pos.y;
                 fdata[nIDX++] = pos.z;
