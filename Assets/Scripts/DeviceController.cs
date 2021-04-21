@@ -29,7 +29,7 @@ public class DeviceController : MonoBehaviour
     private static extern void SetParam(float fx, float fy, float cx, float cy);
 
     ////Orientation event
-    float Scale;
+    float Scale, Width, Height;
     int additional;
     Rect BackGroundRect;
     GameObject Canvas;
@@ -45,31 +45,35 @@ public class DeviceController : MonoBehaviour
     Matrix3x3 Mcfromd; // display에서 camera 좌표계로 변환
     Vector2 DiffScreen = Vector2.zero;
 
-    public void OrientationUI()
-    {
-
-        Matrix4x4 proj = Camera.main.cameraToWorldMatrix;
-
+    public void SetScreen() {
         ////디스플레이와 카메라 스케일 계산
         Scale = ((float)Screen.height) / SystemManager.Instance.ImageHeight;
         Scaler.matchWidthOrHeight = 1f;
         ////디스플레이와 카메라 스케일 계산
-        
+
         //이미지를 스크린에 정렬
-        float Width = (SystemManager.Instance.ImageWidth * Scale);
-        float Height = (SystemManager.Instance.ImageHeight * Scale);
+        Width = (SystemManager.Instance.ImageWidth * Scale);
+        Height = (SystemManager.Instance.ImageHeight * Scale);
         Scaler.referenceResolution = new Vector2(Screen.width, Screen.height);// (SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight); //(Width, Height);
-        
+
         //카메라 이미지를 스크린의 가운데 정렬 & 클릭 이벤트 감지를 위한 사각형 설정
-        float diff = (Screen.width - Width)*0.5f;
+        float diff = (Screen.width - Width) * 0.5f;
         DiffScreen = new Vector2(diff, 0f);
         BackGroundRect = new Rect(diff, 0f, Width, Height);
-        
+    }
+    public void SetUI() {
         ////버튼 UI 설정
-        rect1 = new Rect(diff + Width, 60f, rectWidth, rectHeight);
-        rect2 = new Rect(diff + Width, 60f + (60f + rectHeight), rectWidth, rectHeight);
-        rect3 = new Rect(diff + Width, 60f + (60f + rectHeight) * 2, rectWidth, rectHeight);
-        rect4 = new Rect(diff + Width, 60f + (60f + rectHeight) * 3, rectWidth, rectHeight);
+        rect1 = new Rect(DiffScreen.x + Width, 60f, rectWidth, rectHeight);
+        rect2 = new Rect(DiffScreen.x + Width, 60f + (60f + rectHeight), rectWidth, rectHeight);
+        rect3 = new Rect(DiffScreen.x + Width, 60f + (60f + rectHeight) * 2, rectWidth, rectHeight);
+        rect4 = new Rect(DiffScreen.x + Width, 60f + (60f + rectHeight) * 3, rectWidth, rectHeight);
+    }
+
+    public void OrientationUI()
+    {
+        
+        
+        
 
         ////디스플레이 - 카메라 좌표계 변환용
         ////스케일 변환
@@ -132,30 +136,19 @@ public class DeviceController : MonoBehaviour
             float[] fdata = new float[9];
             int nIDX = 0;
             float modelID = 2f;
-            float contentID = 1f;
+            float contentID = mnContentID;
             fdata[nIDX++] = 2f; //method type = 1 : manager, 2 = content
             fdata[nIDX++] = contentID; //content id : 레이, 생성, 삭제 등
             fdata[nIDX++] = modelID; //model id
-            
-            if (contentID == 1f)
-            {
-                Vector3 pos = hit.distance * e.ray.direction + e.ray.origin;//Camera.main.ViewportToWorldPoint(e.ray.origin + e.ray.direction * hit.distance);
-                fdata[nIDX++] = pos.x;
-                fdata[nIDX++] = pos.y;
-                fdata[nIDX++] = pos.z;
-                fdata[nIDX++] = 0f;
-                fdata[nIDX++] = 0f;
-                fdata[nIDX++] = 0f;
-            }
-            else
-            {
-                fdata[nIDX++] = Center.x;
-                fdata[nIDX++] = Center.y; //ray.origin.y;//Center.y;
-                fdata[nIDX++] = Center.z; //ray.origin.z;//Center.z;
-                fdata[nIDX++] = e.ray.direction.x;
-                fdata[nIDX++] = e.ray.direction.y;
-                fdata[nIDX++] = e.ray.direction.z;
-            }
+
+            //항상 start와 end로 전송
+            Vector3 end = hit.distance * e.ray.direction + e.ray.origin;//Camera.main.ViewportToWorldPoint(e.ray.origin + e.ray.direction * hit.distance);
+            fdata[nIDX++] = Center.x;
+            fdata[nIDX++] = Center.y;
+            fdata[nIDX++] = Center.z;
+            fdata[nIDX++] = end.x;
+            fdata[nIDX++] = end.y;
+            fdata[nIDX++] = end.z;
 
             byte[] bdata = new byte[fdata.Length * 4];
             Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
@@ -165,13 +158,16 @@ public class DeviceController : MonoBehaviour
             
     }
     ///////////Touch Event Handler
-    
+
     /// <summary>
     //코드 재정리
     //21.04.08
     //private ContentEchoServer mEchoServer; //이거 삭제 해도 될 듯
 
-    
+
+    int tabIndex;
+    string[] tabSubject = {"ray", "object"};
+
     void OnGUI()
     {
         if (SystemManager.Instance.Connect)
@@ -233,6 +229,21 @@ public class DeviceController : MonoBehaviour
             {
                 SystemManager.Instance.Start = true;
             }
+        }
+        
+        tabIndex = GUI.Toolbar(rect3, tabIndex, tabSubject);
+        switch (tabIndex)
+        {
+            case 0:
+                mnContentID = 0;
+                break;
+            case 1:
+                mnContentID = 1;
+                break;
+            case 2:
+                break;
+            default:
+                break;
         }
         
         //GUI.Label(rect4, Screen.width + " " + Screen.height+","+touchEvent.pos.x+" "+touchEvent.pos.y);
@@ -354,7 +365,9 @@ public class DeviceController : MonoBehaviour
         fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
         fitter.aspectRatio = ((float)SystemManager.Instance.ImageWidth) / SystemManager.Instance.ImageHeight;
 
-        OrientationUI();
+        SetScreen();
+        SetUI();
+        //OrientationUI();
         Touched += TouchProcess;
     }
 
@@ -429,6 +442,7 @@ public class DeviceController : MonoBehaviour
         StartCoroutine("DeviceControl");
     }
 
+    int mnContentID;
     Matrix3x3 NewRotationMat = new Matrix3x3();
     Matrix3x3 Runityfromslam = new Matrix3x3(1f, 0f, 0f, 0f, -1f, 0f, 0f, 0f, 1f);
     Matrix3x3 FloorRotationMat = new Matrix3x3();
@@ -436,6 +450,22 @@ public class DeviceController : MonoBehaviour
     GameObject FloorObject;
     Vector3 vel = Vector3.zero;
     bool bFloor = false;
+    void DrawLine(Vector3 start, Vector3 end, Color color, float duration = 0.2f)
+    {
+        GameObject myLine = new GameObject();
+        myLine.transform.position = start;
+        myLine.AddComponent<LineRenderer>();
+        LineRenderer lr = myLine.GetComponent<LineRenderer>();
+        lr.material = new Material(Shader.Find("Legacy Shaders/Transparent/Diffuse"));
+        lr.startWidth = 0.001f;
+        lr.endWidth = 0.001f;
+        lr.startColor = color;
+        lr.endColor = color;
+        lr.SetPosition(0, start);
+        lr.SetPosition(1, end);
+        GameObject.Destroy(myLine, duration);
+    }
+
     IEnumerator DeviceControl()
     {
         float[] fdata;
@@ -449,10 +479,18 @@ public class DeviceController : MonoBehaviour
                     int nContentID = (int)fdata[1];
                     int nModelID = (int)fdata[2];
                     int nIDX = 3;
-                    Vector3 pos = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-                    Vector3 rot = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-                    ContentData c = new ContentData(ContentManager.Instance.ContentNames[nModelID], pos, rot);
-                    Instantiate(c.obj, c.pos, c.q);
+                    Vector3 start = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                    Vector3 end = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                    if(nContentID == 0f)
+                    {
+                        DrawLine(start, end, Color.cyan, 100f);
+                    }
+                    else
+                    {
+                        Vector3 dir = end - start;
+                        ContentData c = new ContentData(ContentManager.Instance.ContentNames[nModelID], end, Vector3.zero);
+                        Instantiate(c.obj, c.pos, c.q);
+                    }
                 }
                 else if (fdata[0] == 1f && fdata[1] == 3f) {
                
