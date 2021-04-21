@@ -36,33 +36,74 @@ public class DeviceController : MonoBehaviour
     CanvasScaler Scaler;
     float CheckOrientationDelay = 0.5f;
     bool isAlive = true;
-    private int rectWidth = 200;
+    private int rectWidth = 160;
     private int rectHeight = 80;
     Rect rect1, rect2, rect3, rect4;
-        
+
+    Matrix3x3 InvK;
+    Matrix3x3 ScaleMat, InvScaleMat;
+    Matrix3x3 Mcfromd; // display에서 camera 좌표계로 변환
+    Vector2 DiffScreen = Vector2.zero;
+
     public void OrientationUI()
     {
+
+        Matrix4x4 proj = Camera.main.cameraToWorldMatrix;
+
+        ////디스플레이와 카메라 스케일 계산
         Scale = ((float)Screen.height) / SystemManager.Instance.ImageHeight;
         Scaler.matchWidthOrHeight = 1f;
-        SystemManager.Instance.K = new Matrix3x3(
-            SystemManager.Instance.FocalLengthX*Scale, 0f, SystemManager.Instance.PrincipalPointX * Scale, 
-            0f, SystemManager.Instance.FocalLengthY * Scale, SystemManager.Instance.PrincipalPointY * Scale, 
-            0f, 0f, 1f);
-
-        Debug.Log(SystemManager.Instance.K.ToString());
+        ////디스플레이와 카메라 스케일 계산
+        
+        //이미지를 스크린에 정렬
         float Width = (SystemManager.Instance.ImageWidth * Scale);
         float Height = (SystemManager.Instance.ImageHeight * Scale);
-        Debug.Log(Screen.width + " " + Screen.height+"::"+SystemManager.Instance.ImageWidth);
-        Scaler.referenceResolution = new Vector2(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight); //(Width, Height);
-        Debug.Log("width = " + Width+"::Scale"+Scale);
-        BackGroundRect = new Rect(0f, 0f, Width, Height);
+        Scaler.referenceResolution = new Vector2(Screen.width, Screen.height);// (SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight); //(Width, Height);
         
-        rect1 = new Rect(Width, 60f, rectWidth, rectHeight);
-        rect2 = new Rect(Width, 60f + (60f + rectHeight), rectWidth, rectHeight);
-        rect3 = new Rect(Width, 60f + (60f + rectHeight) * 2, rectWidth, rectHeight);
-        rect4 = new Rect(Width, 60f + (60f + rectHeight) * 3, rectWidth, rectHeight);
+        //카메라 이미지를 스크린의 가운데 정렬 & 클릭 이벤트 감지를 위한 사각형 설정
+        float diff = (Screen.width - Width)*0.5f;
+        DiffScreen = new Vector2(diff, 0f);
+        BackGroundRect = new Rect(diff, 0f, Width, Height);
+        
+        ////버튼 UI 설정
+        rect1 = new Rect(diff + Width, 60f, rectWidth, rectHeight);
+        rect2 = new Rect(diff + Width, 60f + (60f + rectHeight), rectWidth, rectHeight);
+        rect3 = new Rect(diff + Width, 60f + (60f + rectHeight) * 2, rectWidth, rectHeight);
+        rect4 = new Rect(diff + Width, 60f + (60f + rectHeight) * 3, rectWidth, rectHeight);
+
+        ////디스플레이 - 카메라 좌표계 변환용
+        ////스케일 변환
+        //SystemManager.Instance.K = new Matrix3x3(
+        //    SystemManager.Instance.FocalLengthX * Scale, 0f, SystemManager.Instance.PrincipalPointX * Scale,
+        //    0f, SystemManager.Instance.FocalLengthY * Scale, SystemManager.Instance.PrincipalPointY * Scale,
+        //    0f, 0f, 1f);
+        //ScaleMat = new Matrix3x3(Scale, 0f, 0f, 0f, Scale, 0f, 0f, 0f, 1f);
+        //InvScaleMat = new Matrix3x3(1f/Scale, 0f, 0f, 0f, 1f/Scale, 0f, 0f, 0f, 1f);
+        //Mcfromd = new Matrix3x3(
+        //    1f, 0f, 0f,
+        //    0f, -1f, Height,
+        //    0f, 0f, 1f);
+        ////SystemManager.Instance.K = new Matrix3x3(
+        ////   565.8f, 0f, Width*0.5f,
+        ////   0f, 424.35f, Height*0.5f,
+        ////   0f, 0f, 1f);
+        ////SystemManager.Instance.K = new Matrix3x3(
+        ////    640f, 0f, 320f,
+        ////    0f, 480f, 240f,
+        ////    0f, 0f, 1f);
+        //////스케일 변환
+        //////역행렬
+        //float a = -SystemManager.Instance.K.m02 / SystemManager.Instance.K.m00;
+        //float b = -SystemManager.Instance.K.m12 / SystemManager.Instance.K.m11;
+        //InvK = new Matrix3x3(
+        //     1f / SystemManager.Instance.K.m00, 0f, a,
+        //     0f, 1f / SystemManager.Instance.K.m11, b,
+        //     0f, 0f, 1f
+        //    );
+        ////디스플레이 - 카메라 좌표계 변환용
+        ////역행렬
     }
-    
+
     ///////////Touch Event Handler
     public Rect screenRect;
     public event EventHandler<TouchEventArgs> Touched;
@@ -77,11 +118,16 @@ public class DeviceController : MonoBehaviour
     //bool bClickUI = false;
     public void TouchProcess(object sender, TouchEventArgs e)
     {
+        ////스크린 터치 -> 유니티 좌표계 변환
+        ////이게 뷰포트 변환인지 잘 모르겠음. 진행중
+        //Vector3 a = Mcfromd * new Vector3(e.pos.x - DiffScreen.x, e.pos.y, 1f);
+        //Vector3 dir = NewRotationMat.Transpose() * InvK * a;
+        //Ray ray = new Ray(Center, dir);
+        ////스크린 터치 -> 유니티 좌표계 변환
+
         RaycastHit hit;
         if (Physics.Raycast(e.ray, out hit))
         {
-            
-            Debug.Log("Hit!!!");
 
             float[] fdata = new float[9];
             int nIDX = 0;
@@ -93,8 +139,6 @@ public class DeviceController : MonoBehaviour
             
             if (contentID == 1f)
             {
-                Debug.DrawRay(e.ray.origin, e.ray.direction * 100f, Color.blue, 1000f, false);
-                Debug.DrawRay(e.ray.origin, e.ray.direction * hit.distance, Color.red, 1000f, false);
                 Vector3 pos = hit.distance * e.ray.direction + e.ray.origin;//Camera.main.ViewportToWorldPoint(e.ray.origin + e.ray.direction * hit.distance);
                 fdata[nIDX++] = pos.x;
                 fdata[nIDX++] = pos.y;
@@ -118,15 +162,10 @@ public class DeviceController : MonoBehaviour
             UdpState stat = UdpAsyncHandler.Instance.ConnectedUDPs[0];
             stat.udp.Send(bdata, bdata.Length, stat.hep);
         }
-        else
-        {
-            Debug.Log("No Hit!!!");
-        }
             
     }
     ///////////Touch Event Handler
-
-
+    
     /// <summary>
     //코드 재정리
     //21.04.08
@@ -195,12 +234,7 @@ public class DeviceController : MonoBehaviour
                 SystemManager.Instance.Start = true;
             }
         }
-
-        if (GUI.Button(rect3, "Load Model"))
-        {
-            GetModel();
-        }
-
+        
         //GUI.Label(rect4, Screen.width + " " + Screen.height+","+touchEvent.pos.x+" "+touchEvent.pos.y);
 
     }
@@ -313,15 +347,13 @@ public class DeviceController : MonoBehaviour
         sw = new Stopwatch();
         string path = Application.persistentDataPath + "/param.txt";
         SystemManager.Instance.LoadParameter(path);
-
-        //rect1 = new Rect(0, 60, rectWidth, rectHeight);
-        //rect2 = new Rect(0, 120 + rectHeight, rectWidth, rectHeight);
-        //rect3 = new Rect(0, 180 + rectHeight * 2, rectWidth, rectHeight);
-        //rect4 = new Rect(0, 240 + rectHeight * 3, rectWidth, rectHeight);
+        
         Canvas = GameObject.Find("Canvas");
         Scaler = Canvas.GetComponentInChildren<CanvasScaler>();
-        //Scaler.referenceResolution = new Vector2(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight);
-        
+        AspectRatioFitter fitter = GameObject.Find("background").GetComponent<AspectRatioFitter>();
+        fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+        fitter.aspectRatio = ((float)SystemManager.Instance.ImageWidth) / SystemManager.Instance.ImageHeight;
+
         OrientationUI();
         Touched += TouchProcess;
     }
@@ -331,7 +363,6 @@ public class DeviceController : MonoBehaviour
     {
         if (SystemManager.Instance.Start)
         {
-            //StartCoroutine("GetReferenceInfoCoroutine");
 
             if (bCam)
             {
@@ -344,8 +375,7 @@ public class DeviceController : MonoBehaviour
                 byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
                 tex.LoadImage(byteTexture);
                 background.texture = tex;
-                background.SetNativeSize();
-                background.rectTransform.anchoredPosition = new Vector2(SystemManager.Instance.ImageWidth*0.5f, SystemManager.Instance.ImageHeight*0.5f);//(Width * 0.5f, Height * 0.5f);
+                
                 if (mbSended && mnFrameID % 3 == 0)
                 {
                     mbSended = false;
@@ -376,7 +406,7 @@ public class DeviceController : MonoBehaviour
                 {
                     ray = Camera.main.ScreenPointToRay(Input.mousePosition);
                     touchPos = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
-                    Debug.Log(ray.origin.ToString() + Center.ToString());
+
                     bTouch = true;
                 }
                 catch (Exception ex)
@@ -399,9 +429,12 @@ public class DeviceController : MonoBehaviour
         StartCoroutine("DeviceControl");
     }
 
+    Matrix3x3 NewRotationMat = new Matrix3x3();
+    Matrix3x3 Runityfromslam = new Matrix3x3(1f, 0f, 0f, 0f, -1f, 0f, 0f, 0f, 1f);
     Matrix3x3 FloorRotationMat = new Matrix3x3();
     Vector4 FloorParam = Vector4.zero;
     GameObject FloorObject;
+    Vector3 vel = Vector3.zero;
     bool bFloor = false;
     IEnumerator DeviceControl()
     {
@@ -423,20 +456,26 @@ public class DeviceController : MonoBehaviour
                 }
                 else if (fdata[0] == 1f && fdata[1] == 3f) {
                
-                        ////center와 dir로 변경하기
-                        int nIDX = 3;
-                        Matrix3x3 R = new Matrix3x3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-                        Vector3 t = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-                        Vector3 pos = -(R.Transpose() * t);
-                        pos = FloorRotationMat * pos;
-                        pos.y *= -1f;
-                        Vector3 dir = R.row3 * FloorRotationMat.Transpose();
-                        dir.y *= -1f;
-                        Center = pos;
+                    ////center와 dir로 변경하기
+                    int nIDX = 3;
+                    Matrix3x3 R = new Matrix3x3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                    Vector3 t = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                    Vector3 pos = -(R.Transpose() * t);
+                    pos = FloorRotationMat * pos;
+                    pos.y *= -1f;
+                    Vector3 dir = R.row3 * FloorRotationMat.Transpose();
+                    dir.y *= -1f;
+                    Center = pos;
+                    
+                    gameObject.transform.position = Vector3.SmoothDamp(gameObject.transform.position, pos, ref vel, 0.1f);//pos;
+                    gameObject.transform.forward = dir;
 
-                        gameObject.transform.position = pos;
-                        gameObject.transform.forward = dir;
-                
+                    //Rotation Test
+                    NewRotationMat = R * FloorRotationMat.Transpose()* Runityfromslam;
+                    //Vector3 testVec = (-1f * NewRotationMat.Transpose() * t);
+                    //Debug.Log("TEST1 = " + testVec.x + " " + testVec.y + " " + testVec.z + "::" + Center.x + " " + Center.y + " " + Center.z);
+                    //Debug.Log("TEST2 = " + NewRotationMat.row3.x + " " + NewRotationMat.row3.y + " " + NewRotationMat.row3.z + "::" + dir.x + " " + dir.y + " " + dir.z);
+
                 }
                 else if (fdata[0] == 3f && fdata[1] == 1f)
                 {
@@ -481,47 +520,6 @@ public class DeviceController : MonoBehaviour
         }
     }
 
-    IEnumerator GetReferenceInfoCoroutine()
-    {
-        string addr = SystemManager.Instance.ServerAddr + "/SendData?map=" + SystemManager.Instance.Map + "&attr=Users&id=" + SystemManager.Instance.User + "&key=refid";
-        UnityWebRequest request = new UnityWebRequest(addr);
-        request.method = "POST";
-        request.downloadHandler = new DownloadHandlerBuffer();
-        UnityWebRequestAsyncOperation res = request.SendWebRequest();
-        while (!request.downloadHandler.isDone)
-        {
-            yield return new WaitForFixedUpdate();
-        }
-        nRefID = BitConverter.ToInt32(request.downloadHandler.data, 0);
-        if (nRefID != -1 && nRefID != prevID)
-        {
-            string addr2 = SystemManager.Instance.ServerAddr + "/SendData?map=" + SystemManager.Instance.Map + "&id=" + nRefID + "&key=bpose";
-            request = new UnityWebRequest(addr2);
-            request.method = "POST";
-            request.downloadHandler = new DownloadHandlerBuffer();
-            res = request.SendWebRequest();
-            
-            while (!request.downloadHandler.isDone)
-            {
-                yield return new WaitForFixedUpdate();
-            }
-
-            byte[] bdata = request.downloadHandler.data;
-            float[] framepose = new float[bdata.Length / 4];
-            Buffer.BlockCopy(bdata, 0, framepose, 0, bdata.Length);
-            //Debug.Log(framedata.Length+" "+framepose.Length);
-
-            ////카메라 자세 획득 및 카메라 위치 추정
-            Matrix3x3 R = new Matrix3x3(framepose[0], framepose[1], framepose[2], framepose[3], framepose[4], framepose[5], framepose[6], framepose[7], framepose[8]);
-            Vector3 t = new Vector3(framepose[9], framepose[10], framepose[11]);
-            Center = -(R.Transpose() * t);
-            gameObject.transform.forward = R.row3;
-            gameObject.transform.position = Center;
-            ////업데이트 카메라 포즈
-            prevID = nRefID;
-        }
-    }
-
     IEnumerator MappingCoroutine()
     {
         sw.Start();
@@ -552,31 +550,6 @@ public class DeviceController : MonoBehaviour
         sw.Reset();
 
         mbSended = true;
-    }
-
-    public void GetModel()
-    {
-        string addr = SystemManager.Instance.ServerAddr + "/SendData?map=" + SystemManager.Instance.Map + "&attr=Models&id=1&key=bregion";
-        UnityWebRequest request = new UnityWebRequest(addr);
-        request.method = "POST";
-        request.downloadHandler = new DownloadHandlerBuffer();
-        UnityWebRequestAsyncOperation res = request.SendWebRequest();
-        while (!request.downloadHandler.isDone)
-        {
-            continue;
-        }
-
-        float[] pdata = new float[12];
-        Buffer.BlockCopy(request.downloadHandler.data, 0, pdata, 0, request.downloadHandler.data.Length);
-        Debug.Log(pdata[0] + " " + pdata[1]);
-        Vector3[] points = new Vector3[4];
-        for (int i = 0; i < 4; i++)
-        {
-            Vector3 temp = new Vector3(pdata[3 * i], pdata[3 * i + 1], pdata[3 * i + 2]);
-            points[i] = temp;
-            Debug.Log(points[i]);
-        }
-        createPlane(points, "plane1", new Color(1.0f, 0.0f, 0.0f, 0.6f), 0, 1, 2, 3);
     }
 
     public GameObject createPlane(Vector3[] points, string oname, Color acolor, int idx1, int idx2, int idx3, int idx4)
@@ -616,7 +589,6 @@ public class DeviceController : MonoBehaviour
         mc.sharedMesh = m;
         return go;
     }
-
 
     void OnDestroy()
     {
