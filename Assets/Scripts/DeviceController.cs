@@ -143,9 +143,10 @@ public class DeviceController : MonoBehaviour
 
             //항상 start와 end로 전송
             Vector3 end = hit.distance * e.ray.direction + e.ray.origin;//Camera.main.ViewportToWorldPoint(e.ray.origin + e.ray.direction * hit.distance);
-            fdata[nIDX++] = Center.x;
-            fdata[nIDX++] = Center.y;
-            fdata[nIDX++] = Center.z;
+            Vector3 start = Center + DIR * 2f;
+            fdata[nIDX++] = start.x;
+            fdata[nIDX++] = start.y;
+            fdata[nIDX++] = start.z;
             fdata[nIDX++] = end.x;
             fdata[nIDX++] = end.y;
             fdata[nIDX++] = end.z;
@@ -352,6 +353,8 @@ public class DeviceController : MonoBehaviour
         Application.targetFrameRate = 30;
     }
 
+
+    int nDurationSendFrame = 3;
     // Start is called before the first frame update
     void Start()
     {
@@ -389,7 +392,7 @@ public class DeviceController : MonoBehaviour
                 tex.LoadImage(byteTexture);
                 background.texture = tex;
                 
-                if (mbSended && mnFrameID % 3 == 0)
+                if (mbSended && mnFrameID % nDurationSendFrame == 0)
                 {
                     mbSended = false;
                     StartCoroutine("MappingCoroutine");
@@ -457,8 +460,8 @@ public class DeviceController : MonoBehaviour
         myLine.AddComponent<LineRenderer>();
         LineRenderer lr = myLine.GetComponent<LineRenderer>();
         lr.material = new Material(Shader.Find("Legacy Shaders/Transparent/Diffuse"));
-        lr.startWidth = 0.001f;
-        lr.endWidth = 0.001f;
+        lr.startWidth = 0.05f;
+        lr.endWidth = 0.05f;
         lr.startColor = color;
         lr.endColor = color;
         lr.SetPosition(0, start);
@@ -501,12 +504,13 @@ public class DeviceController : MonoBehaviour
                     Vector3 pos = -(R.Transpose() * t);
                     pos = FloorRotationMat * pos;
                     pos.y *= -1f;
-                    Vector3 dir = R.row3 * FloorRotationMat.Transpose();
-                    dir.y *= -1f;
+                    DIR = R.row3 * FloorRotationMat.Transpose();
+                    DIR.y *= -1f;
                     Center = pos;
                     
                     gameObject.transform.position = Vector3.SmoothDamp(gameObject.transform.position, pos, ref vel, 0.1f);//pos;
-                    gameObject.transform.forward = dir;
+                    Debug.Log(vel.ToString());
+                    gameObject.transform.forward = DIR;
 
                     //Rotation Test
                     NewRotationMat = R * FloorRotationMat.Transpose()* Runityfromslam;
