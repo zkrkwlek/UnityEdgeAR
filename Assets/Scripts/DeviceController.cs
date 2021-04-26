@@ -60,6 +60,8 @@ public class DeviceController : MonoBehaviour
         float diff = (Screen.width - Width) * 0.5f;
         DiffScreen = new Vector2(diff, 0f);
         BackGroundRect = new Rect(diff, 0f, Width, Height);
+        float margin = DiffScreen.x / Screen.width;
+        Camera.main.rect = new Rect(margin, 0f, 1 - 2f * margin, 1f);
     }
     public void SetUI() {
         ////버튼 UI 설정
@@ -128,7 +130,7 @@ public class DeviceController : MonoBehaviour
         //Vector3 dir = NewRotationMat.Transpose() * InvK * a;
         //Ray ray = new Ray(Center, dir);
         ////스크린 터치 -> 유니티 좌표계 변환
-
+        
         RaycastHit hit;
         if (Physics.Raycast(e.ray, out hit))
         {
@@ -422,8 +424,9 @@ public class DeviceController : MonoBehaviour
                 {
                     ray = Camera.main.ScreenPointToRay(Input.mousePosition);
                     touchPos = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
-
                     bTouch = true;
+                    Vector3 view = Camera.main.ScreenToViewportPoint(Input.mousePosition);
+                    Debug.Log(Input.mousePosition.ToString() + ":" + view.ToString());
                 }
                 catch (Exception ex)
                 {
@@ -552,7 +555,7 @@ public class DeviceController : MonoBehaviour
                         }
 
                     }
-
+                    
                 }
             }
             catch (Exception e)
