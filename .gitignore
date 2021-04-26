@@ -7,6 +7,7 @@ ProjectSettings
 Temp
 Assets/Plugins
 Assets/Resources
+Assets/Contents
 *.apk
 
 *.overrideController
