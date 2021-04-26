@@ -487,6 +487,9 @@ public class DeviceController : MonoBehaviour
                     int nIDX = 3;
                     Vector3 start = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
                     Vector3 end = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                    Vector3 viewEnd = Camera.main.WorldToViewportPoint(end);
+                    Debug.Log("line test = " + start.ToString() + "::" + end.ToString()+"::"+viewEnd);
+                    
                     if(nContentID == 0f)
                     {
                         DrawLine(start, end, Color.cyan, 100f);
