@@ -6,6 +6,7 @@ Packages
 ProjectSettings
 Temp
 Assets/Plugins
+Assets/Resources
 *.apk
 
 *.overrideController
@@ -17,3 +18,5 @@ Assets/Plugins
 *.VC.db
 Assets/Scenes/DesktopManager.unity
 Assets/Scenes/DeviceApplication.unity
+
+
