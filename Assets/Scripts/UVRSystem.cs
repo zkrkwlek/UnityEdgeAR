@@ -145,13 +145,20 @@ public class UVRSystem : MonoBehaviour
         UdpAsyncHandler.Instance.UdpDataReceived -= UdpDataReceivedProcess;
 
         ////모든 기기 오브젝트 삭제
-        for(int i = 0, iend = Devices.transform.childCount; i < iend; i++)
+        try
         {
-            GameObject go = Devices.transform.GetChild(i).gameObject;
-            if(go!=null)
-                DestroyImmediate(Devices.transform.GetChild(i).gameObject);
+            for (int i = 0, iend = Devices.transform.childCount; i < iend; i++)
+            {
+                GameObject go = Devices.transform.GetChild(i).gameObject;
+                if (go != null)
+                    DestroyImmediate(Devices.transform.GetChild(i).gameObject);
+            }
+            Devices.transform.DetachChildren();
         }
-        Devices.transform.DetachChildren();
+        catch(Exception e)
+        {
+            Debug.Log(e.ToString());
+        }
         mConnectedDevices.Clear();
         ////현재 남아있는 모든 콘텐츠 삭제
         for (int i = 0, iend = Contents.transform.childCount; i < iend; i++)
@@ -300,6 +307,8 @@ public class UVRSystem : MonoBehaviour
     /// 이후는 필요한 추가 데이터
     /// </summary>
     /// <returns></returns>
+    bool bFloor = false;
+    GameObject FloorObject;
     Matrix3x3 FloorRotationMat = new Matrix3x3();
     Vector4 FloorParam = Vector4.zero;
     IEnumerator DeviceControl()
@@ -315,12 +324,24 @@ public class UVRSystem : MonoBehaviour
                 int nContentID = (int)fdata[1];
                 int nModelID = (int)fdata[2];
                 int nIDX = 3;
-                Vector3 pos = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-                Vector3 rot = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-                ContentData c = new ContentData(ContentManager.Instance.ContentNames[nModelID],pos, rot);
-                GameObject go = Instantiate(c.obj, c.pos, c.q);
+                Vector3 start = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                Vector3 end = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                if (nContentID == 0f)
+                {
+                    DrawLine(start, end, Color.cyan, 100f);
+                }
+                else
+                {
+                    Vector3 dir = end - start;
+                    ContentData c = new ContentData(ContentManager.Instance.ContentNames[nModelID], end, Vector3.zero);
+                    GameObject go = Instantiate(c.obj, c.pos, c.q);
                 go.transform.SetParent(Contents.transform);
-                //EditorCoroutineUtility.StartCoroutine(TestCR(pos, rot, 100f), this);
+                }
+                //Vector3 pos = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                //Vector3 rot = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                //ContentData c = new ContentData(ContentManager.Instance.ContentNames[nModelID],pos, rot);
+                
+                
             }
             else if(fdata[0] == 1f)
             {
@@ -348,7 +369,8 @@ public class UVRSystem : MonoBehaviour
                     pos.y *= -1f;
                     Vector3 dir = R.row3 * FloorRotationMat.Transpose();
                     dir.y *= -1f;
-                    obj.transform.position = pos;
+                    Vector3 vel = Vector3.zero;
+                    obj.transform.position = Vector3.Lerp(obj.transform.position, pos, 0.1f);//pos;
                     obj.transform.forward = dir;
                 }
             }else if(fdata[0] == 3f && fdata[1] == 1f)
@@ -361,6 +383,26 @@ public class UVRSystem : MonoBehaviour
                 {
                     int nIDX = 3;
                     FloorParam = new Vector4(fdata[nIDX++], -fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
+                    float y = -FloorParam.w;
+
+                    Vector3[] points = new Vector3[4];
+                    float val = 100f;
+                    points[0] = new Vector3(val, y, val);
+                    points[1] = new Vector3(val, y, -val);
+                    points[2] = new Vector3(-val, y, -val);
+                    points[3] = new Vector3(-val, y, val);
+
+                    if (bFloor)
+                    {
+                        //변경
+                        FloorObject.GetComponent<MeshFilter>().mesh.vertices = points;
+                    }
+                    else
+                    {
+                        //생성
+                        bFloor = true;
+                        FloorObject = createPlane(points, "plane1", new Color(1.0f, 0.0f, 0.0f, 0.6f), 0, 1, 2, 3);
+                    }
                 }
                 
             }
@@ -450,6 +492,9 @@ public class UVRSystem : MonoBehaviour
         m.RecalculateNormals();
         mr.sharedMaterial = new Material(Shader.Find("Legacy Shaders/Transparent/Diffuse"));
         mr.sharedMaterial.color = acolor;
+
+        MeshCollider mc = go.AddComponent(typeof(MeshCollider)) as MeshCollider;
+        mc.sharedMesh = m;
         return go;
     }
     
@@ -485,6 +530,23 @@ public class UVRSystem : MonoBehaviour
         }
         yield return null;
     }
+
+    void DrawLine(Vector3 start, Vector3 end, Color color, float duration = 0.2f)
+    {
+        GameObject myLine = new GameObject();
+        myLine.transform.position = start;
+        myLine.AddComponent<LineRenderer>();
+        LineRenderer lr = myLine.GetComponent<LineRenderer>();
+        lr.material = new Material(Shader.Find("Legacy Shaders/Transparent/Diffuse"));
+        lr.startWidth = 0.05f;
+        lr.endWidth = 0.05f;
+        lr.startColor = color;
+        lr.endColor = color;
+        lr.SetPosition(0, start);
+        lr.SetPosition(1, end);
+        GameObject.Destroy(myLine, duration);
+    }
+
     IEnumerator DestroyBullet(GameObject obj)
     {
         DestroyImmediate(obj);

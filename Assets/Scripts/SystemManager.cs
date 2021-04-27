@@ -9,7 +9,9 @@ public class SystemManager {
     public class InitConnectData
     {
         public InitConnectData() { }
-        public InitConnectData(string _userID, string _mapName, bool _bMapping, bool _bManager, float _fx, float _fy, float _cx, float _cy, int _w, int _h)
+        public InitConnectData(string _userID, string _mapName, bool _bMapping, bool _bManager,
+            float _fx, float _fy, float _cx, float _cy,
+            float _d1, float _d2, float _d3, float _d4, int _w, int _h)
         {
             userID = _userID;
             mapName = _mapName;
@@ -19,17 +21,23 @@ public class SystemManager {
             fy = _fy;
             cx = _cx;
             cy = _cy;
+            d1 = _d1;
+            d2 = _d2;
+            d3 = _d3;
+            d4 = _d4;
             w = _w;
             h = _h;
         }
         public string userID, mapName;
         public float fx, fy, cx, cy;
+        public float d1, d2, d3, d4;
         public int w, h;
         public bool bMapping, bManager;
     }
 
     private static int w, h;
     private static float fx, fy, cx, cy;
+    float d1, d2, d3, d4;
     public int ImageWidth
     {
         get
@@ -258,7 +266,11 @@ public class SystemManager {
         cy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         w = Convert.ToInt32(dataText[numLine++].Split('=')[1]);
         h = Convert.ToInt32(dataText[numLine++].Split('=')[1]);
-
+        d1 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+        d2 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+        d3 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+        d4 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+        Debug.Log(d1 + " " + d2);
         k = new Matrix3x3(fx, 0f, cx, 0f, fy, cy, 0f, 0f, 1f);
     }
     public void LoadParameter()
@@ -311,6 +323,6 @@ public class SystemManager {
 
     public InitConnectData GetConnectData()
     {
-        return new InitConnectData(strUserID, strMapName, bMapping, bManagerMode, fx, fy, cx, cy, w, h);
+        return new InitConnectData(strUserID, strMapName, bMapping, bManagerMode, fx, fy, cx, cy, d1, d2, d3, d4, w, h);
     }
 }
