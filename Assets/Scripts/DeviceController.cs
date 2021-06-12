@@ -15,6 +15,7 @@ public class UIClickEventArgs : EventArgs
 }
 public class TouchEventArgs : EventArgs
 {
+    public int type; //begin, move, end
     public Vector2 pos;
     public Ray ray;
 }
@@ -407,19 +408,43 @@ public class DeviceController : MonoBehaviour
         Vector2 touchPos = Vector2.zero;        
         if (Application.platform == RuntimePlatform.Android)
         {
-            if (Input.touchCount > 0)
+            
+            Touch touch = Input.GetTouch(0);
+            if (touch.phase == TouchPhase.Began)
             {
-                Touch[] touches = Input.touches;
-                Touch touch = touches[0];//Input.GetTouch(0);
-                ray = Camera.main.ScreenPointToRay(touch.position);
-                touchPos = touch.position;
-                bTouch = true;
+                //StatusTxt.text = "Began";
             }
+            else if (touch.phase == TouchPhase.Moved)
+            {
+                //StatusTxt.text = "Moved";
+            }else if(touch.phase == TouchPhase.Ended)
+            {
+                //StatusTxt.text = "Ended";
+            }
+            StatusTxt.text = Screen.width+" "+Screen.height+"=" + Application.persistentDataPath;
+            ray = Camera.main.ScreenPointToRay(touch.position);
+            touchPos = touch.position;
+            bTouch = true;
+
+            //if (Input.touchCount > 0)
+            //{
+            //    //Touch[] touches = Input.touches;
+            //    //Touch touch = touches[0];//Input.GetTouch(0);
+            //    //if(touch.phase == TouchPhase.Began)
+            //    //{
+            //    //    StatusTxt.text = "Began";
+            //    //}else if(touch.phase)
+            //    //ray = Camera.main.ScreenPointToRay(touch.position);
+            //    //touchPos = touch.position;
+            //    //bTouch = true;
+            //}
         }
         else
         {
+            
             if (Input.GetMouseButtonDown(0))
             {
+                Debug.Log("Button Down");
                 try
                 {
                     ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -432,6 +457,13 @@ public class DeviceController : MonoBehaviour
                 {
                     Debug.Log(ex.ToString());
                 }
+            }else if (Input.GetMouseButtonUp(0))
+            {
+                Debug.Log("Button Up");
+            }else if (Input.GetMouseButton(0))
+            {
+                //Moved
+                Debug.Log("Button");
             }
         }
         
