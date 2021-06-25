@@ -68,15 +68,28 @@ public class UdpAsyncHandler
         stat.hep = hostEP;
         //mListUDPs.Add(stat);
 
-        float[] fdata = new float[1];
-        fdata[0] = 10000f;
-        byte[] bdata = new byte[4];
-        Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
+        ////Connect
+        //float[] fdata = new float[1];
+        //fdata[0] = 10000f;
+        //byte[] bdata = new byte[4];
+        //Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
+        
+        SystemManager.EchoData jdata = new SystemManager.EchoData("Pose","connect", SystemManager.Instance.User);
+        jdata.type2 = "signle";
+        string msg = JsonUtility.ToJson(jdata);
+        byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
         stat.udp.Send(bdata, bdata.Length, stat.hep);
+        ////Connect
 
         udp.BeginReceive(new AsyncCallback(ReceiveCallback), stat);
         return stat;
     }
+
+    private void EchoData(string v1, string v2)
+    {
+        throw new NotImplementedException();
+    }
+
     public void UdpDisconnect()
     {
         foreach (UdpState stat in mListUDPs)

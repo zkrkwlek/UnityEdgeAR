@@ -27,12 +27,28 @@ public class SystemManager {
             d4 = _d4;
             w = _w;
             h = _h;
+            type1 = "device";
+            type2 = "raw";
+            keyword = "Image";
+            src = userID;
         }
+        public string type1, type2, keyword, src;
         public string userID, mapName;
         public float fx, fy, cx, cy;
         public float d1, d2, d3, d4;
         public int w, h;
         public bool bMapping, bManager;
+    }
+    public class EchoData {
+        public EchoData() { }
+        public EchoData(string _key, string _type, string _src)
+        {
+            keyword = _key;
+            type1 = _type;
+            src = _src;
+        }
+        public string keyword, type1, type2, src;
+        public byte[] data;
     }
 
     private static int w, h;

@@ -309,13 +309,13 @@ public class DeviceController : MonoBehaviour
         request.downloadHandler = new DownloadHandlerBuffer();
         UnityWebRequestAsyncOperation res = request.SendWebRequest();
 
-        while (!request.downloadHandler.isDone)
-        {
-            continue;
-        }
-        Debug.Log("len = " + request.downloadHandler.data.Length);
-        nUserID = BitConverter.ToInt32(request.downloadHandler.data, 0);
-        Debug.Log("Connect = " + nUserID);
+        //while (!request.downloadHandler.isDone)
+        //{
+        //    continue;
+        //}
+        //Debug.Log("len = " + request.downloadHandler.data.Length);
+        //nUserID = BitConverter.ToInt32(request.downloadHandler.data, 0);
+        //Debug.Log("Connect = " + nUserID);
     }
     public void Disconnect()
     {
@@ -357,7 +357,7 @@ public class DeviceController : MonoBehaviour
     }
 
 
-    int nDurationSendFrame = 3;
+    int nDurationSendFrame = 1;
     // Start is called before the first frame update
     void Start()
     {
@@ -605,10 +605,17 @@ public class DeviceController : MonoBehaviour
         sw.Start();
         string ts = (DateTime.Now.ToLocalTime() - baseTime).ToString();
         byte[] webCamByteData = tex.EncodeToJPG(90);
-        string addr = SystemManager.Instance.ServerAddr + "/ReceiveAndDetect?user=" + SystemManager.Instance.User + "&map=" + SystemManager.Instance.Map + "&id=" + ts;
+        string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=Image&id=0&src="+SystemManager.Instance.User;
+
+        //SystemManager.EchoData jdata = new SystemManager.EchoData("Image", "notification", SystemManager.Instance.User);
+        //jdata.data = webCamByteData;
+        //string msg = JsonUtility.ToJson(jdata);
+        //byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
+
+
         UnityWebRequest request = new UnityWebRequest(addr);
         request.method = "POST";
-        UploadHandlerRaw uH = new UploadHandlerRaw(webCamByteData);
+        UploadHandlerRaw uH = new UploadHandlerRaw(webCamByteData);//webCamByteData);
         uH.contentType = "application/json";
         request.uploadHandler = uH;
         request.downloadHandler = new DownloadHandlerBuffer();
