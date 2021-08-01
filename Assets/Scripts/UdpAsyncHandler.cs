@@ -74,10 +74,17 @@ public class UdpAsyncHandler
         //byte[] bdata = new byte[4];
         //Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
         
+        ////Connect Pose
         SystemManager.EchoData jdata = new SystemManager.EchoData("Pose","connect", SystemManager.Instance.User);
         jdata.type2 = "signle";
         string msg = JsonUtility.ToJson(jdata);
         byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
+        stat.udp.Send(bdata, bdata.Length, stat.hep);
+        ////Connect Image
+        jdata = new SystemManager.EchoData("Image","connect", SystemManager.Instance.User);
+        jdata.type2 = "signle";
+        msg = JsonUtility.ToJson(jdata);
+        bdata = System.Text.Encoding.UTF8.GetBytes(msg);
         stat.udp.Send(bdata, bdata.Length, stat.hep);
         ////Connect
 
@@ -94,6 +101,20 @@ public class UdpAsyncHandler
     {
         foreach (UdpState stat in mListUDPs)
         {
+            ////Connect Pose
+            SystemManager.EchoData jdata = new SystemManager.EchoData("Pose", "disconnect", SystemManager.Instance.User);
+            jdata.type2 = "signle";
+            string msg = JsonUtility.ToJson(jdata);
+            byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
+            stat.udp.Send(bdata, bdata.Length, stat.hep);
+            ////Connect Image
+            jdata = new SystemManager.EchoData("Image", "disconnect", SystemManager.Instance.User);
+            jdata.type2 = "signle";
+            msg = JsonUtility.ToJson(jdata);
+            bdata = System.Text.Encoding.UTF8.GetBytes(msg);
+            stat.udp.Send(bdata, bdata.Length, stat.hep);
+            ////Connect
+
             stat.udp.Close();
         }
         mListUDPs.Clear();

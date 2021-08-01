@@ -29,7 +29,7 @@ public class SystemManager {
             h = _h;
             type1 = "device";
             type2 = "raw";
-            keyword = "Image";
+            keyword = "Image,DeviceConnect,DeviceDisconnect,Map";
             src = userID;
         }
         public string type1, type2, keyword, src;
@@ -49,8 +49,16 @@ public class SystemManager {
         }
         public string keyword, type1, type2, src;
         public byte[] data;
+        public int id, id2;
     }
-
+    
+    private static float[] fdata;
+    public float[] IntrinsicData {
+        get
+        {
+            return fdata;
+        } 
+    }
     private static int w, h;
     private static float fx, fy, cx, cy;
     float d1, d2, d3, d4;
@@ -233,7 +241,6 @@ public class SystemManager {
         }
     }
 
-
     static private SystemManager m_pInstance = null;
     static public SystemManager Instance
     {
@@ -286,6 +293,19 @@ public class SystemManager {
         d2 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         d3 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         d4 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+
+        fdata = new float[10];
+        int nidx = 0;
+        fdata[nidx++] = (float)w;
+        fdata[nidx++] = (float)h;
+        fdata[nidx++] = fx;
+        fdata[nidx++] = fy;
+        fdata[nidx++] = cx;
+        fdata[nidx++] = cy;
+        fdata[nidx++] = d1;
+        fdata[nidx++] = d2;
+        fdata[nidx++] = d3;
+        fdata[nidx++] = d4;
 
         k = new Matrix3x3(fx, 0f, cx, 0f, fy, cy, 0f, 0f, 1f);
     }
