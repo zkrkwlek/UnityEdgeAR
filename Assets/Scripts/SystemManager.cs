@@ -129,7 +129,14 @@ public class SystemManager {
             dis_scale = value;
         }
     }
-
+    private static int numFrame;
+    public int NumFrame
+    {
+        get
+        {
+            return numFrame;
+        }
+    }
     private static string strUserID, strMapName;
     public string User
     {
@@ -241,6 +248,8 @@ public class SystemManager {
         }
     }
 
+    public string strVocName;
+
     static private SystemManager m_pInstance = null;
     static public SystemManager Instance
     {
@@ -264,7 +273,9 @@ public class SystemManager {
         bool bMapReset = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
         bMapping = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
         strMapName = (paramText[nUserData++].Split('=')[1]);
+        numFrame = Convert.ToInt32(paramText[nUserData++].Split('=')[1]);
         string datafile = (paramText[nUserData++].Split('=')[1]);
+        
         string[] dataText = File.ReadAllLines(Application.persistentDataPath + datafile); //데이터 읽기
         int numLine = 0;
         if (datafile == "/File/cam.txt")
@@ -308,6 +319,7 @@ public class SystemManager {
         fdata[nidx++] = d4;
 
         k = new Matrix3x3(fx, 0f, cx, 0f, fy, cy, 0f, 0f, 1f);
+        strVocName = Application.persistentDataPath + "/orbvoc.dbow3";
     }
     public void LoadParameter()
     {

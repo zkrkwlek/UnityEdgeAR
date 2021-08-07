@@ -76,13 +76,13 @@ public class UdpAsyncHandler
         
         ////Connect Pose
         SystemManager.EchoData jdata = new SystemManager.EchoData("Pose","connect", SystemManager.Instance.User);
-        jdata.type2 = "signle";
+        jdata.type2 = "single";
         string msg = JsonUtility.ToJson(jdata);
         byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
         stat.udp.Send(bdata, bdata.Length, stat.hep);
         ////Connect Image
         jdata = new SystemManager.EchoData("Image","connect", SystemManager.Instance.User);
-        jdata.type2 = "signle";
+        jdata.type2 = "single";
         msg = JsonUtility.ToJson(jdata);
         bdata = System.Text.Encoding.UTF8.GetBytes(msg);
         stat.udp.Send(bdata, bdata.Length, stat.hep);
@@ -103,13 +103,13 @@ public class UdpAsyncHandler
         {
             ////Connect Pose
             SystemManager.EchoData jdata = new SystemManager.EchoData("Pose", "disconnect", SystemManager.Instance.User);
-            jdata.type2 = "signle";
+            jdata.type2 = "single";
             string msg = JsonUtility.ToJson(jdata);
             byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
             stat.udp.Send(bdata, bdata.Length, stat.hep);
             ////Connect Image
             jdata = new SystemManager.EchoData("Image", "disconnect", SystemManager.Instance.User);
-            jdata.type2 = "signle";
+            jdata.type2 = "single";
             msg = JsonUtility.ToJson(jdata);
             bdata = System.Text.Encoding.UTF8.GetBytes(msg);
             stat.udp.Send(bdata, bdata.Length, stat.hep);
