@@ -129,12 +129,12 @@ public class SystemManager {
             dis_scale = value;
         }
     }
-    private static int numFrame;
-    public int NumFrame
+    private static int numSkipFrame;
+    public int NumSkipFrame
     {
         get
         {
-            return numFrame;
+            return numSkipFrame;
         }
     }
     private static string strUserID, strMapName;
@@ -248,6 +248,7 @@ public class SystemManager {
         }
     }
 
+    public byte[] strBytes;
     public string strVocName;
 
     static private SystemManager m_pInstance = null;
@@ -267,13 +268,23 @@ public class SystemManager {
     {
         string[] paramText = File.ReadAllLines(path);
         int nUserData = 0;
+        /*
+        어드레스와 파일 위치만 남기고 나머지는 다 다른곳으로
+        --------
+        아이디
+        어드레스
+        맵로드, 리셋 삭제
+        맵네임
+        매핑
+        프레임스킵
+         */
         strUserID = (paramText[nUserData++].Split('=')[1]);
         serveraddr = (paramText[nUserData++].Split('=')[1]);
         bool bMapLoad = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
         bool bMapReset = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
         bMapping = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
         strMapName = (paramText[nUserData++].Split('=')[1]);
-        numFrame = Convert.ToInt32(paramText[nUserData++].Split('=')[1]);
+        numSkipFrame = Convert.ToInt32(paramText[nUserData++].Split('=')[1]);
         string datafile = (paramText[nUserData++].Split('=')[1]);
         
         string[] dataText = File.ReadAllLines(Application.persistentDataPath + datafile); //데이터 읽기
@@ -290,8 +301,13 @@ public class SystemManager {
             imgFileLIst = File.ReadAllLines(imgFileTxt);
             Debug.Log("Load Datase = " + (imgFileLIst.Length - 3));
             imgPathTxt = Convert.ToString(dataText[numLine++].Split('=')[1]);
-            if (Application.platform == RuntimePlatform.Android)
-                imgPathTxt = Application.persistentDataPath + imgPathTxt;
+
+#if(UNITY_EDITOR_WIN)
+            Debug.Log(imgPathTxt);
+#elif(UNITY_ANDROID)
+            imgPathTxt = Application.persistentDataPath + imgPathTxt;
+#endif
+                
         }     
                 
         fx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
@@ -319,7 +335,12 @@ public class SystemManager {
         fdata[nidx++] = d4;
 
         k = new Matrix3x3(fx, 0f, cx, 0f, fy, cy, 0f, 0f, 1f);
+#if (UNITY_EDITOR_WIN)
         strVocName = Application.persistentDataPath + "/orbvoc.dbow3";
+        strBytes=System.Text.Encoding.ASCII.GetBytes(strVocName);
+#elif (UNITY_ANDROID)
+        strVocName = Application.persistentDataPath + "/orbvoc.dbow3";
+#endif
     }
     public void LoadParameter()
     {

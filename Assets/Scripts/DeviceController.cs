@@ -26,23 +26,32 @@ public class DeviceController : MonoBehaviour
     Color[] resized;
 #if(UNITY_EDITOR_WIN)
     [DllImport("UnityLibrary")]
-    private static extern char[] SetInit(char[] vocName, int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4);
+    private static extern char[] SetInit(byte[] vocName, int len, int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4);
+
     [DllImport("UnityLibrary")]
-    private static extern int SetFrame(Color32[] raw, int id, double ts);
+    private static extern int SetFrameByFile(byte[] name, int len, int id, double ts, ref float t1, ref float t2);
+    [DllImport("UnityLibrary")]
+    private static extern int SetFrameByImage(byte[] raw, int len, int id, double ts, ref float t1, ref float t2);
+    [DllImport("UnityLibrary")]
+    private static extern int SetFrame(IntPtr ptr, int id, double ts, ref float t1, ref float t2);
     [DllImport("UnityLibrary")]
     private static extern float SetReferenceFrame(int id, float[] data);
 
     [DllImport("UnityLibrary")]
-    private static extern int TrackWithReferenceFrame(int id);
+    private static extern int Track(ref int nmatch);
 #elif(UNITY_ANDROID)
     [DllImport("edgeslam2")]
     private static extern char[] SetInit(char[] vocName, int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4);
     [DllImport("edgeslam2")]
-    private static extern int SetFrame(Color32[] raw, int id, double ts);
+    private static extern int SetFrameByFile(char[] name, int id, double ts, ref float t1, ref float t2);
+    [DllImport("edgeslam2")]
+    private static extern int SetFrameByImage(byte[] raw, int len, int id, double ts, ref float t1, ref float t2);
+    [DllImport("edgeslam2")]
+    private static extern int SetFrame(IntPtr ptr, int id, double ts, ref float t1, ref float t2);
     [DllImport("edgeslam2")]
     private static extern float SetReferenceFrame(int id, float[] data);
     [DllImport("edgeslam2")]
-    private static extern int TrackWithReferenceFrame(int id);
+    private static extern int Track(ref int nmatch);
 #endif
     //private static extern void ResizeImage(Color[] raw, ref Color[] resized, int w, int h, int rw, int rh);
 
@@ -422,7 +431,7 @@ public class DeviceController : MonoBehaviour
         mnLastFrameID = 0;
         ////Reset
 
-        tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.RGB24, false);
+        tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.RGBA32, false);
 
         nImgFrameIDX = 3;
 
@@ -487,7 +496,7 @@ public class DeviceController : MonoBehaviour
         request.downloadHandler = new DownloadHandlerBuffer();
         res = request.SendWebRequest();
 
-        
+        nDurationSendFrame = SystemManager.Instance.NumSkipFrame;
 
         ////Device & Map store
     }
@@ -524,7 +533,7 @@ public class DeviceController : MonoBehaviour
     GCHandle webCamHandle;
     WebCamTexture webCamTexture;
     [HideInInspector]
-    public Color[] webCamColorData;
+    public Color32[] webCamColorData;
     IntPtr webCamPtr;
     public RawImage background;
     Texture2D tex, datasetImg;
@@ -567,24 +576,26 @@ public class DeviceController : MonoBehaviour
         //OrientationUI();
         Touched += TouchProcess;
 
-        webCamColorData = new Color[SystemManager.Instance.ImageWidth * SystemManager.Instance.ImageHeight];
+        webCamColorData = new Color32[SystemManager.Instance.ImageWidth * SystemManager.Instance.ImageHeight];
         webCamHandle = default(GCHandle);
         webCamHandle = GCHandle.Alloc(webCamColorData, GCHandleType.Pinned);
         webCamPtr = webCamHandle.AddrOfPinnedObject();
-        nDurationSendFrame = SystemManager.Instance.NumFrame;
+        
 
         ////
         //dll or so library
         try
         {
-            SetInit(SystemManager.Instance.strVocName.ToCharArray(), SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.PrincipalPointX, SystemManager.Instance.PrincipalPointY, SystemManager.Instance.FocalLengthX, SystemManager.Instance.FocalLengthY,
+            Debug.Log(SystemManager.Instance.strBytes[0]+" "+ SystemManager.Instance.strBytes[1]+" "+ SystemManager.Instance.strBytes[2]);
+            SetInit(SystemManager.Instance.strBytes, SystemManager.Instance.strBytes.Length, SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.FocalLengthX, SystemManager.Instance.FocalLengthY, SystemManager.Instance.PrincipalPointX, SystemManager.Instance.PrincipalPointY,
                         SystemManager.Instance.IntrinsicData[6], SystemManager.Instance.IntrinsicData[7], SystemManager.Instance.IntrinsicData[8], SystemManager.Instance.IntrinsicData[9]);
+            StatusTxt.text = "Init::Success";
         }
         catch (Exception ex)
         {
             StatusTxt.text = "err=" + ex.ToString();
         }
-        
+        StartCoroutine("DeviceControl");
 
         //resized = new Color[SystemManager.Instance.ImageWidth*SystemManager.Instance.ImageHeight/4];
         ////
@@ -607,12 +618,18 @@ public class DeviceController : MonoBehaviour
                 ++mnFrameID;
                 byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
                 tex.LoadImage(byteTexture);
-                background.texture = tex;
+                byte[] webCamByteData = tex.EncodeToJPG(100);
                 
+                background.texture = tex;
+                                
+                if (!SystemManager.Instance.Mapping) {
+                    StartCoroutine("TrackingCoroutine", imgFile);
+                }
+
                 if (mbSended && mnFrameID % nDurationSendFrame == 0)
                 {
                     mbSended = false;
-                    StartCoroutine("MappingCoroutine");
+                    StartCoroutine("MappingCoroutine", webCamByteData);
                 }
 
                 
@@ -622,6 +639,7 @@ public class DeviceController : MonoBehaviour
                 //Debug.Log("2");
                 ////library test
             }
+            mnLastFrameID++;
         }
         
         bool bTouch = false;
@@ -698,7 +716,7 @@ public class DeviceController : MonoBehaviour
             //StatusTxt.text = "Touch = " + touchPos.x + ", " + touchPos.y + "||Screen=" + Screen.width + " " + Screen.height+":"+Scale+"::"+BackGroundRect.ToString();
         }
        
-        StartCoroutine("DeviceControl");
+        
     }
 
     int mnContentID;
@@ -725,17 +743,15 @@ public class DeviceController : MonoBehaviour
         GameObject.Destroy(myLine, duration);
     }
 
-    int nDataSize = 7;//point2f, scale, angle, point3f
-    int nAddData = 13; //inlier + 12(R, t)
     IEnumerator DeviceControl()
     {
-        SystemManager.EchoData data;
-        while (cq.TryDequeue(out data))
+        while (true)
         {
             yield return new WaitForFixedUpdate();
-            try
+            SystemManager.EchoData data;
+            if (cq.TryDequeue(out data))
             {
-                if(data.keyword == "Pose")
+                if (data.keyword == "Pose"&& !SystemManager.Instance.Mapping)
                 {
                     string addr2 = SystemManager.Instance.ServerAddr + "/Load?keyword=Pose&id=" + data.id + "&src=" + SystemManager.Instance.User;
                     UnityWebRequest request = new UnityWebRequest(addr2);
@@ -755,22 +771,23 @@ public class DeviceController : MonoBehaviour
                     try
                     {
                         float a = SetReferenceFrame(data.id, fdata);
+                        //StatusTxt.text = "MP = " + a;
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         StatusTxt.text = ex.ToString();
                     }
-                    
 
                     //DateTime end = DateTime.Now;
                     //TimeSpan time = end - mapImageTime[data.id];
                     //Debug.Log("Ref Time = " + mnLastFrameID + ", " + data.id + "::" + String.Format("{0}.{1}", time.Seconds, time.Milliseconds.ToString().PadLeft(3, '0')));
                 }
-            }catch(Exception e)
-            {
-                Debug.Log("error = " + e.ToString());
             }
+            
         }
+        
+        
+        
         
             //    try
             //    {
@@ -869,17 +886,104 @@ public class DeviceController : MonoBehaviour
             //}
     }
 
-    IEnumerator MappingCoroutine()
+    IEnumerable TrackingCoroutine(string file)//byte[] data)
     {
-        DateTime start = DateTime.Now;
+        
+        try
+        {
+            
 
+            int id = mnLastFrameID;
+            DateTime t1 = DateTime.Now;
+            float tt1 = 0.0f;
+            float tt2 = 0.0f;
+
+            //webCamHandle = GCHandle.Alloc(webCamColorData, GCHandleType.Pinned);
+            //webCamPtr = webCamHandle.AddrOfPinnedObject();
+
+            //IntPtr unmanagedPointer = Marshal.AllocHGlobal(data.Length);
+            //Marshal.Copy(data, 0, unmanagedPointer, data.Length);
+
+            //Color32[] cdata = tex.GetPixels32();
+            //webCamHandle = GCHandle.Alloc(cdata, GCHandleType.Pinned);
+            //webCamPtr = webCamHandle.AddrOfPinnedObject();
+            //IntPtr pointer = pinnedArray.AddrOfPinnedObject();
+
+            byte[] b = System.Text.Encoding.ASCII.GetBytes(file);
+            int N = SetFrameByFile(b, b.Length, id, 0.0, ref tt1, ref tt2);//tex.GetPixels32()
+            //int N = SetFrameByFile(file.ToCharArray(), id, 0.0, ref tt1, ref tt2);//tex.GetPixels32()
+
+            //int N = SetFrameByImage(data, data.Length, id, 0.0, ref tt1,ref tt2);//tex.GetPixels32()
+            //int N = SetFrame(webCamPtr, id, 0.0, ref tt1, ref tt2);//tex.GetPixels32()
+
+            //StatusTxt.text = "SetFrame = " + N;
+            DateTime t2 = DateTime.Now;
+            int nMatch = -2;
+
+            int nRes = 0;
+            nRes = Track(ref nMatch);
+            Debug.Log("track = " + nRes);
+            DateTime t3 = DateTime.Now;
+            TimeSpan time1 = t2 - t1;
+            TimeSpan time2 = t3 - t2;
+            StatusTxt.text = "Tracking = " + nMatch + ", " + nRes + "::" + tt1 + ", " + tt2 + "::::" + time1.Milliseconds.ToString().PadLeft(3, '0') + ", " + time2.Milliseconds.ToString().PadLeft(3, '0');
+        }
+        catch(Exception e)
+        {
+            StatusTxt.text = e.ToString();
+        }
+        //Marshal.FreeHGlobal(webCamPtr);
+        //webCamHandle.Free();
+        //pinnedArray.Free();
+        return null;
+
+        //try {
+        //    //int id = mnLastFrameID;
+        //    //DateTime t1 = DateTime.Now;
+        //    //float tt1 = 0.0f;
+        //    //float tt2 = 0.0f;
+
+        //    ////IntPtr unmanagedPointer = Marshal.AllocHGlobal(data.Length);
+        //    ////Marshal.Copy(data, 0, unmanagedPointer, data.Length);
+
+        //    //yield return new WaitForFixedUpdate();
+        //    //GCHandle pinnedArray = GCHandle.Alloc(data, GCHandleType.Pinned);
+        //    //IntPtr pointer = pinnedArray.AddrOfPinnedObject();
+        //    ////int N = SetFrameByImage(data, data.Length, id, 0.0, ref tt1,ref tt2);//tex.GetPixels32()
+        //    //int N = SetFrame(pointer, id, 0.0, ref tt1, ref tt2);//tex.GetPixels32()
+        //    //pinnedArray.Free();
+        //    ////Marshal.FreeHGlobal(unmanagedPointer);
+
+        //    ////StatusTxt.text = "SetFrame = " + N;
+        //    //DateTime t2 = DateTime.Now;
+        //    //int nMatch = -2;
+        //    ////int nRes = Track(ref nMatch);
+        //    //int nRes = 0;
+        //    //DateTime t3 = DateTime.Now;
+        //    //TimeSpan time1 = t2 - t1;
+        //    //TimeSpan time2 = t3 - t2;
+        //    ////Debug.Log("Time = "+nID +" = " + String.Format("{0}.{1}", time.Seconds, time.Milliseconds.ToString().PadLeft(3, '0')));
+        //    ////Debug.Log("id = " + id + "   feature = " + N + " Match = " + Nmatch + "::" + time.Milliseconds.ToString().PadLeft(3, '0'));
+        //    //StatusTxt.text = "Tracking = " + nMatch+", "+ nRes +"::"+tt1+", "+tt2+ "::::" + time1.Milliseconds.ToString().PadLeft(3, '0')+", "+ time2.Milliseconds.ToString().PadLeft(3, '0');
+
+        //}
+        //catch(Exception e)
+        //{
+        //    StatusTxt.text = e.ToString();
+        //}
+        //return null;
+    }
+    IEnumerator MappingCoroutine(byte[] data)
+    {
+        int id = mnLastFrameID;
+        DateTime start = DateTime.Now;
 
         //Color[] atemp = tex.GetPixels();
         //Color[] btemp = new Color[320 * 240];
         //ResizeImage(atemp, ref btemp, 640, 480, 320, 240);
         //Debug.Log("Resize = " + btemp[0] +" " + btemp[1]);
 
-        byte[] webCamByteData = tex.EncodeToJPG(100);
+        
         //webCamColorData = tex.GetPixels();
         ////Buffer.BlockCopy(colors, 0, webCamColorData, 0, colors.Length);
         //webCamHandle = default(GCHandle);
@@ -889,8 +993,8 @@ public class DeviceController : MonoBehaviour
         //Marshal.Copy(webCamPtr, bdata, 0, bdata.Length);
         //byte[] webCamByteData = tex.EncodeToJPG(100); //tex.GetRawTextureData();//tex.EncodeToJPG(90);
 
-        string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=Image&id="+ mnLastFrameID + "&src="+SystemManager.Instance.User;
-        mapImageTime[mnLastFrameID] = start;
+        string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=Image&id="+ id + "&src="+SystemManager.Instance.User;
+        mapImageTime[id] = start;
 
         //SystemManager.EchoData jdata = new SystemManager.EchoData("Image", "notification", SystemManager.Instance.User);
         //jdata.data = webCamByteData;
@@ -900,26 +1004,18 @@ public class DeviceController : MonoBehaviour
 
         UnityWebRequest request = new UnityWebRequest(addr);
         request.method = "POST";
-        UploadHandlerRaw uH = new UploadHandlerRaw(webCamByteData);//webCamByteData);
+        UploadHandlerRaw uH = new UploadHandlerRaw(data);//webCamByteData);
         uH.contentType = "application/json";
         request.uploadHandler = uH;
         request.downloadHandler = new DownloadHandlerBuffer();
 
         UnityWebRequestAsyncOperation res = request.SendWebRequest();
-        DateTime t1 = DateTime.Now;
-        int N = SetFrame(tex.GetPixels32(), mnLastFrameID, 0.0);
-        int Nmatch = TrackWithReferenceFrame(mnLastFrameID);
-        DateTime t2 = DateTime.Now;
-        TimeSpan time = t2 - t1;
-        //Debug.Log("Time = "+nID +" = " + String.Format("{0}.{1}", time.Seconds, time.Milliseconds.ToString().PadLeft(3, '0')));
-        Debug.Log("id = "+mnLastFrameID+"   feature = " + N + " Match = "+ Nmatch + "::" + time.Milliseconds.ToString().PadLeft(3, '0'));
-        StatusTxt.text = "Matching = "+Nmatch+ "::" + time.Milliseconds.ToString().PadLeft(3, '0');
+        
         while (request.uploadHandler.progress < 1f)
         {
             yield return new WaitForFixedUpdate();
             //progress = request.uploadHandler.progress;
         }
-        mnLastFrameID++;
         while (!request.downloadHandler.isDone)
         {
             continue;
