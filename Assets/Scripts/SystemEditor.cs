@@ -53,6 +53,7 @@ public class SystemEditor : Editor
         if (GUILayout.Button("File Select", GUILayout.Width(100)))
         {
             string path = EditorUtility.OpenFilePanel("Parameter file", "C:/Users/UVR-KAIST/AppData/LocalLow/DefaultCompany/EdgeSLAM_19_1", "txt");
+            Debug.Log(path);
             SystemManager.Instance.LoadParameter(path);
             mSystem.tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.RGB24, false);
             mSystem.nImgFrameIDX = 3;
@@ -111,14 +112,16 @@ public class SystemEditor : Editor
         //    }
         //}
         string btnname = "STOP";
-        if (mSystem.bWaitThread)
+        if (!SystemManager.Instance.Start)
         {
             btnname = "START";
         }
         
         if (GUILayout.Button(btnname, GUILayout.Width(100)))
         {
-            mSystem.ThreadPause();
+            //mSystem.ThreadPause();
+            Debug.Log("test = " + SystemManager.Instance.Start);
+            SystemManager.Instance.Start = !SystemManager.Instance.Start;
         }
 
         if (GUILayout.Button("Reset", GUILayout.Width(100)))

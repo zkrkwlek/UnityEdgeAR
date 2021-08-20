@@ -4,7 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-public class SystemManager {
+public class SystemManager
+{
 
     public class InitConnectData
     {
@@ -27,14 +28,40 @@ public class SystemManager {
             d4 = _d4;
             w = _w;
             h = _h;
+            type1 = "device";
+            type2 = "raw";
+            keyword = "Image,DeviceConnect,DeviceDisconnect,Map";
+            src = userID;
         }
+        public string type1, type2, keyword, src;
         public string userID, mapName;
         public float fx, fy, cx, cy;
         public float d1, d2, d3, d4;
         public int w, h;
         public bool bMapping, bManager;
     }
+    public class EchoData
+    {
+        public EchoData() { }
+        public EchoData(string _key, string _type, string _src)
+        {
+            keyword = _key;
+            type1 = _type;
+            src = _src;
+        }
+        public string keyword, type1, type2, src;
+        public byte[] data;
+        public int id, id2;
+    }
 
+    private static float[] fdata;
+    public float[] IntrinsicData
+    {
+        get
+        {
+            return fdata;
+        }
+    }
     private static int w, h;
     private static float fx, fy, cx, cy;
     float d1, d2, d3, d4;
@@ -105,7 +132,14 @@ public class SystemManager {
             dis_scale = value;
         }
     }
-
+    private static int numFrame;
+    public int NumFrame
+    {
+        get
+        {
+            return numFrame;
+        }
+    }
     private static string strUserID, strMapName;
     public string User
     {
@@ -172,7 +206,8 @@ public class SystemManager {
     }
 
     static bool bstart = false;
-    public bool Start {
+    public bool Start
+    {
         get
         {
             return bstart;
@@ -204,7 +239,7 @@ public class SystemManager {
             bMapping = value;
         }
     }
-    static bool bManagerMode = true;
+    static bool bManagerMode = false;
     public bool Manager
     {
         get
@@ -217,11 +252,13 @@ public class SystemManager {
         }
     }
 
+    public string strVocName;
 
     static private SystemManager m_pInstance = null;
     static public SystemManager Instance
     {
-        get{
+        get
+        {
             if (m_pInstance == null)
             {
                 m_pInstance = new SystemManager();
@@ -230,7 +267,7 @@ public class SystemManager {
             return m_pInstance;
         }
     }
-    
+
     public void LoadParameter(string path)
     {
         string[] paramText = File.ReadAllLines(path);
@@ -241,7 +278,9 @@ public class SystemManager {
         bool bMapReset = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
         bMapping = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
         strMapName = (paramText[nUserData++].Split('=')[1]);
+        numFrame = Convert.ToInt32(paramText[nUserData++].Split('=')[1]);
         string datafile = (paramText[nUserData++].Split('=')[1]);
+
         string[] dataText = File.ReadAllLines(Application.persistentDataPath + datafile); //데이터 읽기
         int numLine = 0;
         if (datafile == "/File/cam.txt")
@@ -256,10 +295,15 @@ public class SystemManager {
             imgFileLIst = File.ReadAllLines(imgFileTxt);
             Debug.Log("Load Datase = " + (imgFileLIst.Length - 3));
             imgPathTxt = Convert.ToString(dataText[numLine++].Split('=')[1]);
-            if (Application.platform == RuntimePlatform.Android)
-                imgPathTxt = Application.persistentDataPath + imgPathTxt;
-        }     
-                
+
+#if(UNITY_EDITOR_WIN)
+            Debug.Log(imgPathTxt);
+#elif (UNITY_ANDROID)
+            imgPathTxt = Application.persistentDataPath + imgPathTxt;
+#endif
+
+        }
+
         fx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         fy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         cx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
@@ -270,8 +314,26 @@ public class SystemManager {
         d2 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         d3 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         d4 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
-        Debug.Log(d1 + " " + d2);
+
+        fdata = new float[10];
+        int nidx = 0;
+        fdata[nidx++] = (float)w;
+        fdata[nidx++] = (float)h;
+        fdata[nidx++] = fx;
+        fdata[nidx++] = fy;
+        fdata[nidx++] = cx;
+        fdata[nidx++] = cy;
+        fdata[nidx++] = d1;
+        fdata[nidx++] = d2;
+        fdata[nidx++] = d3;
+        fdata[nidx++] = d4;
+
         k = new Matrix3x3(fx, 0f, cx, 0f, fy, cy, 0f, 0f, 1f);
+#if (UNITY_EDITOR_WIN)
+        strVocName = Application.persistentDataPath + "/orbvoc.dbow3";
+#elif (UNITY_ANDROID)
+        strVocName = Application.persistentDataPath + "/orbvoc.dbow3";
+#endif
     }
     public void LoadParameter()
     {
@@ -315,7 +377,7 @@ public class SystemManager {
         cy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         w = Convert.ToInt32(dataText[numLine++].Split('=')[1]);
         h = Convert.ToInt32(dataText[numLine++].Split('=')[1]);
-        
+
         ////이건 뎁스소스에서 가져가도록 해야 함
         //DepthSource.Width = w;
         //DepthSource.Height = h;

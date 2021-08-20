@@ -71,19 +71,39 @@ public class UVRSystem : MonoBehaviour
     void Update() {
         
     }
-    
+    bool bCam = false;
+    int mnLastFrameID;
+    int nDurationSendFrame;
     public void Connect()
     {
+        SystemManager.Instance.Connect = true;
         Contents = GameObject.Find("Contents");
         Devices = GameObject.Find("Devices");
+        bFloor = false;
+
+        mnLastFrameID = 0;
+        nImgFrameIDX = 3;
+        tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.RGBA32, false);
+
+        bCam = SystemManager.Instance.Cam;
+        //Debug.Log("cam = " + bCam);
+        if (!bCam)
+        {
+            imageData = SystemManager.Instance.ImageData;
+            //Debug.Log(imageData.ToString());
+            imagePath = SystemManager.Instance.ImagePath;
+            //nMaxImageIndex = mSystem.imageData.Length - 1;
+        }
+        else
+        {
+
+        }
 
         SystemManager.InitConnectData data = SystemManager.Instance.GetConnectData();
         string msg = JsonUtility.ToJson(data);
         byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
 
-        string msg2 = "/Connect?port=40001";
-
-        UnityWebRequest request = new UnityWebRequest(SystemManager.Instance.ServerAddr + msg2);
+        UnityWebRequest request = new UnityWebRequest(SystemManager.Instance.ServerAddr + "/Connect?port=40001");
         request.method = "POST";
         UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
         uH.contentType = "application/json";
@@ -91,75 +111,178 @@ public class UVRSystem : MonoBehaviour
         request.downloadHandler = new DownloadHandlerBuffer();
         UnityWebRequestAsyncOperation res = request.SendWebRequest();
 
-        ////thread start
-        ThreadStart();
+        while (!request.downloadHandler.isDone)
+        {
+            continue;
+        }
 
-        //regist event handler
+        //Debug.Log("len = " + request.downloadHandler.data.Length);
+        //nUserID = BitConverter.ToInt32(request.downloadHandler.data, 0);
+        //Debug.Log("Connect = " + nUserID);
+
+        //SystemManager.EchoData jdata = new SystemManager.EchoData("Image", "notification", SystemManager.Instance.User);
+        //jdata.data = webCamByteData;
+        //string msg = JsonUtility.ToJson(jdata);
+        //byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
+
+        ////Device & Map store
+        string addr2 = SystemManager.Instance.ServerAddr + "/Store?keyword=DeviceConnect&id=0&src=" + SystemManager.Instance.User;
+        string msg2 = SystemManager.Instance.User + "," + SystemManager.Instance.Map;
+        byte[] bdatab = System.Text.Encoding.UTF8.GetBytes(msg2);
+        float[] fdataa = SystemManager.Instance.IntrinsicData;
+        byte[] bdata2 = new byte[1 + fdataa.Length * 4 + bdatab.Length];
+        bdata2[40] = SystemManager.Instance.Mapping ? (byte)1 : (byte)0;
+        Buffer.BlockCopy(fdataa, 0, bdata2, 0, 40);
+        Buffer.BlockCopy(bdatab, 0, bdata2, 41, bdatab.Length);
+
+        //Debug.Log(msg2+" "+ bdatab.Length);
+
+        request = new UnityWebRequest(addr2);
+        request.method = "POST";
+        uH = new UploadHandlerRaw(bdata2);//webCamByteData);
+        uH.contentType = "application/json";
+        request.uploadHandler = uH;
+        request.downloadHandler = new DownloadHandlerBuffer();
+        res = request.SendWebRequest();
+
+
         UdpAsyncHandler.Instance.UdpDataReceived += UdpDataReceivedProcess;
 
-        //content server
-        try
-        {
-            UdpState cstat = UdpAsyncHandler.Instance.UdpConnect("143.248.6.143", 35001, 40001);
-            //UdpState mstat = UdpAsyncHandler.Instance.UdpConnect(40001);
-            UdpAsyncHandler.Instance.ConnectedUDPs.Add(cstat);
-            //UdpAsyncHandler.Instance.ConnectedUDPs.Add(mstat);
-            //connect contetn server
-            float[] fdata = new float[1];
-            fdata[0] = 10000f;
-            byte[] bdata2 = new byte[4];
-            Buffer.BlockCopy(fdata, 0, bdata2, 0, bdata2.Length);
-            cstat.udp.Send(bdata2, bdata2.Length);
-        }
-        catch(Exception ex)
-        {
-            Debug.Log(ex.ToString());
-        }
+        //connect to echo server
+        UdpState cstat = UdpAsyncHandler.Instance.UdpConnect("143.248.6.143", 35001, 40001);
+        UdpAsyncHandler.Instance.ConnectedUDPs.Add(cstat);
+
+        nDurationSendFrame = SystemManager.Instance.NumFrame;
+        ThreadStart();
+
+        //SystemManager.InitConnectData data = SystemManager.Instance.GetConnectData();
+        //string msg = JsonUtility.ToJson(data);
+        //byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
+
+        //string msg2 = "/Connect?port=40001";
+
+        //UnityWebRequest request = new UnityWebRequest(SystemManager.Instance.ServerAddr + msg2);
+        //request.method = "POST";
+        //UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
+        //uH.contentType = "application/json";
+        //request.uploadHandler = uH;
+        //request.downloadHandler = new DownloadHandlerBuffer();
+        //UnityWebRequestAsyncOperation res = request.SendWebRequest();
+
+        //////thread start
+        //
+
+        ////regist event handler
+        //UdpAsyncHandler.Instance.UdpDataReceived += UdpDataReceivedProcess;
+
+        ////content server
+        //try
+        //{
+        //    UdpState cstat = UdpAsyncHandler.Instance.UdpConnect("143.248.6.143", 35001, 40001);
+        //    //UdpState mstat = UdpAsyncHandler.Instance.UdpConnect(40001);
+        //    UdpAsyncHandler.Instance.ConnectedUDPs.Add(cstat);
+        //    //UdpAsyncHandler.Instance.ConnectedUDPs.Add(mstat);
+        //    //connect contetn server
+        //    float[] fdata = new float[1];
+        //    fdata[0] = 10000f;
+        //    byte[] bdata2 = new byte[4];
+        //    Buffer.BlockCopy(fdata, 0, bdata2, 0, bdata2.Length);
+        //    cstat.udp.Send(bdata2, bdata2.Length);
+        //}
+        //catch(Exception ex)
+        //{
+        //    Debug.Log(ex.ToString());
+        //}
     }
 
     public void Disconnect()
     {
-        ////reset or 따로
-        //bMappingThread = false;
-        //nImgFrameIDX = 3;
-        //mnFrameID = 0;
-        //mbSended = true;
+        SystemManager.Instance.Connect = false;
+        string addr2 = SystemManager.Instance.ServerAddr + "/Store?keyword=DeviceDisconnect&id=0&src=" + SystemManager.Instance.User;
+        string msg2 = SystemManager.Instance.User + "," + SystemManager.Instance.Map;
+        byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg2);
 
-        string addr = SystemManager.Instance.ServerAddr + "/Disconnect?userID=" + SystemManager.Instance.User + "&mapName=" + SystemManager.Instance.Map;
-        UnityWebRequest request = new UnityWebRequest(addr);
+        UnityWebRequest request = new UnityWebRequest(addr2);
         request.method = "POST";
+        UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
+        uH.contentType = "application/json";
+        request.uploadHandler = uH;
         request.downloadHandler = new DownloadHandlerBuffer();
         UnityWebRequestAsyncOperation res = request.SendWebRequest();
-        Debug.Log("Disconnect!!" + addr);
+
+        while (!request.downloadHandler.isDone)
+        {
+            continue;
+        }
+
+        UdpAsyncHandler.Instance.UdpDisconnect();
+        UdpAsyncHandler.Instance.UdpDataReceived -= UdpDataReceivedProcess;
+
         ThreadStop();
 
-        //disconnect contents echo server
-        //float[] fdata = new float[1];
-        //fdata[0] = 10001f;
-        //byte[] bdata = new byte[4];
-        //Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-        //UdpAsyncHandler.Instance.ConnectedUDPs[0].udp.Send(bdata, 4);
-        UdpAsyncHandler.Instance.UdpDisconnect();
+        //////reset or 따로
+        ////bMappingThread = false;
+        ////nImgFrameIDX = 3;
+        ////mnFrameID = 0;
+        ////mbSended = true;
 
-        //remove event handler
-        UdpAsyncHandler.Instance.UdpDataReceived -= UdpDataReceivedProcess;
+        //string addr = SystemManager.Instance.ServerAddr + "/Disconnect?userID=" + SystemManager.Instance.User + "&mapName=" + SystemManager.Instance.Map;
+        //UnityWebRequest request = new UnityWebRequest(addr);
+        //request.method = "POST";
+        //request.downloadHandler = new DownloadHandlerBuffer();
+        //UnityWebRequestAsyncOperation res = request.SendWebRequest();
+        //Debug.Log("Disconnect!!" + addr);
+        //ThreadStop();
+
+        ////disconnect contents echo server
+        ////float[] fdata = new float[1];
+        ////fdata[0] = 10001f;
+        ////byte[] bdata = new byte[4];
+        ////Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
+        ////UdpAsyncHandler.Instance.ConnectedUDPs[0].udp.Send(bdata, 4);
+        //UdpAsyncHandler.Instance.UdpDisconnect();
+
+        ////remove event handler
+        //UdpAsyncHandler.Instance.UdpDataReceived -= UdpDataReceivedProcess;
 
         ////모든 기기 오브젝트 삭제
         try
         {
-            for (int i = 0, iend = Devices.transform.childCount; i < iend; i++)
+
+            Dictionary<int, GameObject>.KeyCollection keys = mConnectedDevices.Keys;
+            Dictionary<int, GameObject>.ValueCollection values = mConnectedDevices.Values;
+
+            foreach(int key in keys)
             {
-                GameObject go = Devices.transform.GetChild(i).gameObject;
-                if (go != null)
-                    DestroyImmediate(Devices.transform.GetChild(i).gameObject);
+                GameObject go = mConnectedDevices[key];
+                mConnectedDevices.Remove(key);
+                DestroyImmediate(go);
             }
-            Devices.transform.DetachChildren();
+            
+            ////foreach (GameObject go in mConnectedDevices.Values)
+            ////{
+            ////    if (go != null)
+            ////    {
+            ////        DestroyImmediate(go);
+            ////    }
+            ////}
+
+            ////for (int i = 0, iend = Devices.transform.childCount; i < iend; i++)
+            ////{
+            ////    GameObject go = Devices.transform.GetChild(i).gameObject;
+            ////    if (go != null)
+            ////        DestroyImmediate(Devices.transform.GetChild(i).gameObject);
+            ////}
+
+            ////Devices.transform.DetachChildren();
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             Debug.Log(e.ToString());
         }
+
         mConnectedDevices.Clear();
+
         ////현재 남아있는 모든 콘텐츠 삭제
         for (int i = 0, iend = Contents.transform.childCount; i < iend; i++)
         {
@@ -221,7 +344,7 @@ public class UVRSystem : MonoBehaviour
         Debug.Log(imagePath + " " + bMappingThread);
         if (!bMappingThreadStart)
         {
-            tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.RGB24, false);
+            tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.RGBA32, false);
             bMappingThreadStart = true;
         }
     }
@@ -234,9 +357,10 @@ public class UVRSystem : MonoBehaviour
     {
         while (SystemManager.Instance.Connect)
         {
+
             Thread.Sleep(33);
             EditorCoroutineUtility.StartCoroutine(DeviceControl(), this);
-            if (bWaitThread)
+            if (!SystemManager.Instance.Start)
                 continue;
             
             if (nImgFrameIDX >= nMaxImageIndex)
@@ -259,18 +383,19 @@ public class UVRSystem : MonoBehaviour
     IEnumerator MappingCoroutine()
     {
         //yield return new WaitForSecondsRealtime(0.033f);
-        yield return null;
+        //yield return null;
         string imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
         ++mnFrameID;
-        string ts = (DateTime.Now.ToLocalTime() - baseTime).ToString();
+        
         byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
         tex.LoadImage(byteTexture);
-        if (mnFrameID % 3 == 0)
+        
+        if (mnFrameID % nDurationSendFrame == 0)
         {
 
-            sw.Start();
-            byte[] webCamByteData = tex.EncodeToJPG(90);
-            string addr = SystemManager.Instance.ServerAddr + "/ReceiveAndDetect?user=" + SystemManager.Instance.User + "&map=" + SystemManager.Instance.Map + "&id=" + ts;
+            int id = mnLastFrameID;
+            byte[] webCamByteData = tex.EncodeToJPG(100);
+            string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=Image&id=" + id + "&src=" + SystemManager.Instance.User;
             UnityWebRequest request = new UnityWebRequest(addr);
             request.method = "POST";
             UploadHandlerRaw uH = new UploadHandlerRaw(webCamByteData);
@@ -284,17 +409,18 @@ public class UVRSystem : MonoBehaviour
                 yield return new WaitForFixedUpdate();
                 //progress = request.uploadHandler.progress;
             }
+            while (!request.downloadHandler.isDone)
+            {
+                continue;
+                //yield return new WaitForFixedUpdate();
+            }
             //while(!request.downloadHandler.isDone)
             //{
             //    yield return new WaitForFixedUpdate();
             //}
-            nTargetID = -1;//BitConverter.ToInt32(request.downloadHandler.data, 0);//Convert.ToInt32(request.downloadHandler.data);
-            sw.Stop();
-            Debug.Log("time = " + mnFrameID + "::" + sw.ElapsedMilliseconds.ToString() + "ms");
-            sw.Reset();
-            
+
         }
-        
+        mnLastFrameID++;
     }
     /// <summary>
     /// 인덱스 0 = 전체 메소드= 1:접속 기기 관리, 2: 컨텐츠
@@ -316,7 +442,7 @@ public class UVRSystem : MonoBehaviour
         float[] fdata;
         while(cq.TryDequeue(out fdata))
         {
-            Debug.Log(fdata[0] + " " + fdata[1] + " " + fdata[2]);
+            //Debug.Log(fdata[0] + " " + fdata[1] + " " + fdata[2]);
             yield return new WaitForFixedUpdate();
             if (fdata[0] == 2f)
             {
@@ -356,7 +482,8 @@ public class UVRSystem : MonoBehaviour
                 else if (fdata[1] == 2f)
                 {
                     DestroyImmediate(mConnectedDevices[id]);
-                    mConnectedDevices[id] = null;
+                    mConnectedDevices.Remove(id);
+                    //mConnectedDevices[id] = null;
                 }
                 else if (fdata[1] == 3f)
                 {
@@ -401,7 +528,7 @@ public class UVRSystem : MonoBehaviour
                     {
                         //생성
                         bFloor = true;
-                        FloorObject = createPlane(points, "plane1", new Color(1.0f, 0.0f, 0.0f, 0.6f), 0, 1, 2, 3);
+                        FloorObject = createPlane(points, "Floor", new Color(1.0f, 0.0f, 0.0f, 0.6f), 0, 1, 2, 3);
                     }
                 }
                 
@@ -416,7 +543,7 @@ public class UVRSystem : MonoBehaviour
         if (SystemManager.Instance.Connect)
         {
             bWaitThread = true;
-            SystemManager.Instance.Start = true;
+            //SystemManager.Instance.Start = true;
             thread = new Thread(Run);
             thread.Start();
             //EditorCoroutineUtility.StartCoroutine(MappingCoroutine(), this);
@@ -428,7 +555,7 @@ public class UVRSystem : MonoBehaviour
     }
     public void ThreadStop()
     {
-        if (SystemManager.Instance.Connect)
+        if (SystemManager.Instance.Connect && SystemManager.Instance.Start)
         {
             Init();
             thread.Join();

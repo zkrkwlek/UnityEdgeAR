@@ -8,7 +8,7 @@ using UnityEngine;
 public struct UdpState
 {
     public UdpClient udp;
-    public IPEndPoint rep, lep;
+    public IPEndPoint rep, lep, hep;
 }
 public class UdpEventArgs : EventArgs
 {
@@ -35,14 +35,23 @@ public class UdpAsyncHandler
     public UdpState UdpConnect(int port)
     {
         UdpState stat = new UdpState();
-        IPEndPoint localEP = new IPEndPoint(IPAddress.Any, port);
-        IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
-        UdpClient udp = new UdpClient(localEP);
-        stat.udp = udp;
-        stat.lep = localEP;
-        stat.rep = remoteEP;
-        //mListUDPs.Add(stat);
-        udp.BeginReceive(new AsyncCallback(ReceiveCallback), stat);
+        try
+        {
+            IPEndPoint localEP = new IPEndPoint(IPAddress.Any, port);
+            IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
+            UdpClient udp = new UdpClient(localEP);
+            stat.udp = udp;
+            stat.lep = localEP;
+            stat.rep = remoteEP;
+            //mListUDPs.Add(stat);
+            udp.BeginReceive(new AsyncCallback(ReceiveCallback), stat);
+        }
+        catch (Exception e)
+        {
+            Debug.Log(e.ToString());
+        }
+
+
         return stat;
     }
     public UdpState UdpConnect(string rermoteip, int remoteport, int localport)
@@ -50,19 +59,62 @@ public class UdpAsyncHandler
         UdpState stat = new UdpState();
         IPEndPoint localEP = new IPEndPoint(IPAddress.Any, localport);
         IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
+        IPEndPoint hostEP = new IPEndPoint(IPAddress.Parse(rermoteip), remoteport);
         UdpClient udp = new UdpClient(localEP);
-        udp.Connect(IPAddress.Parse(rermoteip), remoteport);
+        //udp.Connect(IPAddress.Parse(rermoteip), remoteport);
         stat.udp = udp;
         stat.lep = localEP;
         stat.rep = remoteEP;
+        stat.hep = hostEP;
         //mListUDPs.Add(stat);
+
+        ////Connect
+        //float[] fdata = new float[1];
+        //fdata[0] = 10000f;
+        //byte[] bdata = new byte[4];
+        //Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
+
+        ////Connect Pose
+        //SystemManager.EchoData jdata = new SystemManager.EchoData("Pose", "connect", SystemManager.Instance.User);
+        //jdata.type2 = "single";
+        //string msg = JsonUtility.ToJson(jdata);
+        //byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
+        //stat.udp.Send(bdata, bdata.Length, stat.hep);
+        ////Connect Image
+        SystemManager.EchoData jdata2 = new SystemManager.EchoData("Image", "connect", SystemManager.Instance.User);
+        jdata2.type2 = "single";
+        string msg2 = JsonUtility.ToJson(jdata2);
+        byte[] bdata2 = System.Text.Encoding.UTF8.GetBytes(msg2);
+        stat.udp.Send(bdata2, bdata2.Length, stat.hep);
+        ////Connect
+
         udp.BeginReceive(new AsyncCallback(ReceiveCallback), stat);
         return stat;
     }
+
+    private void EchoData(string v1, string v2)
+    {
+        throw new NotImplementedException();
+    }
+
     public void UdpDisconnect()
     {
         foreach (UdpState stat in mListUDPs)
         {
+            ////Connect Pose
+            SystemManager.EchoData jdata = new SystemManager.EchoData("Pose", "disconnect", SystemManager.Instance.User);
+            jdata.type2 = "single";
+            string msg = JsonUtility.ToJson(jdata);
+            byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
+            stat.udp.Send(bdata, bdata.Length, stat.hep);
+            ////Connect Image
+            jdata = new SystemManager.EchoData("Image", "disconnect", SystemManager.Instance.User);
+            jdata.type2 = "single";
+            msg = JsonUtility.ToJson(jdata);
+            bdata = System.Text.Encoding.UTF8.GetBytes(msg);
+            stat.udp.Send(bdata, bdata.Length, stat.hep);
+            ////Connect
+
             stat.udp.Close();
         }
         mListUDPs.Clear();
@@ -70,10 +122,11 @@ public class UdpAsyncHandler
 
     public void SendData(UdpState stat, byte[] data)
     {
-        stat.udp.Send(data, data.Length);
+        stat.udp.Send(data, data.Length, stat.hep);
     }
     public void ReceiveCallback(IAsyncResult ar)
     {
+
         UdpClient udp = ((UdpState)(ar.AsyncState)).udp;
         IPEndPoint remoteEP = ((UdpState)(ar.AsyncState)).rep;
         byte[] receiveBytes = udp.EndReceive(ar, ref remoteEP);
@@ -83,6 +136,10 @@ public class UdpAsyncHandler
             args.bdata = receiveBytes;
             OnUdpDataReceived(args);
             udp.BeginReceive(new AsyncCallback(ReceiveCallback), (UdpState)ar.AsyncState);
+        }
+        else
+        {
+            Debug.Log("?????????");
         }
     }
     public virtual void OnUdpDataReceived(UdpEventArgs e)
