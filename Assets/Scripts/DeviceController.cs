@@ -26,7 +26,7 @@ public class DeviceController : MonoBehaviour
     Color[] resized;
 #if(UNITY_EDITOR_WIN)
     [DllImport("UnityLibrary")]
-    private static extern char[] SetInit(byte[] vocName, int len, int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4);
+    private static extern void SetInit(byte[] vocName, int len, int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4);
 
     [DllImport("UnityLibrary")]
     private static extern int SetFrameByFile(byte[] name, int len, int id, double ts, ref float t1, ref float t2);
@@ -35,7 +35,7 @@ public class DeviceController : MonoBehaviour
     [DllImport("UnityLibrary")]
     private static extern int SetFrame(IntPtr ptr, int id, double ts, ref float t1, ref float t2);
     [DllImport("UnityLibrary")]
-    private static extern float SetReferenceFrame(int id, float[] data);
+    private static extern void SetReferenceFrame(int id, float[] data);
 
     [DllImport("UnityLibrary")]
     private static extern int Track(ref int nmatch);
@@ -482,7 +482,7 @@ public class DeviceController : MonoBehaviour
         byte[] bdatab = System.Text.Encoding.UTF8.GetBytes(msg2);
         float[] fdataa = SystemManager.Instance.IntrinsicData;
         byte[] bdata2 = new byte[1 + fdataa.Length*4+bdatab.Length];
-        bdata2[40] = SystemManager.Instance.Mapping ? (byte)1 : (byte)0;
+        bdata2[40] = SystemManager.Instance.IsServerMapping ? (byte)1 : (byte)0;
         Buffer.BlockCopy(fdataa, 0, bdata2, 0, 40);
         Buffer.BlockCopy(bdatab, 0, bdata2, 41, bdatab.Length);
 
@@ -586,7 +586,6 @@ public class DeviceController : MonoBehaviour
         //dll or so library
         try
         {
-            Debug.Log(SystemManager.Instance.strBytes[0]+" "+ SystemManager.Instance.strBytes[1]+" "+ SystemManager.Instance.strBytes[2]);
             SetInit(SystemManager.Instance.strBytes, SystemManager.Instance.strBytes.Length, SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.FocalLengthX, SystemManager.Instance.FocalLengthY, SystemManager.Instance.PrincipalPointX, SystemManager.Instance.PrincipalPointY,
                         SystemManager.Instance.IntrinsicData[6], SystemManager.Instance.IntrinsicData[7], SystemManager.Instance.IntrinsicData[8], SystemManager.Instance.IntrinsicData[9]);
             StatusTxt.text = "Init::Success";
@@ -614,6 +613,7 @@ public class DeviceController : MonoBehaviour
             }
             else
             {
+                Debug.Log("1");
                 string imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
                 ++mnFrameID;
                 byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
@@ -621,18 +621,18 @@ public class DeviceController : MonoBehaviour
                 byte[] webCamByteData = tex.EncodeToJPG(100);
                 
                 background.texture = tex;
-                                
-                if (!SystemManager.Instance.Mapping) {
+                
+                if (SystemManager.Instance.IsDeviceTracking) {
                     StartCoroutine("TrackingCoroutine", imgFile);
                 }
-
+                Debug.Log("2");
                 if (mbSended && mnFrameID % nDurationSendFrame == 0)
                 {
                     mbSended = false;
                     StartCoroutine("MappingCoroutine", webCamByteData);
                 }
+                Debug.Log("3");
 
-                
                 ////library test
                 //Debug.Log("1");
                 //ResizeImage(tex.GetPixels(), ref resized, SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.ImageWidth / 2, SystemManager.Instance.ImageHeight / 2);
@@ -715,8 +715,7 @@ public class DeviceController : MonoBehaviour
             }
             //StatusTxt.text = "Touch = " + touchPos.x + ", " + touchPos.y + "||Screen=" + Screen.width + " " + Screen.height+":"+Scale+"::"+BackGroundRect.ToString();
         }
-       
-        
+
     }
 
     int mnContentID;
@@ -751,7 +750,7 @@ public class DeviceController : MonoBehaviour
             SystemManager.EchoData data;
             if (cq.TryDequeue(out data))
             {
-                if (data.keyword == "Pose"&& !SystemManager.Instance.Mapping)
+                if (data.keyword == "Pose"&& SystemManager.Instance.IsDeviceTracking)
                 {
                     string addr2 = SystemManager.Instance.ServerAddr + "/Load?keyword=Pose&id=" + data.id + "&src=" + SystemManager.Instance.User;
                     UnityWebRequest request = new UnityWebRequest(addr2);
@@ -770,8 +769,7 @@ public class DeviceController : MonoBehaviour
                     Buffer.BlockCopy(request.downloadHandler.data, 0, fdata, 0, request.downloadHandler.data.Length);
                     try
                     {
-                        float a = SetReferenceFrame(data.id, fdata);
-                        //StatusTxt.text = "MP = " + a;
+                        SetReferenceFrame(data.id, fdata);
                     }
                     catch (Exception ex)
                     {
@@ -885,14 +883,15 @@ public class DeviceController : MonoBehaviour
             //    }
             //}
     }
-
+    bool bDoingTrack = false;
     IEnumerable TrackingCoroutine(string file)//byte[] data)
     {
         
         try
         {
-            
-
+            if (bDoingTrack)
+                return null;
+            bDoingTrack = true;
             int id = mnLastFrameID;
             DateTime t1 = DateTime.Now;
             float tt1 = 0.0f;
@@ -908,7 +907,6 @@ public class DeviceController : MonoBehaviour
             //webCamHandle = GCHandle.Alloc(cdata, GCHandleType.Pinned);
             //webCamPtr = webCamHandle.AddrOfPinnedObject();
             //IntPtr pointer = pinnedArray.AddrOfPinnedObject();
-
             byte[] b = System.Text.Encoding.ASCII.GetBytes(file);
             int N = SetFrameByFile(b, b.Length, id, 0.0, ref tt1, ref tt2);//tex.GetPixels32()
             //int N = SetFrameByFile(file.ToCharArray(), id, 0.0, ref tt1, ref tt2);//tex.GetPixels32()
@@ -916,13 +914,11 @@ public class DeviceController : MonoBehaviour
             //int N = SetFrameByImage(data, data.Length, id, 0.0, ref tt1,ref tt2);//tex.GetPixels32()
             //int N = SetFrame(webCamPtr, id, 0.0, ref tt1, ref tt2);//tex.GetPixels32()
 
-            //StatusTxt.text = "SetFrame = " + N;
             DateTime t2 = DateTime.Now;
             int nMatch = -2;
 
             int nRes = 0;
             nRes = Track(ref nMatch);
-            Debug.Log("track = " + nRes);
             DateTime t3 = DateTime.Now;
             TimeSpan time1 = t2 - t1;
             TimeSpan time2 = t3 - t2;
@@ -935,6 +931,7 @@ public class DeviceController : MonoBehaviour
         //Marshal.FreeHGlobal(webCamPtr);
         //webCamHandle.Free();
         //pinnedArray.Free();
+        bDoingTrack = false;
         return null;
 
         //try {

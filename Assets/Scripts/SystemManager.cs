@@ -224,7 +224,7 @@ public class SystemManager {
     }
 
     static bool bMapping;
-    public bool Mapping
+    public bool IsServerMapping
     {
         get
         {
@@ -235,6 +235,20 @@ public class SystemManager {
             bMapping = value;
         }
     }
+
+    static bool bDeviceTracking;
+    public bool IsDeviceTracking
+    {
+        get
+        {
+            return bDeviceTracking;
+        }
+        set
+        {
+            bDeviceTracking = value;
+        }
+    }
+
     static bool bManagerMode = false;
     public bool Manager
     {
@@ -278,17 +292,19 @@ public class SystemManager {
         매핑
         프레임스킵
          */
-        strUserID = (paramText[nUserData++].Split('=')[1]);
-        serveraddr = (paramText[nUserData++].Split('=')[1]);
-        bool bMapLoad = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
-        bool bMapReset = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
-        bMapping = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
-        strMapName = (paramText[nUserData++].Split('=')[1]);
-        numSkipFrame = Convert.ToInt32(paramText[nUserData++].Split('=')[1]);
-        string datafile = (paramText[nUserData++].Split('=')[1]);
         
+        serveraddr = (paramText[nUserData++].Split('=')[1]);
+        string datafile = (paramText[nUserData++].Split('=')[1]);
+
         string[] dataText = File.ReadAllLines(Application.persistentDataPath + datafile); //데이터 읽기
         int numLine = 0;
+
+        strUserID = (dataText[numLine++].Split('=')[1]);
+        strMapName = (dataText[numLine++].Split('=')[1]);
+        bMapping = Convert.ToBoolean(dataText[numLine++].Split('=')[1]);
+        bDeviceTracking = Convert.ToBoolean(dataText[numLine++].Split('=')[1]);
+        numSkipFrame = Convert.ToInt32(dataText[numLine++].Split('=')[1]);
+
         if (datafile == "/File/cam.txt")
         {
             bCam = true;
@@ -353,6 +369,7 @@ public class SystemManager {
         bool bMapLoad = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
         bool bMapReset = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
         bMapping = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
+        bDeviceTracking = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
         strMapName = (paramText[nUserData++].Split('=')[1]);
         string datafile = (paramText[nUserData++].Split('=')[1]);
 
