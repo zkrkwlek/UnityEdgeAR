@@ -5,11 +5,15 @@ obj
 Packages
 ProjectSettings
 Temp
+
 Assets/Plugins
 Assets/Resources
 Assets/Contents
-*.apk
 
+*.txt
+*.apk
+*.lib
+*.dll
 *.overrideController
 *.overrideController.meta
 *.cs.meta
