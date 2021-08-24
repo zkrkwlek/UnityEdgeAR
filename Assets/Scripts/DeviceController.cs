@@ -27,7 +27,6 @@ public class DeviceController : MonoBehaviour
 #if(UNITY_EDITOR_WIN)
     [DllImport("UnityLibrary")]
     private static extern void SetInit(byte[] vocName, int len, int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4);
-
     [DllImport("UnityLibrary")]
     private static extern int SetFrameByFile(byte[] name, int len, int id, double ts, ref float t1, ref float t2);
     [DllImport("UnityLibrary")]
@@ -36,40 +35,28 @@ public class DeviceController : MonoBehaviour
     private static extern int SetFrame(IntPtr ptr, int id, double ts, ref float t1, ref float t2);
     [DllImport("UnityLibrary")]
     private static extern void SetReferenceFrame(int id, float[] data);
-
     [DllImport("UnityLibrary")]
-    private static extern int Track(ref int nmatch);
+    private static extern int Track();
 #elif(UNITY_ANDROID)
-    [DllImport("edgeslam2")]
-    private static extern char[] SetInit(char[] vocName, int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4);
-    [DllImport("edgeslam2")]
+    [DllImport("edgeslam")]
+    private static extern void SetInit(char[] vocName, int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4);
+    [DllImport("edgeslam")]
     private static extern int SetFrameByFile(char[] name, int id, double ts, ref float t1, ref float t2);
-    [DllImport("edgeslam2")]
+    [DllImport("edgeslam")]
     private static extern int SetFrameByImage(byte[] raw, int len, int id, double ts, ref float t1, ref float t2);
-    [DllImport("edgeslam2")]
+    [DllImport("edgeslam")]
     private static extern int SetFrame(IntPtr ptr, int id, double ts, ref float t1, ref float t2);
-    [DllImport("edgeslam2")]
-    private static extern float SetReferenceFrame(int id, float[] data);
-    [DllImport("edgeslam2")]
-    private static extern int Track(ref int nmatch);
+    [DllImport("edgeslam")]
+    private static extern void SetReferenceFrame(int id, float[] data);
+    [DllImport("edgeslam")]
+    private static extern int Track();
 #endif
-    //private static extern void ResizeImage(Color[] raw, ref Color[] resized, int w, int h, int rw, int rh);
-
-    //[DllImport("HololensLibrary")]
-    //private static extern void ResizeImage(Color[] raw, ref Color[] resized, int w, int h, int rw, int rh);
-
-    //[DllImport("edgeslam")]
-    //private static extern void SetTargetFrame(IntPtr addr, char[] timestamp, int w, int h);
-    //[DllImport("edgeslam")]
-    //private static extern void SetTrackingFrame(IntPtr addr, int w, int h);
-    //[DllImport("edgeslam")]
-    //private static extern void SetParam(float fx, float fy, float cx, float cy);
 
     //// Calculate time
     Dictionary<int, DateTime> mapImageTime = new Dictionary<int, DateTime>();
     float fSumImages = 0.0f;
     float fSumImages_2 = 0.0f;
-    int   nTotalImages = 0;
+    int nTotalImages = 0;
     //// Calculate time
 
     ////Orientation event
@@ -78,7 +65,6 @@ public class DeviceController : MonoBehaviour
     Rect BackGroundRect;
     GameObject Canvas;
     CanvasScaler Scaler;
-    float CheckOrientationDelay = 0.5f;
     bool isAlive = true;
     private int rectWidth = 160;
     private int rectHeight = 80;
@@ -117,9 +103,6 @@ public class DeviceController : MonoBehaviour
 
     public void OrientationUI()
     {
-        
-        
-        
 
         ////디스플레이 - 카메라 좌표계 변환용
         ////스케일 변환
@@ -174,7 +157,7 @@ public class DeviceController : MonoBehaviour
         //Vector3 dir = NewRotationMat.Transpose() * InvK * a;
         //Ray ray = new Ray(Center, dir);
         ////스크린 터치 -> 유니티 좌표계 변환
-        
+
         RaycastHit hit;
         if (Physics.Raycast(e.ray, out hit))
         {
@@ -202,7 +185,7 @@ public class DeviceController : MonoBehaviour
             UdpState stat = UdpAsyncHandler.Instance.ConnectedUDPs[0];
             stat.udp.Send(bdata, bdata.Length, stat.hep);
         }
-            
+
     }
     ///////////Touch Event Handler
 
@@ -213,30 +196,18 @@ public class DeviceController : MonoBehaviour
 
 
     int tabIndex;
-    string[] tabSubject = {"ray", "object"};
+    string[] tabSubject = { "ray", "object" };
 
     void OnGUI()
     {
         if (SystemManager.Instance.Connect)
         {
-            
+
             if (GUI.Button(rect1, "Disconnect"))
             {
                 SystemManager.Instance.Connect = false;
                 Disconnect();
-                //////Disconnect Echo Server
-                //float[] fdata = new float[1];
-                //fdata[0] = 10001f;
-                //byte[] bdata = new byte[4];
-                //Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-                //UdpState stat = UdpAsyncHandler.Instance.ConnectedUDPs[0];
-                //stat.udp.Send(bdata, 4, stat.hep);
-
-                
-
                 UdpAsyncHandler.Instance.UdpDisconnect();
-                //////Disconnect Echo Server
-                //remove event handler
                 UdpAsyncHandler.Instance.UdpDataReceived -= UdpDataReceivedProcess;
             }
         }
@@ -246,25 +217,12 @@ public class DeviceController : MonoBehaviour
             {
                 SystemManager.Instance.Connect = true;
                 Connect();
-                
-                //regist event handler
                 UdpAsyncHandler.Instance.UdpDataReceived += UdpDataReceivedProcess;
-
-                //connect to echo server
                 UdpState cstat = UdpAsyncHandler.Instance.UdpConnect("143.248.6.143", 35001, 40003);
-                //UdpState mstat = UdpAsyncHandler.Instance.UdpConnect(40010);
                 UdpAsyncHandler.Instance.ConnectedUDPs.Add(cstat);
-                //UdpAsyncHandler.Instance.ConnectedUDPs.Add(mstat);
-                //float[] fdata = new float[1];
-                //fdata[0] = 10000f;
-                //byte[] bdata = new byte[4];
-                //Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-                //cstat.udp.Send(bdata, bdata.Length, cstat.hep);
-                //////Connect Echo Server
-                                
             }
         }
-        
+
         if (SystemManager.Instance.Start)
         {
             if (GUI.Button(rect2, "Stop"))
@@ -280,7 +238,7 @@ public class DeviceController : MonoBehaviour
                 SystemManager.Instance.Start = true;
             }
         }
-        
+
         tabIndex = GUI.Toolbar(rect3, tabIndex, tabSubject);
         switch (tabIndex)
         {
@@ -295,13 +253,10 @@ public class DeviceController : MonoBehaviour
             default:
                 break;
         }
-        //GUI.Label(rect4, Screen.width + " " + Screen.height+","+touchEvent.pos.x+" "+touchEvent.pos.y);
 
 
         int w = Screen.width, h = Screen.height;
-
         GUIStyle style = new GUIStyle();
-
         Rect rect = new Rect(10, 40, w, h * 2 / 100);
         style.alignment = TextAnchor.UpperLeft;
         style.fontSize = h * 2 / 40;
@@ -324,13 +279,13 @@ public class DeviceController : MonoBehaviour
         int size = e.bdata.Length;
         string msg = System.Text.Encoding.Default.GetString(e.bdata);
         SystemManager.EchoData data = JsonUtility.FromJson<SystemManager.EchoData>(msg);
-        if(data.keyword == "Pose")
+        if (data.keyword == "Pose")
         {
             try
             {
                 DateTime end = DateTime.Now;
                 TimeSpan time = end - mapImageTime[data.id];
-                
+
                 float temp = (float)time.Milliseconds;
                 fSumImages += temp;
                 fSumImages_2 += (temp * temp);
@@ -341,67 +296,8 @@ public class DeviceController : MonoBehaviour
             {
                 Debug.Log("err = " + ex.ToString());
             }
-            
+
         }
-        
-        ////DateTime end = DateTime.Now;
-
-        //////Image
-
-        //if(data.keyword == "Pose")
-        //{
-        //    Debug.Log("??????"+data.id);
-        //    ////Load Pose
-        //    string addr2 = SystemManager.Instance.ServerAddr + "/Load?keyword=Pose&id="+data.id+"&src=" + SystemManager.Instance.User;
-        //    //string msg2 = SystemManager.Instance.User + "," + SystemManager.Instance.Map;
-        //    //byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg2);
-        //    Debug.Log(addr2);
-        //    try
-        //    {
-        //        UnityWebRequest request = new UnityWebRequest(addr2);
-        //        Debug.Log("1111");
-        //        request.method = "POST";
-
-        //        //UploadHandlerRaw uH = new UploadHandlerRaw();
-        //        //uH.contentType = "application/json";
-        //        //request.uploadHandler = uH;
-        //        request.downloadHandler = new DownloadHandlerBuffer();
-
-        //        UnityWebRequestAsyncOperation res = request.SendWebRequest();
-        //        Debug.Log("11112222");
-        //        while (!request.downloadHandler.isDone)
-        //        {
-        //            continue;
-        //        }
-        //        float[] fdata = new float[request.downloadHandler.data.Length / 4];
-        //        Buffer.BlockCopy(request.downloadHandler.data, 0, fdata, 0, fdata.Length * 4);
-        //    }
-        //    catch(Exception ex)
-        //    {
-        //        Debug.Log(ex.ToString());
-        //    }
-           
-
-        //    ////Load Pose
-
-        //    //Debug.Log(fdata[0]);
-        //    TimeSpan time = end - mapImageTime[data.id];
-        //    Debug.Log("Ref Time = "+ mnLastFrameID+", "+data.id+"::" + String.Format("{0}.{1}", time.Seconds, time.Milliseconds.ToString().PadLeft(3, '0')));
-
-        //    float temp = (float)time.Milliseconds;
-        //    fSumImages += temp;
-        //    fSumImages_2 += (temp * temp);
-        //    nTotalImages++;
-        //}
-
-        //if (!mapImageTime.ContainsKey(data.id))
-        //{
-        //    mapImageTime.Add(data.id, end);
-        //}
-        
-        ////float[] fdata = new float[size / 4];
-        ////Buffer.BlockCopy(e.bdata, 0, fdata, 0, size);
-        ////cq.Enqueue(fdata);
     }
 
 
@@ -413,10 +309,7 @@ public class DeviceController : MonoBehaviour
     int nImgFrameIDX, nMaxImageIndex;
     string[] imageData;
     string imagePath;
-    private int nTargetID = -1;
-    private int nRefID = -1;
-    private int prevID = -1;
-
+    
     public Vector3 Center = new Vector3(0f, 0f, 0f);
     public Vector3 DIR = new Vector3(0f, 0f, 0f);
     int nUserID = -1;
@@ -447,7 +340,7 @@ public class DeviceController : MonoBehaviour
         else {
 
         }
-        
+
         SystemManager.InitConnectData data = SystemManager.Instance.GetConnectData();
         string msg = JsonUtility.ToJson(data);
         byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
@@ -465,23 +358,12 @@ public class DeviceController : MonoBehaviour
             continue;
         }
 
-        //Debug.Log("len = " + request.downloadHandler.data.Length);
-        //nUserID = BitConverter.ToInt32(request.downloadHandler.data, 0);
-        //Debug.Log("Connect = " + nUserID);
-
-        
-
-        //SystemManager.EchoData jdata = new SystemManager.EchoData("Image", "notification", SystemManager.Instance.User);
-        //jdata.data = webCamByteData;
-        //string msg = JsonUtility.ToJson(jdata);
-        //byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
-
         ////Device & Map store
         string addr2 = SystemManager.Instance.ServerAddr + "/Store?keyword=DeviceConnect&id=0&src=" + SystemManager.Instance.User;
         string msg2 = SystemManager.Instance.User + "," + SystemManager.Instance.Map;
         byte[] bdatab = System.Text.Encoding.UTF8.GetBytes(msg2);
         float[] fdataa = SystemManager.Instance.IntrinsicData;
-        byte[] bdata2 = new byte[1 + fdataa.Length*4+bdatab.Length];
+        byte[] bdata2 = new byte[1 + fdataa.Length * 4 + bdatab.Length];
         bdata2[40] = SystemManager.Instance.IsServerMapping ? (byte)1 : (byte)0;
         Buffer.BlockCopy(fdataa, 0, bdata2, 0, 40);
         Buffer.BlockCopy(bdatab, 0, bdata2, 41, bdatab.Length);
@@ -519,13 +401,6 @@ public class DeviceController : MonoBehaviour
         {
             continue;
         }
-
-        //string addr = SystemManager.Instance.ServerAddr + "/Disconnect?userID=" + SystemManager.Instance.User + "&mapName=" + SystemManager.Instance.Map;
-        //UnityWebRequest request = new UnityWebRequest(addr);
-        //request.method = "POST";
-        //request.downloadHandler = new DownloadHandlerBuffer();
-        //UnityWebRequestAsyncOperation res = request.SendWebRequest();
-        //Debug.Log("Disconnect!!" + addr);
     }
 
     /// </summary>
@@ -543,11 +418,11 @@ public class DeviceController : MonoBehaviour
     public int mnLastFrameID = 0;
     IEnumerator runCoroutine;
     [HideInInspector]
-    
+
     public AspectRatioFitter fit;
 
     DateTime baseTime = new DateTime(2021, 1, 1, 0, 0, 0, 0).ToLocalTime();
-    
+
     bool bCam = false;
     private bool mbSended = true;
 
@@ -562,9 +437,10 @@ public class DeviceController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        try { 
         string path = Application.persistentDataPath + "/param.txt";
         SystemManager.Instance.LoadParameter(path);
-        
+
         Canvas = GameObject.Find("Canvas");
         Scaler = Canvas.GetComponentInChildren<CanvasScaler>();
         AspectRatioFitter fitter = GameObject.Find("background").GetComponent<AspectRatioFitter>();
@@ -581,21 +457,25 @@ public class DeviceController : MonoBehaviour
         webCamHandle = GCHandle.Alloc(webCamColorData, GCHandleType.Pinned);
         webCamPtr = webCamHandle.AddrOfPinnedObject();
         
-
-        ////
-        //dll or so library
-        try
-        {
+#if (UNITY_EDITOR_WIN)
             SetInit(SystemManager.Instance.strBytes, SystemManager.Instance.strBytes.Length, SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.FocalLengthX, SystemManager.Instance.FocalLengthY, SystemManager.Instance.PrincipalPointX, SystemManager.Instance.PrincipalPointY,
                         SystemManager.Instance.IntrinsicData[6], SystemManager.Instance.IntrinsicData[7], SystemManager.Instance.IntrinsicData[8], SystemManager.Instance.IntrinsicData[9]);
+#elif (UNITY_ANDROID)
+            SetInit(SystemManager.Instance.strVocName.ToCharArray(), SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.FocalLengthX, SystemManager.Instance.FocalLengthY, SystemManager.Instance.PrincipalPointX, SystemManager.Instance.PrincipalPointY,
+                        SystemManager.Instance.IntrinsicData[6], SystemManager.Instance.IntrinsicData[7], SystemManager.Instance.IntrinsicData[8], SystemManager.Instance.IntrinsicData[9]);
+#endif
+
             StatusTxt.text = "Init::Success";
+
+
         }
         catch (Exception ex)
         {
             StatusTxt.text = "err=" + ex.ToString();
         }
-        StartCoroutine("DeviceControl");
 
+        StartCoroutine("DeviceControl");
+        StartCoroutine("ImageSendingCoroutine");
         //resized = new Color[SystemManager.Instance.ImageWidth*SystemManager.Instance.ImageHeight/4];
         ////
     }
@@ -603,7 +483,7 @@ public class DeviceController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+
         if (SystemManager.Instance.Start)
         {
 
@@ -613,41 +493,28 @@ public class DeviceController : MonoBehaviour
             }
             else
             {
-                Debug.Log("1");
                 string imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
                 ++mnFrameID;
                 byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
                 tex.LoadImage(byteTexture);
                 byte[] webCamByteData = tex.EncodeToJPG(100);
-                
+
                 background.texture = tex;
-                
+
                 if (SystemManager.Instance.IsDeviceTracking) {
                     StartCoroutine("TrackingCoroutine", imgFile);
                 }
-                Debug.Log("2");
-                if (mbSended && mnFrameID % nDurationSendFrame == 0)
-                {
-                    mbSended = false;
-                    StartCoroutine("MappingCoroutine", webCamByteData);
-                }
-                Debug.Log("3");
-
-                ////library test
-                //Debug.Log("1");
-                //ResizeImage(tex.GetPixels(), ref resized, SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.ImageWidth / 2, SystemManager.Instance.ImageHeight / 2);
-                //Debug.Log("2");
-                ////library test
+            
             }
-            mnLastFrameID++;
+            //mnLastFrameID++;
         }
-        
+
         bool bTouch = false;
         Ray ray = new Ray();
-        Vector2 touchPos = Vector2.zero;        
+        Vector2 touchPos = Vector2.zero;
         if (Application.platform == RuntimePlatform.Android)
         {
-            
+
             Touch touch = Input.GetTouch(0);
             if (touch.phase == TouchPhase.Began)
             {
@@ -656,7 +523,7 @@ public class DeviceController : MonoBehaviour
             else if (touch.phase == TouchPhase.Moved)
             {
                 //StatusTxt.text = "Moved";
-            }else if(touch.phase == TouchPhase.Ended)
+            } else if (touch.phase == TouchPhase.Ended)
             {
                 //StatusTxt.text = "Ended";
             }
@@ -680,7 +547,7 @@ public class DeviceController : MonoBehaviour
         }
         else
         {
-            
+
             if (Input.GetMouseButtonDown(0))
             {
                 //Debug.Log("Button Down");
@@ -696,19 +563,19 @@ public class DeviceController : MonoBehaviour
                 {
                     Debug.Log(ex.ToString());
                 }
-            }else if (Input.GetMouseButtonUp(0))
+            } else if (Input.GetMouseButtonUp(0))
             {
                 //Debug.Log("Button Up");
-            }else if (Input.GetMouseButton(0))
+            } else if (Input.GetMouseButton(0))
             {
                 //Moved
                 //Debug.Log("Button");
             }
         }
-        
-        if(bTouch && SystemManager.Instance.Connect)
+
+        if (bTouch && SystemManager.Instance.Connect)
         {
-            if (BackGroundRect.Contains(touchPos)) { 
+            if (BackGroundRect.Contains(touchPos)) {
                 touchEvent.ray = ray;
                 touchEvent.pos = touchPos;
                 OnTouched(touchEvent);
@@ -725,7 +592,7 @@ public class DeviceController : MonoBehaviour
     Vector4 FloorParam = Vector4.zero;
     GameObject FloorObject;
     Vector3 vel = Vector3.zero;
-    bool bFloor = false;
+    
     void DrawLine(Vector3 start, Vector3 end, Color color, float duration = 0.2f)
     {
         GameObject myLine = new GameObject();
@@ -742,6 +609,42 @@ public class DeviceController : MonoBehaviour
         GameObject.Destroy(myLine, duration);
     }
 
+    IEnumerator ImageSendingCoroutine()
+    {
+        while (true)
+        {
+            yield return new WaitForFixedUpdate();
+            
+            if (SystemManager.Instance.Start && mnFrameID % nDurationSendFrame == 0)
+            {
+                byte[] webCamByteData = tex.EncodeToJPG(100);
+                int id = mnFrameID;
+                DateTime start = DateTime.Now;
+
+                string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=Image&id=" + id + "&src=" + SystemManager.Instance.User;
+                mapImageTime[id] = start;
+                
+                UnityWebRequest request = new UnityWebRequest(addr);
+                request.method = "POST";
+                UploadHandlerRaw uH = new UploadHandlerRaw(webCamByteData);
+                uH.contentType = "application/json";
+                request.uploadHandler = uH;
+                request.downloadHandler = new DownloadHandlerBuffer();
+
+                UnityWebRequestAsyncOperation res = request.SendWebRequest();
+
+                while (request.uploadHandler.progress < 1f)
+                {
+                    yield return new WaitForFixedUpdate();
+                }
+                //while (!request.downloadHandler.isDone)
+                //{
+                //    yield return new WaitForFixedUpdate();
+                //}
+            }
+        }
+    }
+
     IEnumerator DeviceControl()
     {
         while (true)
@@ -750,7 +653,7 @@ public class DeviceController : MonoBehaviour
             SystemManager.EchoData data;
             if (cq.TryDequeue(out data))
             {
-                if (data.keyword == "Pose"&& SystemManager.Instance.IsDeviceTracking)
+                if (data.keyword == "Pose" && SystemManager.Instance.IsDeviceTracking)
                 {
                     string addr2 = SystemManager.Instance.ServerAddr + "/Load?keyword=Pose&id=" + data.id + "&src=" + SystemManager.Instance.User;
                     UnityWebRequest request = new UnityWebRequest(addr2);
@@ -781,223 +684,55 @@ public class DeviceController : MonoBehaviour
                     //Debug.Log("Ref Time = " + mnLastFrameID + ", " + data.id + "::" + String.Format("{0}.{1}", time.Seconds, time.Milliseconds.ToString().PadLeft(3, '0')));
                 }
             }
-            
+
         }
-        
-        
-        
-        
-            //    try
-            //    {
-            //float[] fdata;
-            //while (cq.TryDequeue(out fdata))
-            //{
-            //    yield return new WaitForFixedUpdate();
 
-            //    try
-            //    {
-            //        if (fdata[0] == 2f)
-            //        {
-            //            int nContentID = (int)fdata[1];
-            //            int nModelID = (int)fdata[2];
-            //            int nIDX = 3;
-            //            Vector3 start = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-            //            Vector3 end = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-            //            Vector3 viewEnd = Camera.main.WorldToViewportPoint(end);
-            //            //Debug.Log("line test = " + start.ToString() + "::" + end.ToString()+"::"+viewEnd);
-
-            //            if(nContentID == 0f)
-            //            {
-            //                DrawLine(start, end, Color.cyan, 100f);
-            //            }
-            //            else
-            //            {
-            //                Vector3 dir = end - start;
-            //                ContentData c = new ContentData(ContentManager.Instance.ContentNames[nModelID], end, Vector3.zero);
-            //                Instantiate(c.obj, c.pos, c.q);
-            //            }
-            //        }
-            //        else if (fdata[0] == 1f && fdata[1] == 3f) {
-
-            //            ////center와 dir로 변경하기
-            //            int nIDX = 3;
-            //            Matrix3x3 R = new Matrix3x3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-            //            Vector3 t = new Vector3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-            //            Vector3 pos = -(R.Transpose() * t);
-            //            pos = FloorRotationMat * pos;
-            //            pos.y *= -1f;
-            //            DIR = R.row3 * FloorRotationMat.Transpose();
-            //            DIR.y *= -1f;
-            //            Center = pos;
-
-            //            gameObject.transform.position = Vector3.SmoothDamp(gameObject.transform.position, pos, ref vel, 0.1f);//pos;
-            //            //Debug.Log(vel.ToString());
-            //            gameObject.transform.forward = DIR;
-
-            //            //Rotation Test
-            //            NewRotationMat = R * FloorRotationMat.Transpose()* Runityfromslam;
-            //            //Vector3 testVec = (-1f * NewRotationMat.Transpose() * t);
-            //            //Debug.Log("TEST1 = " + testVec.x + " " + testVec.y + " " + testVec.z + "::" + Center.x + " " + Center.y + " " + Center.z);
-            //            //Debug.Log("TEST2 = " + NewRotationMat.row3.x + " " + NewRotationMat.row3.y + " " + NewRotationMat.row3.z + "::" + dir.x + " " + dir.y + " " + dir.z);
-
-            //        }
-            //        else if (fdata[0] == 3f && fdata[1] == 1f)
-            //        {
-            //            ////평면 모델 관련
-            //            if (fdata[2] == 1f)
-            //            {
-            //                int nIDX = 3;
-            //                FloorRotationMat = new Matrix3x3(fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-            //            }
-            //            else if (fdata[2] == 2f)
-            //            {
-            //                int nIDX = 3;
-            //                FloorParam = new Vector4(fdata[nIDX++], -fdata[nIDX++], fdata[nIDX++], fdata[nIDX++]);
-            //                float y = -FloorParam.w;
-
-            //                Vector3[] points = new Vector3[4];
-            //                float val = 100f;
-            //                points[0] = new Vector3(val, y, val);
-            //                points[1] = new Vector3(val, y, -val);
-            //                points[2] = new Vector3(-val, y, -val);
-            //                points[3] = new Vector3(-val, y, val);
-
-            //                if (bFloor)
-            //                {
-            //                    //변경
-            //                    FloorObject.GetComponent<MeshFilter>().mesh.vertices = points;
-            //                }else
-            //                {
-            //                    //생성
-            //                    bFloor = true;
-            //                    FloorObject = createPlane(points, "plane1", new Color(1.0f, 0.0f, 0.0f, 0.6f), 0, 1, 2, 3);
-            //                }
-
-            //            }
-
-            //        }
-            //    }
-            //    catch (Exception e)
-            //    {
-            //        Debug.Log(e.ToString());
-            //    }
-            //}
     }
     bool bDoingTrack = false;
     IEnumerable TrackingCoroutine(string file)//byte[] data)
     {
-        
+
         try
         {
             if (bDoingTrack)
                 return null;
             bDoingTrack = true;
-            int id = mnLastFrameID;
+            int id = mnFrameID;
             DateTime t1 = DateTime.Now;
             float tt1 = 0.0f;
             float tt2 = 0.0f;
-
-            //webCamHandle = GCHandle.Alloc(webCamColorData, GCHandleType.Pinned);
-            //webCamPtr = webCamHandle.AddrOfPinnedObject();
-
-            //IntPtr unmanagedPointer = Marshal.AllocHGlobal(data.Length);
-            //Marshal.Copy(data, 0, unmanagedPointer, data.Length);
-
-            //Color32[] cdata = tex.GetPixels32();
-            //webCamHandle = GCHandle.Alloc(cdata, GCHandleType.Pinned);
-            //webCamPtr = webCamHandle.AddrOfPinnedObject();
-            //IntPtr pointer = pinnedArray.AddrOfPinnedObject();
+#if (UNITY_EDITOR_WIN)
             byte[] b = System.Text.Encoding.ASCII.GetBytes(file);
             int N = SetFrameByFile(b, b.Length, id, 0.0, ref tt1, ref tt2);//tex.GetPixels32()
-            //int N = SetFrameByFile(file.ToCharArray(), id, 0.0, ref tt1, ref tt2);//tex.GetPixels32()
-
-            //int N = SetFrameByImage(data, data.Length, id, 0.0, ref tt1,ref tt2);//tex.GetPixels32()
-            //int N = SetFrame(webCamPtr, id, 0.0, ref tt1, ref tt2);//tex.GetPixels32()
+#elif (UNITY_ANDROID)
+            int N = SetFrameByFile(file.ToCharArray(), id, 0.0, ref tt1, ref tt2);//tex.GetPixels32()
+#endif
 
             DateTime t2 = DateTime.Now;
-            int nMatch = -2;
-
             int nRes = 0;
-            nRes = Track(ref nMatch);
+            nRes = Track();
             DateTime t3 = DateTime.Now;
             TimeSpan time1 = t2 - t1;
             TimeSpan time2 = t3 - t2;
-            StatusTxt.text = "Tracking = " + nMatch + ", " + nRes + "::" + tt1 + ", " + tt2 + "::::" + time1.Milliseconds.ToString().PadLeft(3, '0') + ", " + time2.Milliseconds.ToString().PadLeft(3, '0');
+            StatusTxt.text = "Tracking = " + nRes + "::" + tt1 + ", " + tt2 + "::::" + time1.Milliseconds.ToString().PadLeft(3, '0') + ", " + time2.Milliseconds.ToString().PadLeft(3, '0');
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             StatusTxt.text = e.ToString();
         }
-        //Marshal.FreeHGlobal(webCamPtr);
-        //webCamHandle.Free();
-        //pinnedArray.Free();
+       
         bDoingTrack = false;
         return null;
 
-        //try {
-        //    //int id = mnLastFrameID;
-        //    //DateTime t1 = DateTime.Now;
-        //    //float tt1 = 0.0f;
-        //    //float tt2 = 0.0f;
-
-        //    ////IntPtr unmanagedPointer = Marshal.AllocHGlobal(data.Length);
-        //    ////Marshal.Copy(data, 0, unmanagedPointer, data.Length);
-
-        //    //yield return new WaitForFixedUpdate();
-        //    //GCHandle pinnedArray = GCHandle.Alloc(data, GCHandleType.Pinned);
-        //    //IntPtr pointer = pinnedArray.AddrOfPinnedObject();
-        //    ////int N = SetFrameByImage(data, data.Length, id, 0.0, ref tt1,ref tt2);//tex.GetPixels32()
-        //    //int N = SetFrame(pointer, id, 0.0, ref tt1, ref tt2);//tex.GetPixels32()
-        //    //pinnedArray.Free();
-        //    ////Marshal.FreeHGlobal(unmanagedPointer);
-
-        //    ////StatusTxt.text = "SetFrame = " + N;
-        //    //DateTime t2 = DateTime.Now;
-        //    //int nMatch = -2;
-        //    ////int nRes = Track(ref nMatch);
-        //    //int nRes = 0;
-        //    //DateTime t3 = DateTime.Now;
-        //    //TimeSpan time1 = t2 - t1;
-        //    //TimeSpan time2 = t3 - t2;
-        //    ////Debug.Log("Time = "+nID +" = " + String.Format("{0}.{1}", time.Seconds, time.Milliseconds.ToString().PadLeft(3, '0')));
-        //    ////Debug.Log("id = " + id + "   feature = " + N + " Match = " + Nmatch + "::" + time.Milliseconds.ToString().PadLeft(3, '0'));
-        //    //StatusTxt.text = "Tracking = " + nMatch+", "+ nRes +"::"+tt1+", "+tt2+ "::::" + time1.Milliseconds.ToString().PadLeft(3, '0')+", "+ time2.Milliseconds.ToString().PadLeft(3, '0');
-
-        //}
-        //catch(Exception e)
-        //{
-        //    StatusTxt.text = e.ToString();
-        //}
-        //return null;
     }
+    
     IEnumerator MappingCoroutine(byte[] data)
     {
         int id = mnLastFrameID;
         DateTime start = DateTime.Now;
 
-        //Color[] atemp = tex.GetPixels();
-        //Color[] btemp = new Color[320 * 240];
-        //ResizeImage(atemp, ref btemp, 640, 480, 320, 240);
-        //Debug.Log("Resize = " + btemp[0] +" " + btemp[1]);
-
-        
-        //webCamColorData = tex.GetPixels();
-        ////Buffer.BlockCopy(colors, 0, webCamColorData, 0, colors.Length);
-        //webCamHandle = default(GCHandle);
-        //webCamHandle = GCHandle.Alloc(webCamColorData, GCHandleType.Pinned);
-        //webCamPtr = webCamHandle.AddrOfPinnedObject();
-        //byte[] bdata = new byte[webCamColorData.Length*3];
-        //Marshal.Copy(webCamPtr, bdata, 0, bdata.Length);
-        //byte[] webCamByteData = tex.EncodeToJPG(100); //tex.GetRawTextureData();//tex.EncodeToJPG(90);
-
         string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=Image&id="+ id + "&src="+SystemManager.Instance.User;
         mapImageTime[id] = start;
-
-        //SystemManager.EchoData jdata = new SystemManager.EchoData("Image", "notification", SystemManager.Instance.User);
-        //jdata.data = webCamByteData;
-        //string msg = JsonUtility.ToJson(jdata);
-        //byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
-
 
         UnityWebRequest request = new UnityWebRequest(addr);
         request.method = "POST";
@@ -1019,22 +754,6 @@ public class DeviceController : MonoBehaviour
             //yield return new WaitForFixedUpdate();
         }
 
-        //nTargetID = -1;//BitConverter.ToInt32(request.downloadHandler.data, 0);//Convert.ToInt32(request.downloadHandler.data);
-        //sw.Stop();
-        ////Debug.Log("time = " + mnFrameID + "::" + sw.ElapsedMilliseconds.ToString() + "ms");
-        //sw.Reset();
-
-        //int nID = Convert.ToInt32(System.Text.Encoding.Default.GetString(request.downloadHandler.data));
-        //mnLastFrameID = nID;
-        
-        //if (mapImageTime.ContainsKey(nID))
-        //{
-        //    DateTime end = mapImageTime[nID];
-        //    mapImageTime[nID] = start;
-
-        //    TimeSpan time = end - start;
-        //    //Debug.Log("Time = "+nID +" = " + String.Format("{0}.{1}", time.Seconds, time.Milliseconds.ToString().PadLeft(3, '0')));
-        //}
         mbSended = true;
     }
 

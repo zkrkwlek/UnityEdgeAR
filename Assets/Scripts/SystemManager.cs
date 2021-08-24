@@ -6,6 +6,9 @@ using UnityEngine;
 
 public class SystemManager {
 
+    /// <summary>
+    /// 파사드 서버에 내가 생성할 키워드를 알림.
+    /// </summary>
     public class InitConnectData
     {
         public InitConnectData() { }
@@ -29,7 +32,8 @@ public class SystemManager {
             h = _h;
             type1 = "device";
             type2 = "raw";
-            keyword = "Image,DeviceConnect,DeviceDisconnect,Map";
+            //생성할 키워드
+            keyword = "Image,DeviceConnect,DeviceDisconnect,ContentGeneration,Map";
             src = userID;
         }
         public string type1, type2, keyword, src;
@@ -39,6 +43,12 @@ public class SystemManager {
         public int w, h;
         public bool bMapping, bManager;
     }
+    /// <summary>
+    /// 알림 서버에 내가 받을 키워드를 알림
+    /// UdpConnect와 UdpDisconnect 참조
+    /// 모든 키워드를 받을지 아니면 특정 아이디만 받을지 선택이 가능함. 근데 이것을 없앨까 생각중.
+    /// </summary>
+     
     public class EchoData {
         public EchoData() { }
         public EchoData(string _key, string _type, string _src)
@@ -51,7 +61,12 @@ public class SystemManager {
         public byte[] data;
         public int id, id2;
     }
-    
+
+    public InitConnectData GetConnectData()
+    {
+        return new InitConnectData(strUserID, strMapName, bMapping, bManagerMode, fx, fy, cx, cy, d1, d2, d3, d4, w, h);
+    }
+
     private static float[] fdata;
     public float[] IntrinsicData {
         get
@@ -323,7 +338,7 @@ public class SystemManager {
 #elif(UNITY_ANDROID)
             imgPathTxt = Application.persistentDataPath + imgPathTxt;
 #endif
-                
+        
         }     
                 
         fx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
@@ -356,59 +371,9 @@ public class SystemManager {
         strBytes=System.Text.Encoding.ASCII.GetBytes(strVocName);
 #elif (UNITY_ANDROID)
         strVocName = Application.persistentDataPath + "/orbvoc.dbow3";
+        strBytes=System.Text.Encoding.ASCII.GetBytes(strVocName);
 #endif
     }
-    public void LoadParameter()
-    {
-        Debug.Log("Load Parameter!!");
-        string strParameterFilePath = Application.persistentDataPath + "/param.txt";
-        string[] paramText = File.ReadAllLines(strParameterFilePath);
-        int nUserData = 0;
-        strUserID = (paramText[nUserData++].Split('=')[1]);
-        serveraddr = (paramText[nUserData++].Split('=')[1]);
-        bool bMapLoad = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
-        bool bMapReset = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
-        bMapping = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
-        bDeviceTracking = Convert.ToBoolean(paramText[nUserData++].Split('=')[1]);
-        strMapName = (paramText[nUserData++].Split('=')[1]);
-        string datafile = (paramText[nUserData++].Split('=')[1]);
 
-        string[] dataText = File.ReadAllLines(Application.persistentDataPath + datafile); //데이터 읽기
-
-        if (datafile == "/File/cam.txt")
-        {
-            bCam = true;
-        }
-
-        int numLine = 0;
-        if (!bCam)
-        {
-            string imgFileTxt = Application.persistentDataPath + Convert.ToString(dataText[numLine++].Split('=')[1]);
-            imgFileLIst = File.ReadAllLines(imgFileTxt);
-            Debug.Log("Load Datase = " + (imgFileLIst.Length - 3));
-            imgPathTxt = Convert.ToString(dataText[numLine++].Split('=')[1]);
-            if (Application.platform == RuntimePlatform.Android)
-                imgPathTxt = Application.persistentDataPath + imgPathTxt;
-        }
-        else
-        {
-            numLine = 2;
-        }
-
-        fx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
-        fy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
-        cx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
-        cy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
-        w = Convert.ToInt32(dataText[numLine++].Split('=')[1]);
-        h = Convert.ToInt32(dataText[numLine++].Split('=')[1]);
-        
-        ////이건 뎁스소스에서 가져가도록 해야 함
-        //DepthSource.Width = w;
-        //DepthSource.Height = h;
-    }
-
-    public InitConnectData GetConnectData()
-    {
-        return new InitConnectData(strUserID, strMapName, bMapping, bManagerMode, fx, fy, cx, cy, d1, d2, d3, d4, w, h);
-    }
+    
 }

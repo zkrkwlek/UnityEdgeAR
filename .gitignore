@@ -10,10 +10,6 @@ Assets/Plugins
 Assets/Resources
 Assets/Contents
 
-*.txt
-*.apk
-*.lib
-*.dll
 *.overrideController
 *.overrideController.meta
 *.cs.meta
@@ -21,7 +17,9 @@ Assets/Contents
 *.csproj
 *.sln
 *.VC.db
-Assets/Scenes/DesktopManager.unity
-Assets/Scenes/DeviceApplication.unity
+*.txt
+*.apk
+*.lib
+*.dll
 
 
