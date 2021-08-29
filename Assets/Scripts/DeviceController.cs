@@ -26,7 +26,26 @@ public class DeviceController : MonoBehaviour
     Color[] resized;
 #if(UNITY_EDITOR_WIN)
     [DllImport("UnityLibrary")]
-    private static extern void SetInit(byte[] vocName, int len, int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4);
+    private static extern void SetTextureAddress(IntPtr addr, bool bCam);
+    [DllImport("UnityLibrary")]
+    private static extern void GrabImage();
+    [DllImport("UnityLibrary")]
+    private static extern void SetDeviceCamera(int w, int h, int fps);
+    [DllImport("UnityLibrary")]
+    private static extern void SetImageFiles(byte[] name, int len);
+    [DllImport("UnityLibrary")]
+    private static extern void ConnectDevice();
+    [DllImport("UnityLibrary")]
+    private static extern void DisconnectDevice();
+
+    [DllImport("UnityLibrary")]
+    private static extern void SetPath(byte[] name, int len);
+    [DllImport("UnityLibrary")]
+    private static extern void LoadImage(IntPtr addr, int w, int h);
+    [DllImport("UnityLibrary")]
+    private static extern void SetInit(int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4);//byte[] vocName, int len, 
+    [DllImport("UnityLibrary")]
+    private static extern int SetFrameByPtr(IntPtr addr, int w, int h, int id);
     [DllImport("UnityLibrary")]
     private static extern int SetFrameByFile(byte[] name, int len, int id, double ts, ref float t1, ref float t2);
     [DllImport("UnityLibrary")]
@@ -42,10 +61,20 @@ public class DeviceController : MonoBehaviour
     [DllImport("UnityLibrary")]
     private static extern bool Track(IntPtr posePtr);
 #elif(UNITY_ANDROID)
+
+    [DllImport("edgeslam")]
+    private static extern void SetTextureAddress(IntPtr addr, bool bCam);
+    [DllImport("edgeslam")]
+    private static extern void GrabImage();
+    [DllImport("edgeslam")]
+    private static extern void SetDeviceCamera(int w, int h, int fps);
+
     [DllImport("edgeslam")]
     private static extern void SetPath(char[] path);
     [DllImport("edgeslam")]
     private static extern void SetInit(char[] vocName, int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4);
+    [DllImport("edgeslam")]
+    private static extern int SetFrameByPtr(IntPtr addr, int w, int h, int id);
     [DllImport("edgeslam")]
     private static extern int SetFrameByFile(char[] name, int id, double ts, ref float t1, ref float t2);
     [DllImport("edgeslam")]
@@ -222,6 +251,7 @@ public class DeviceController : MonoBehaviour
             {
                 SystemManager.Instance.Connect = false;
                 Disconnect();
+                DisconnectDevice();
                 UdpAsyncHandler.Instance.UdpDisconnect();
                 UdpAsyncHandler.Instance.UdpDataReceived -= UdpDataReceivedProcess;
             }
@@ -232,6 +262,7 @@ public class DeviceController : MonoBehaviour
             {
                 SystemManager.Instance.Connect = true;
                 Connect();
+                ConnectDevice();
                 UdpAsyncHandler.Instance.UdpDataReceived += UdpDataReceivedProcess;
                 UdpState cstat = UdpAsyncHandler.Instance.UdpConnect("143.248.6.143", 35001, 40003);
                 UdpAsyncHandler.Instance.ConnectedUDPs.Add(cstat);
@@ -251,10 +282,6 @@ public class DeviceController : MonoBehaviour
             if (GUI.Button(rect2, "Start"))
             {
                 SystemManager.Instance.Start = true;
-                using (StreamWriter sw = new StreamWriter(Application.persistentDataPath + "/debug.txt", true)) {
-                    sw.WriteLine("click start");
-                    sw.Close();
-                }
             }
         }
 
@@ -370,15 +397,8 @@ public class DeviceController : MonoBehaviour
 
     void Connect()
     {
-#if (UNITY_EDITOR_WIN)
-        SetInit(SystemManager.Instance.strBytes, SystemManager.Instance.strBytes.Length, SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.FocalLengthX, SystemManager.Instance.FocalLengthY, SystemManager.Instance.PrincipalPointX, SystemManager.Instance.PrincipalPointY,
-                    SystemManager.Instance.IntrinsicData[6], SystemManager.Instance.IntrinsicData[7], SystemManager.Instance.IntrinsicData[8], SystemManager.Instance.IntrinsicData[9]);
-#elif (UNITY_ANDROID)
-        SetPath(Application.persistentDataPath.ToCharArray());    
-        SetInit(SystemManager.Instance.strVocName.ToCharArray(), SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.FocalLengthX, SystemManager.Instance.FocalLengthY, SystemManager.Instance.PrincipalPointX, SystemManager.Instance.PrincipalPointY,
-                        SystemManager.Instance.IntrinsicData[6], SystemManager.Instance.IntrinsicData[7], SystemManager.Instance.IntrinsicData[8], SystemManager.Instance.IntrinsicData[9]);
-#endif
 
+        
         StatusTxt.text = "Init::Success";
 
         ////Reset
@@ -393,7 +413,7 @@ public class DeviceController : MonoBehaviour
         mnLastFrameID = 0;
         ////Reset
 
-        tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.RGBA32, false);
+        
 
         nImgFrameIDX = 3;
 
@@ -470,9 +490,9 @@ public class DeviceController : MonoBehaviour
         nDurationSendFrame = SystemManager.Instance.NumSkipFrame;
 
         ////Device & Map store
-        StreamWriter sw = new StreamWriter(Application.persistentDataPath + "/debug.txt", true);
-        sw.WriteLine("connect::end");
-        sw.Close();
+        //StreamWriter sw = new StreamWriter(Application.persistentDataPath + "/debug.txt", true);
+        //sw.WriteLine("connect::end");
+        //sw.Close();
     }
     public void Disconnect()
     {
@@ -577,138 +597,186 @@ public class DeviceController : MonoBehaviour
         }
 
         StartCoroutine("DeviceControl");
-        StartCoroutine("ImageSendingCoroutine");
+        //StartCoroutine("ImageSendingCoroutine");
         //resized = new Color[SystemManager.Instance.ImageWidth*SystemManager.Instance.ImageHeight/4];
         ////
+
+#if (UNITY_EDITOR_WIN)
+        byte[] b = System.Text.Encoding.ASCII.GetBytes(Application.persistentDataPath);
+        SetPath(b, b.Length);
+        SetInit(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.FocalLengthX, SystemManager.Instance.FocalLengthY, SystemManager.Instance.PrincipalPointX, SystemManager.Instance.PrincipalPointY,
+                    SystemManager.Instance.IntrinsicData[6], SystemManager.Instance.IntrinsicData[7], SystemManager.Instance.IntrinsicData[8], SystemManager.Instance.IntrinsicData[9]);
+        //SystemManager.Instance.strBytes, SystemManager.Instance.strBytes.Length, 
+#elif (UNITY_ANDROID)
+        SetPath(Application.persistentDataPath.ToCharArray());    
+        SetInit(SystemManager.Instance.strVocName.ToCharArray(), SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.FocalLengthX, SystemManager.Instance.FocalLengthY, SystemManager.Instance.PrincipalPointX, SystemManager.Instance.PrincipalPointY,
+                        SystemManager.Instance.IntrinsicData[6], SystemManager.Instance.IntrinsicData[7], SystemManager.Instance.IntrinsicData[8], SystemManager.Instance.IntrinsicData[9]);
+#endif
+
+        tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.BGRA32, false);
+        SetTextureAddress(visPtr, SystemManager.Instance.Cam);
+        if (SystemManager.Instance.Cam)
+        {
+            SetDeviceCamera(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, 30);
+        }
+        else
+        {
+#if (UNITY_EDITOR_WIN)
+            byte[] b2 = System.Text.Encoding.ASCII.GetBytes(SystemManager.Instance.ImagePath);
+            SetImageFiles(b2, b2.Length);
+#elif (UNITY_ANDROID)
+#endif
+        }
+
+        background.texture = tex;
+        {
+            //test
+        }
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        /////트래킹
-        if (SystemManager.Instance.Start)
-        {
-
-            if (bCam)
-            {
-                if (webCamTexture.didUpdateThisFrame)
-                {
-                    webCamTexture.GetPixels32(webCamColorData);
-                }
-            }
-            else
-            {
-                StreamWriter sw = new StreamWriter(Application.persistentDataPath + "/debug.txt", true);
-                sw.WriteLine("1");
-                string imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
-                ++mnFrameID;
-                sw.WriteLine(imgFile);
-                byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
-                tex.LoadImage(byteTexture);
-                background.texture = tex;
-                webCamByteData = tex.EncodeToJPG(100);
-                sw.WriteLine("2");
-                if (SystemManager.Instance.IsDeviceTracking)
-                {
-                    StartCoroutine("TrackingCoroutine", imgFile);
-                }
-                sw.WriteLine("3");
-                sw.Close();
-            }
-            //mnLastFrameID++;
-        }
-        /////트래킹
-        
-        ////터치 이벤트
-        bool bTouch = false;
-        Vector2 touchPos = Vector2.zero;
-        if (Application.platform == RuntimePlatform.Android)
-        {
-
-            Touch touch = Input.GetTouch(0);
-            if (touch.phase == TouchPhase.Began)
-            {
-                //StatusTxt.text = "Began";
-                bTouch = true;
-            }
-            else if (touch.phase == TouchPhase.Moved)
-            {
-                //StatusTxt.text = "Moved";
-            } else if (touch.phase == TouchPhase.Ended)
-            {
-                //StatusTxt.text = "Ended";
-            }
-            touchPos = touch.position;
-            
-
-            //if (Input.touchCount > 0)
-            //{
-            //    //Touch[] touches = Input.touches;
-            //    //Touch touch = touches[0];//Input.GetTouch(0);
-            //    //if(touch.phase == TouchPhase.Began)
-            //    //{
-            //    //    StatusTxt.text = "Began";
-            //    //}else if(touch.phase)
-            //    //ray = Camera.main.ScreenPointToRay(touch.position);
-            //    //touchPos = touch.position;
-            //        //bTouch = true;
-            //}
-        }
-        else
-        {
-
-            if (Input.GetMouseButtonDown(0)){
-                //Debug.Log("Button Down");
-                try
-                {
-                    touchPos = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
-                    bTouch = true;
-                }
-                catch (Exception ex)
-                {
-                    Debug.Log(ex.ToString());
-                }
-            } else if (Input.GetMouseButtonUp(0)){
-
-            } else if (Input.GetMouseButton(0)){
-                //touchPos = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
-                //bTouch = true;
-            }
+        if (SystemManager.Instance.Start && SystemManager.Instance.Connect) { 
+            GrabImage();
+            tex.LoadRawTextureData(visPtr, visData.Length);
+            tex.Apply();
+            Debug.Log(Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]));
         }
 
-        if (bTouch && SystemManager.Instance.Connect)
-        {
-            if (BackGroundRect.Contains(touchPos)) {
-                //Debug.Log("touch " + touchPos.x + " " + touchPos.y + " "+ Scale+" "+Height);
-                //touchEvent.ray = ray;
-                //touchEvent.pos = touchPos;
-                //////터치 이벤트 처리
-                //OnTouched(touchEvent);
+        ///////트래킹
+        //if (SystemManager.Instance.Start)
+        //{
+        //    string imgFile = "";
+        //    bool bFrameUpdated = false;
+        //    //{
+        //    //    imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
+        //    //    byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
+        //    //    tex.LoadImage(byteTexture);
+        //    //    Texture2D.create
+        //    //    LoadImage(tex.GetNativeTexturePtr(), 640, 360);
+        //    //}
+        //    if (bCam)
+        //    {
+        //        if (webCamTexture.didUpdateThisFrame)
+        //        {
+        //            webCamTexture.GetPixels32(webCamColorData);
+        //            tex.SetPixels32(webCamColorData);
+        //            bFrameUpdated = true;
+        //        }
+        //    }
+        //    else {
+        //        imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
+        //        byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
+        //        tex.LoadImage(byteTexture);
+        //        //background.texture = tex;
+        //        bFrameUpdated = true;
+        //    }
 
-                ////2D posion -> byte array
-                ////unity screen to image coordinate
-                float[] fdata = new float[3];
-                fdata[0] = (touchPos.x- DiffScreen.x) /Scale;
-                fdata[1] = (Height-touchPos.y)/Scale;
-                fdata[2] = 1.0f;
-                
-                byte[] bdata = new byte[(fPoseData.Length+fdata.Length)*4];
-                Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length*4);
-                Buffer.BlockCopy(fPoseData, 0, bdata, fdata.Length * 4, fPoseData.Length*4);
-                //Debug.Log(fPoseData[9] + " " + fPoseData[10] + " " + fPoseData[11]);
-                string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=ContentGeneration&id=" + ++mnTouchID + "&src=" + SystemManager.Instance.User;
-                UnityWebRequest request = new UnityWebRequest(addr);
-                request.method = "POST";
-                UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
-                uH.contentType = "application/json";
-                request.uploadHandler = uH;
-                request.downloadHandler = new DownloadHandlerBuffer();
-                UnityWebRequestAsyncOperation res = request.SendWebRequest();
+        //    if (bFrameUpdated)
+        //    {
+        //        webCamByteData = tex.EncodeToJPG(100);
+        //        ++mnFrameID;
+        //        if (SystemManager.Instance.IsDeviceTracking)
+        //        {
+        //            StartCoroutine("TrackingCoroutine", imgFile);
+        //        }
+        //    }
 
-                mapContentTime[mnTouchID] = DateTime.Now;
-            }
-        }
+        //    //mnLastFrameID++;
+        //}
+        ///////트래킹
 
+        //////터치 이벤트
+        //bool bTouch = false;
+        //Vector2 touchPos = Vector2.zero;
+        //if (Application.platform == RuntimePlatform.Android)
+        //{
+
+        //    Touch touch = Input.GetTouch(0);
+        //    if (touch.phase == TouchPhase.Began)
+        //    {
+        //        //StatusTxt.text = "Began";
+        //        bTouch = true;
+        //    }
+        //    else if (touch.phase == TouchPhase.Moved)
+        //    {
+        //        //StatusTxt.text = "Moved";
+        //    } else if (touch.phase == TouchPhase.Ended)
+        //    {
+        //        //StatusTxt.text = "Ended";
+        //    }
+        //    touchPos = touch.position;
+
+
+        //    //if (Input.touchCount > 0)
+        //    //{
+        //    //    //Touch[] touches = Input.touches;
+        //    //    //Touch touch = touches[0];//Input.GetTouch(0);
+        //    //    //if(touch.phase == TouchPhase.Began)
+        //    //    //{
+        //    //    //    StatusTxt.text = "Began";
+        //    //    //}else if(touch.phase)
+        //    //    //ray = Camera.main.ScreenPointToRay(touch.position);
+        //    //    //touchPos = touch.position;
+        //    //        //bTouch = true;
+        //    //}
+        //}
+        //else
+        //{
+
+        //    if (Input.GetMouseButtonDown(0)){
+        //        //Debug.Log("Button Down");
+        //        try
+        //        {
+        //            touchPos = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
+        //            bTouch = true;
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            Debug.Log(ex.ToString());
+        //        }
+        //    } else if (Input.GetMouseButtonUp(0)){
+
+        //    } else if (Input.GetMouseButton(0)){
+        //        //touchPos = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
+        //        //bTouch = true;
+        //    }
+        //}
+
+        //if (bTouch && SystemManager.Instance.Connect)
+        //{
+        //    if (BackGroundRect.Contains(touchPos)) {
+        //        //Debug.Log("touch " + touchPos.x + " " + touchPos.y + " "+ Scale+" "+Height);
+        //        //touchEvent.ray = ray;
+        //        //touchEvent.pos = touchPos;
+        //        //////터치 이벤트 처리
+        //        //OnTouched(touchEvent);
+
+        //        ////2D posion -> byte array
+        //        ////unity screen to image coordinate
+        //        float[] fdata = new float[3];
+        //        fdata[0] = (touchPos.x- DiffScreen.x) /Scale;
+        //        fdata[1] = (Height-touchPos.y)/Scale;
+        //        fdata[2] = 1.0f;
+
+        //        byte[] bdata = new byte[(fPoseData.Length+fdata.Length)*4];
+        //        Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length*4);
+        //        Buffer.BlockCopy(fPoseData, 0, bdata, fdata.Length * 4, fPoseData.Length*4);
+        //        //Debug.Log(fPoseData[9] + " " + fPoseData[10] + " " + fPoseData[11]);
+        //        string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=ContentGeneration&id=" + ++mnTouchID + "&src=" + SystemManager.Instance.User;
+        //        UnityWebRequest request = new UnityWebRequest(addr);
+        //        request.method = "POST";
+        //        UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
+        //        uH.contentType = "application/json";
+        //        request.uploadHandler = uH;
+        //        request.downloadHandler = new DownloadHandlerBuffer();
+        //        UnityWebRequestAsyncOperation res = request.SendWebRequest();
+
+        //        mapContentTime[mnTouchID] = DateTime.Now;
+        //    }
+        //}
     }
 
     int mnContentID;
@@ -855,16 +923,25 @@ public class DeviceController : MonoBehaviour
             DateTime t1 = DateTime.Now;
             float tt1 = 0.0f;
             float tt2 = 0.0f;
+
+            if (bCam)
+            {
+                SetFrameByPtr(webCamPtr, SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, id);
+            }
+            else
+            {
 #if (UNITY_EDITOR_WIN)
-            byte[] b = System.Text.Encoding.ASCII.GetBytes(file);
-            int N = SetFrameByFile(b, b.Length, id, 0.0, ref tt1, ref tt2);//tex.GetPixels32()
-            //Debug.Log("Pose = \n" + fPoseData[0] + " " + fPoseData[1] + " " + fPoseData[2]);
-            //Debug.Log(fPoseData[3] + " " + fPoseData[4] + " " + fPoseData[5]);
-            //Debug.Log(fPoseData[6] + " " + fPoseData[7] + " " + fPoseData[8]);
-            //Debug.Log(fPoseData[9] + " " + fPoseData[10] + " " + fPoseData[11]);
+                byte[] b = System.Text.Encoding.ASCII.GetBytes(file);
+                int N = SetFrameByFile(b, b.Length, id, 0.0, ref tt1, ref tt2);//tex.GetPixels32()
+                                                                               //Debug.Log("Pose = \n" + fPoseData[0] + " " + fPoseData[1] + " " + fPoseData[2]);
+                                                                               //Debug.Log(fPoseData[3] + " " + fPoseData[4] + " " + fPoseData[5]);
+                                                                               //Debug.Log(fPoseData[6] + " " + fPoseData[7] + " " + fPoseData[8]);
+                                                                               //Debug.Log(fPoseData[9] + " " + fPoseData[10] + " " + fPoseData[11]);
 #elif (UNITY_ANDROID)
             int N = SetFrameByFile(file.ToCharArray(), id, 0.0, ref tt1, ref tt2);//tex.GetPixels32()
 #endif
+            }
+
 
             DateTime t2 = DateTime.Now;
             int nRes = 0;
@@ -874,12 +951,12 @@ public class DeviceController : MonoBehaviour
             TimeSpan time2 = t3 - t2;
             //StatusTxt.text = "Tracking = " + nRes + "::" + tt1 + ", " + tt2 + "::::" + time1.Milliseconds.ToString().PadLeft(3, '0') + ", " + time2.Milliseconds.ToString().PadLeft(3, '0');
 
-            if (GetMatchingImage(visPtr))
-            {
-                tex.LoadRawTextureData(visPtr, visData.Length);
-                tex.Apply();
-                background.texture = tex;
-            }
+            //if (GetMatchingImage(visPtr))
+            //{
+            //    tex.LoadRawTextureData(visPtr, visData.Length);
+            //    tex.Apply();
+            //    background.texture = tex;
+            //}
 
         }
         catch (Exception e)
