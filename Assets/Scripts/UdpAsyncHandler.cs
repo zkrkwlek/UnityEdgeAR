@@ -57,7 +57,7 @@ public class UdpAsyncHandler
     public UdpState UdpConnect(string rermoteip, int remoteport, int localport)
     {
         UdpState stat = new UdpState();
-        IPEndPoint localEP = new IPEndPoint(IPAddress.Any, localport);
+        IPEndPoint localEP = new IPEndPoint(IPAddress.Any, 0);
         IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
         IPEndPoint hostEP = new IPEndPoint(IPAddress.Parse(rermoteip), remoteport);
         UdpClient udp = new UdpClient(localEP);
@@ -80,9 +80,15 @@ public class UdpAsyncHandler
         string msg = JsonUtility.ToJson(jdata);
         byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
         stat.udp.Send(bdata, bdata.Length, stat.hep);
+        //////Connect Image
+        //jdata = new SystemManager.EchoData("Image", "connect", SystemManager.Instance.User);
+        //jdata.type2 = "single";
+        //msg = JsonUtility.ToJson(jdata);
+        //bdata = System.Text.Encoding.UTF8.GetBytes(msg);
+        //stat.udp.Send(bdata, bdata.Length, stat.hep);
         ////Connect Image
-        jdata = new SystemManager.EchoData("Image", "connect", SystemManager.Instance.User);
-        jdata.type2 = "single";
+        jdata = new SystemManager.EchoData("Content", "connect", SystemManager.Instance.User);
+        jdata.type2 = "all";
         msg = JsonUtility.ToJson(jdata);
         bdata = System.Text.Encoding.UTF8.GetBytes(msg);
         stat.udp.Send(bdata, bdata.Length, stat.hep);
@@ -107,9 +113,15 @@ public class UdpAsyncHandler
             string msg = JsonUtility.ToJson(jdata);
             byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
             stat.udp.Send(bdata, bdata.Length, stat.hep);
+            //////Connect Image
+            //jdata = new SystemManager.EchoData("Image", "disconnect", SystemManager.Instance.User);
+            //jdata.type2 = "single";
+            //msg = JsonUtility.ToJson(jdata);
+            //bdata = System.Text.Encoding.UTF8.GetBytes(msg);
+            //stat.udp.Send(bdata, bdata.Length, stat.hep);
             ////Connect Image
-            jdata = new SystemManager.EchoData("Image", "disconnect", SystemManager.Instance.User);
-            jdata.type2 = "single";
+            jdata = new SystemManager.EchoData("Content", "disconnect", SystemManager.Instance.User);
+            jdata.type2 = "all";
             msg = JsonUtility.ToJson(jdata);
             bdata = System.Text.Encoding.UTF8.GetBytes(msg);
             stat.udp.Send(bdata, bdata.Length, stat.hep);

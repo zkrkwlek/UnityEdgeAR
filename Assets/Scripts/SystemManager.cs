@@ -9,6 +9,12 @@ public class SystemManager {
     /// <summary>
     /// 파사드 서버에 내가 생성할 키워드를 알림.
     /// </summary>
+
+    public class AppData {
+        public bool bMapping;
+        public bool bTracking;
+    }
+
     public class InitConnectData
     {
         public InitConnectData() { }
@@ -33,7 +39,7 @@ public class SystemManager {
             type1 = "device";
             type2 = "raw";
             //생성할 키워드
-            keyword = "Image,DeviceConnect,DeviceDisconnect,ContentGeneration,Map";
+            keyword = "Image,DevicePosition,DeviceConnect,DeviceDisconnect,ContentGeneration,Map";
             src = userID;
         }
         public string type1, type2, keyword, src;
@@ -323,25 +329,39 @@ public class SystemManager {
         if (datafile == "/File/cam.txt")
         {
             bCam = true;
-            numLine = 2;
+            //numLine = 2;
         }
-
-        if (!bCam)
+        //if (!bCam)
         {
             string imgFileTxt = Application.persistentDataPath + Convert.ToString(dataText[numLine++].Split('=')[1]);
             imgFileLIst = File.ReadAllLines(imgFileTxt);
-            Debug.Log("Load Datase = " + (imgFileLIst.Length - 3));
+            
+            //nMaxImageIndex = mSystem.imageData.Length - 1;
             imgPathTxt = Convert.ToString(dataText[numLine++].Split('=')[1]);
-
 #if(UNITY_EDITOR_WIN)
+            Debug.Log(imgFileLIst.Length - 1);
+            Debug.Log("Load Datase = " + (imgFileLIst.Length - 3));
             Debug.Log(imgPathTxt);
 #elif(UNITY_ANDROID)
             imgPathTxt = Application.persistentDataPath + imgPathTxt;
 #endif
-        
-        }     
-                
-        fx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+        }
+        try
+        {
+            string strAddData = File.ReadAllText(Application.persistentDataPath + "/AppData.json");
+            AppData appData = JsonUtility.FromJson<AppData>(strAddData);
+            bMapping = appData.bMapping;
+            bDeviceTracking = appData.bTracking;
+        }
+        catch (FileNotFoundException fe)
+        {
+            AppData appData = new AppData();
+            appData.bMapping = false;
+            appData.bTracking = true;
+            File.WriteAllText(Application.persistentDataPath + "/AppData.json", JsonUtility.ToJson(appData));
+        }
+
+            fx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         fy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         cx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         cy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
