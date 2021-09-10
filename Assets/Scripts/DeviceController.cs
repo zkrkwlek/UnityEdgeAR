@@ -34,7 +34,7 @@ public class DeviceController : MonoBehaviour
     [DllImport("UnityLibrary")]
     private static extern void SetWebcamAddress(IntPtr addr);
     [DllImport("UnityLibrary")]
-    private static extern void GrabImage();
+    private static extern bool GrabImage(ref double ts, int id);
     [DllImport("UnityLibrary")]
     private static extern void ReleaseImage();
     [DllImport("UnityLibrary")]
@@ -66,6 +66,7 @@ public class DeviceController : MonoBehaviour
     private static extern void AddContentInfo(int id, float x, float y, float z);
     [DllImport("UnityLibrary")]
     private static extern bool Track(IntPtr posePtr);
+
 #elif(UNITY_ANDROID)
     [DllImport("edgeslam")]
     private static extern void SetPath(char[] path);
@@ -76,9 +77,11 @@ public class DeviceController : MonoBehaviour
     [DllImport("edgeslam")]
     private static extern void SetTextureAddress(IntPtr addr, bool bCam);
     [DllImport("edgeslam")]
+    private static extern void SetIMUAddress(IntPtr addr, bool bIMU);
+    [DllImport("edgeslam")]
     private static extern void SetWebcamAddress(IntPtr addr);
     [DllImport("edgeslam")]
-    private static extern void GrabImage();
+    private static extern bool GrabImage(ref double ts, int id);
     [DllImport("edgeslam")]
     private static extern void ReleaseImage();
     [DllImport("edgeslam")]
@@ -87,8 +90,7 @@ public class DeviceController : MonoBehaviour
     private static extern void ConnectDevice();
     [DllImport("edgeslam")]
     private static extern void DisconnectDevice();
-    
-    
+        
     [DllImport("edgeslam")]
     private static extern int SetFrameByPtr(IntPtr addr, int w, int h, int id);
     [DllImport("edgeslam")]
@@ -110,14 +112,8 @@ public class DeviceController : MonoBehaviour
     //// Calculate time
     /// image
     Dictionary<int, DateTime> mapImageTime = new Dictionary<int, DateTime>();
-    float fSumImages = 0.0f;
-    float fSumImages_2 = 0.0f;
-    int nTotalImages = 0;
     /// content
     Dictionary<int, DateTime> mapContentTime = new Dictionary<int, DateTime>();
-    float fSumContents = 0.0f;
-    float fSumContents_2 = 0.0f;
-    int nTotalContents = 0;
     //// Calculate time
 
     ////Orientation event
@@ -129,7 +125,7 @@ public class DeviceController : MonoBehaviour
     bool isAlive = true;
     private int rectWidth = 160;
     private int rectHeight = 80;
-    Rect rect1, rect2, rect3, rect4, rectMappingToggle, rectTrackingToggle;
+    Rect rect1, rect2, rect3, rect4, rectMappingToggle, rectTrackingToggle, rectAccToggle, rectGyroToggle;
 
     Matrix3x3 InvK;
     Matrix3x3 ScaleMat, InvScaleMat;
@@ -168,6 +164,8 @@ public class DeviceController : MonoBehaviour
 
         rectMappingToggle = new Rect(20f, 150f, rectWidth, rectHeight);
         rectTrackingToggle = new Rect(20f, 150f+ (90f), rectWidth, rectHeight);
+        rectGyroToggle = new Rect(20f, 150f + (90f)*2, rectWidth, rectHeight);
+        rectAccToggle = new Rect(20f, 150f + (90f) * 3, rectWidth, rectHeight);
     }
 
     public void OrientationUI()
@@ -293,6 +291,7 @@ public class DeviceController : MonoBehaviour
                 DisconnectDevice();
                 UdpAsyncHandler.Instance.UdpDisconnect();
                 UdpAsyncHandler.Instance.UdpDataReceived -= UdpDataReceivedProcess;
+                SaveAppData();
             }
         }
         else
@@ -310,7 +309,8 @@ public class DeviceController : MonoBehaviour
 
         SystemManager.Instance.IsServerMapping = GUI.Toggle(rectMappingToggle, SystemManager.Instance.IsServerMapping, "Mapping");
         SystemManager.Instance.IsDeviceTracking = GUI.Toggle(rectTrackingToggle, SystemManager.Instance.IsDeviceTracking, "Tracking");
-
+        SystemManager.Instance.UseGyro = GUI.Toggle(rectGyroToggle, SystemManager.Instance.UseGyro, "Use Gyro");
+        SystemManager.Instance.UseAccelerometer = GUI.Toggle(rectAccToggle, SystemManager.Instance.UseAccelerometer, "Use Accelerometer");
 
         if (SystemManager.Instance.Start)
         {
@@ -343,44 +343,39 @@ public class DeviceController : MonoBehaviour
                 break;
         }
 
-        { 
-            ////image
-            int w = Screen.width, h = Screen.height;
-            GUIStyle style = new GUIStyle();
-            Rect rect = new Rect(10, 40, w, h * 2 / 100);
-            style.alignment = TextAnchor.UpperLeft;
-            style.fontSize = h * 2 / 40;
-            style.normal.textColor = new Color(0.0f, 0.0f, 0.5f, 1.0f);
-            float avg = 0.0f;
-            float stddev = 0.0f;
-            int N = nTotalImages - 1;
-            if (nTotalImages > 1)
-            {
-                avg = fSumImages / nTotalImages;
-                stddev = Mathf.Sqrt(fSumImages_2 / N - avg * fSumImages / N);
-            }
-            string text = string.Format("avg : {0:0.0} ms, stddev : ({1:0.0} )", avg, stddev);
-            GUI.Label(rect, text, style);
-        }
-        {
-            ////Content
-            int w = Screen.width, h = Screen.height;
-            GUIStyle style = new GUIStyle();
-            style.alignment = TextAnchor.UpperLeft;
-            style.fontSize = h * 2 / 40;
-            style.normal.textColor = new Color(0.0f, 0.0f, 0.5f, 1.0f);
-            Rect rect = new Rect(10, 40 + style.fontSize, w, h * 2 / 100);
-            float avg = 0.0f;
-            float stddev = 0.0f;
-            int N = nTotalContents - 1;
-            if (nTotalContents > 1)
-            {
-                avg = fSumContents / nTotalContents;
-                stddev = Mathf.Sqrt(fSumContents_2 / N - avg * fSumContents / N);
-            }
-            string text = string.Format("avg : {0:0.0} ms, stddev : ({1:0.0} )", avg, stddev);
-            GUI.Label(rect, text, style);
-        }
+        //{ 
+        //    ////image
+        //    int w = Screen.width, h = Screen.height;
+        //    GUIStyle style = new GUIStyle();
+        //    Rect rect = new Rect(10, 40, w, h * 2 / 100);
+        //    style.alignment = TextAnchor.UpperLeft;
+        //    style.fontSize = h * 2 / 40;
+        //    style.normal.textColor = new Color(0.0f, 0.0f, 0.5f, 1.0f);
+        //    float avg = 0.0f;
+        //    float stddev = 0.0f;
+            
+        //    string text = string.Format("avg : {0:0.0} ms, stddev : ({1:0.0} )", avg, stddev);
+        //    GUI.Label(rect, text, style);
+        //}
+        //{
+        //    ////Content
+        //    int w = Screen.width, h = Screen.height;
+        //    GUIStyle style = new GUIStyle();
+        //    style.alignment = TextAnchor.UpperLeft;
+        //    style.fontSize = h * 2 / 40;
+        //    style.normal.textColor = new Color(0.0f, 0.0f, 0.5f, 1.0f);
+        //    Rect rect = new Rect(10, 40 + style.fontSize, w, h * 2 / 100);
+        //    float avg = 0.0f;
+        //    float stddev = 0.0f;
+        //    int N = nTotalContents - 1;
+        //    if (nTotalContents > 1)
+        //    {
+        //        avg = fSumContents / nTotalContents;
+        //        stddev = Mathf.Sqrt(fSumContents_2 / N - avg * fSumContents / N);
+        //    }
+        //    string text = string.Format("avg : {0:0.0} ms, stddev : ({1:0.0} )", avg, stddev);
+        //    GUI.Label(rect, text, style);
+        //}
     }
 
     void UdpDataReceivedProcess(object sender, UdpEventArgs e)
@@ -397,9 +392,7 @@ public class DeviceController : MonoBehaviour
                 TimeSpan time = end - mapImageTime[data.id];
 
                 float temp = (float)time.Milliseconds;
-                fSumImages += temp;
-                fSumImages_2 += (temp * temp);
-                nTotalImages++;
+                SystemManager.Instance.ReferenceTime.Update(temp);
                 //cq.Enqueue(data);
             }
             catch (Exception ex)
@@ -414,9 +407,7 @@ public class DeviceController : MonoBehaviour
             TimeSpan time = end - mapContentTime[data.id2];
 
             float temp = (float)time.Milliseconds;
-            fSumContents += temp;
-            fSumContents_2 += (temp * temp);
-            nTotalContents++;
+            SystemManager.Instance.ContentGenerationTime.Update(temp);
         }
         else {
             
@@ -431,7 +422,6 @@ public class DeviceController : MonoBehaviour
     ConcurrentQueue<SystemManager.EchoData> cq = new ConcurrentQueue<SystemManager.EchoData>();
 
     int nImgFrameIDX, nMaxImageIndex;
-    string[] imageData;
     string imagePath;
     
     public Vector3 Center = new Vector3(0f, 0f, 0f);
@@ -445,18 +435,10 @@ public class DeviceController : MonoBehaviour
         StatusTxt.text = "Init::Success";
 
         ////Reset
-        fSumImages = 0.0f;
-        fSumImages_2 = 0.0f;
-        nTotalImages = 0;
         mapImageTime.Clear();
-        fSumContents = 0.0f;
-        fSumContents_2 = 0.0f;
-        nTotalContents = 0;
         mapContentTime.Clear();
         mnLastFrameID = 0;
         ////Reset
-
-        
 
         nImgFrameIDX = 3;
 
@@ -464,10 +446,7 @@ public class DeviceController : MonoBehaviour
         //Debug.Log("cam = " + bCam);
         if (!bCam)
         {
-            imageData = SystemManager.Instance.ImageData;
-            //Debug.Log(imageData.ToString());
             imagePath = SystemManager.Instance.ImagePath;
-            //nMaxImageIndex = mSystem.imageData.Length - 1;
         }
         
 
@@ -493,10 +472,11 @@ public class DeviceController : MonoBehaviour
         string msg2 = SystemManager.Instance.User + "," + SystemManager.Instance.Map;
         byte[] bdatab = System.Text.Encoding.UTF8.GetBytes(msg2);
         float[] fdataa = SystemManager.Instance.IntrinsicData;
-        byte[] bdata2 = new byte[1 + fdataa.Length * 4 + bdatab.Length];
+        byte[] bdata2 = new byte[2 + fdataa.Length * 4 + bdatab.Length];
         bdata2[40] = SystemManager.Instance.IsServerMapping ? (byte)1 : (byte)0;
+        bdata2[41] = SystemManager.Instance.UseGyro ? (byte)1 : (byte)0;
         Buffer.BlockCopy(fdataa, 0, bdata2, 0, 40);
-        Buffer.BlockCopy(bdatab, 0, bdata2, 41, bdatab.Length);
+        Buffer.BlockCopy(bdatab, 0, bdata2, 42, bdatab.Length);
 
         //Debug.Log(msg2+" "+ bdatab.Length);
 
@@ -546,6 +526,10 @@ public class DeviceController : MonoBehaviour
     float[] fPoseData;
     GCHandle poseHandle;
     IntPtr posePtr;
+
+    float[] fIMUPose;
+    GCHandle imuHandle;
+    IntPtr imuPtr;
 
     [HideInInspector]
     public int mnFrameID = 0;
@@ -613,7 +597,13 @@ public class DeviceController : MonoBehaviour
         fPoseData = new float[12];
         poseHandle = GCHandle.Alloc(fPoseData, GCHandleType.Pinned);
         posePtr = poseHandle.AddrOfPinnedObject();
-        ////pose ptr
+            ////pose ptr
+
+        ////imu ptr
+        fIMUPose = new float[12];
+        imuHandle = GCHandle.Alloc(fIMUPose, GCHandleType.Pinned);
+        imuPtr = imuHandle.AddrOfPinnedObject();
+        ////imu ptr
 
         }
         catch (Exception ex)
@@ -677,34 +667,100 @@ public class DeviceController : MonoBehaviour
 #endif
         }
 
+#if (UNITY_EDITOR_WIN)
+
+#elif (UNITY_ANDROID)
+            SetIMUAddress(imuPtr, SystemManager.Instance.UseGyro);
+#endif
+
         background.texture = tex;
         {
             //test
         }
 
     }
+    double ts = 0.0;
+    bool bGrabImage = false;
+    bool bSendImage = false;
 
+    Matrix3x3 DeltaR = new Matrix3x3();
+    Matrix3x3 DeltaFrameR;
     // Update is called once per frame
     void Update()
     {
-        
+
+        if (SystemManager.Instance.UseGyro)
+        {
+            DeltaFrameR = SensorManager.Instance.DeltaRotationMatrix();
+            DeltaR = DeltaR * DeltaFrameR;
+        }
+
         if (SystemManager.Instance.Start && SystemManager.Instance.Connect)
         {
+
             if (SystemManager.Instance.Cam)
             {
                 webCamTexture.GetPixels32(webCamColorData);
             }
-            GrabImage();
-            tex.LoadRawTextureData(visPtr, visData.Length);
-            tex.Apply();
-
-            webCamByteData = tex.EncodeToJPG(100);
-            ++mnFrameID;
-            if (SystemManager.Instance.IsDeviceTracking)
+            bSendImage = false;
+            bGrabImage = GrabImage(ref ts, mnFrameID);
+            if (bGrabImage)
             {
-                StartCoroutine("TrackingCoroutine");
+                tex.LoadRawTextureData(visPtr, visData.Length);
+                tex.Apply();
+                bSendImage = true;
+                //DateTime t1 = DateTime.Now;
+                //webCamByteData = tex.EncodeToJPG(100);
+                //DateTime t2 = DateTime.Now;
+                //TimeSpan time2 = t2 - t1;
+                //float temp = (float)time2.Milliseconds;
+                //SystemManager.Instance.JpegTime.Update(temp);
+                //SystemManager.Instance.JpegTime.nTotalSize += webCamByteData.Length;
+
+                if (SystemManager.Instance.IsDeviceTracking)
+                {
+                    DateTime t1 = DateTime.Now;
+                    
+                    float tt1 = 0f;float tt2 = 0f;
+                    SetFrame(mnFrameID, 0.0, ref tt1, ref tt2);
+
+                    int nRes = 0;
+                    DeltaFrameR.Copy(ref fIMUPose, 0);
+                    bTracking = Track(posePtr);
+                    DateTime t2 = DateTime.Now;
+                    TimeSpan time1 = t2 - t1;
+                    float temp = (float)time1.Milliseconds;
+                    SystemManager.Instance.TrackingTime.Update(temp);
+                    StartCoroutine("SendPoseData");
+
+                    //if (bTracking)
+                    //{
+                    //    byte[] bdata = new byte[fPoseData.Length * 4];
+                    //    Buffer.BlockCopy(fPoseData, 0, bdata, 0, bdata.Length);
+                    //    Debug.Log(fPoseData[9] + " " + fPoseData[10] + " " + fPoseData[11]);
+                    //    string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=DevicePosition&id=0" + "&src=" + SystemManager.Instance.User;
+                    //    UnityWebRequest request = new UnityWebRequest(addr);
+                    //    request.method = "POST";
+                    //    UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
+                    //    uH.contentType = "application/json";
+                    //    request.uploadHandler = uH;
+                    //    request.downloadHandler = new DownloadHandlerBuffer();
+                    //    UnityWebRequestAsyncOperation res = request.SendWebRequest();
+                    //}
+                }
+
+                if (GetMatchingImage(resPtr))
+                {
+                    tex.LoadRawTextureData(resPtr, resData.Length);
+                    tex.Apply();
+                    //background.texture = tex;
+                }
+
+                ReleaseImage();
+                ++mnFrameID;
+                
             }
-            ReleaseImage();
+            
         }
 
         ///////트래킹
@@ -875,7 +931,23 @@ public class DeviceController : MonoBehaviour
         SystemManager.AppData appData = new SystemManager.AppData();
         appData.bMapping = SystemManager.Instance.IsServerMapping;
         appData.bTracking = SystemManager.Instance.IsDeviceTracking;
+        appData.bGyro = SystemManager.Instance.UseGyro;
+        appData.bAcc = SystemManager.Instance.UseAccelerometer;
+
         File.WriteAllText(Application.persistentDataPath + "/AppData.json", JsonUtility.ToJson(appData));
+
+        SystemManager.Instance.ReferenceTime.Calculate();
+        File.WriteAllText(Application.persistentDataPath + "/Time/reference.json", JsonUtility.ToJson(SystemManager.Instance.ReferenceTime));
+
+        SystemManager.Instance.TrackingTime.Calculate();
+        File.WriteAllText(Application.persistentDataPath + "/Time/tracking.json", JsonUtility.ToJson(SystemManager.Instance.TrackingTime));
+
+        SystemManager.Instance.ContentGenerationTime.Calculate();
+        File.WriteAllText(Application.persistentDataPath + "/Time/content.json", JsonUtility.ToJson(SystemManager.Instance.ContentGenerationTime));
+
+        SystemManager.Instance.JpegTime.Calculate();
+        SystemManager.Instance.JpegTime.fAvgSize = ((float)SystemManager.Instance.JpegTime.nTotalSize) / SystemManager.Instance.JpegTime.nTotal;
+        File.WriteAllText(Application.persistentDataPath + "/Time/jpeg.json", JsonUtility.ToJson(SystemManager.Instance.JpegTime));
     }
 
     int mnContentID;
@@ -909,15 +981,42 @@ public class DeviceController : MonoBehaviour
         {
             yield return new WaitForFixedUpdate();
             
-            if (SystemManager.Instance.Start && mnFrameID % nDurationSendFrame == 0)
+            if (SystemManager.Instance.Start && mnFrameID % nDurationSendFrame == 0 && bSendImage)
             {
-                
+                ////JPEG 압축
+                DateTime t1 = DateTime.Now;
+                webCamByteData = tex.EncodeToJPG(100);
+                DateTime t2 = DateTime.Now;
+                TimeSpan time2 = t2 - t1;
+                float temp = (float)time2.Milliseconds;
+                SystemManager.Instance.JpegTime.Update(temp);
+                SystemManager.Instance.JpegTime.nTotalSize += webCamByteData.Length;
+                ////JPEG 압축
+
                 int id = mnFrameID;
                 DateTime start = DateTime.Now;
 
-                string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=Image&id=" + id + "&src=" + SystemManager.Instance.User;
+                string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=Image&id=" + id + "&src=" + SystemManager.Instance.User+"&type2="+ts;
                 mapImageTime[id] = start;
-                
+
+                if (SystemManager.Instance.UseGyro)
+                {
+                    //StatusTxt.text = DeltaR.m00 + " " + DeltaR.m11+" "+ DeltaR.m22;
+                    float[] fdata = new float[9];
+                    DeltaR.Copy(ref fdata, 0);
+                    byte[] bdata = new byte[(fdata.Length) * 4];
+                    Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length * 4);
+                    string addr2 = SystemManager.Instance.ServerAddr + "/Store?keyword=Gyro&id=" + id + "&src=" + SystemManager.Instance.User;
+                    UnityWebRequest request2 = new UnityWebRequest(addr2);
+                    request2.method = "POST";
+                    UploadHandlerRaw uH2 = new UploadHandlerRaw(bdata);
+                    uH2.contentType = "application/json";
+                    request2.uploadHandler = uH2;
+                    request2.downloadHandler = new DownloadHandlerBuffer();
+                    UnityWebRequestAsyncOperation res2 = request2.SendWebRequest();
+                    DeltaR = new Matrix3x3();
+                }
+
                 UnityWebRequest request = new UnityWebRequest(addr);
                 request.method = "POST";
                 UploadHandlerRaw uH = new UploadHandlerRaw(webCamByteData);
@@ -936,6 +1035,9 @@ public class DeviceController : MonoBehaviour
                 //{
                 //    yield return new WaitForFixedUpdate();
                 //}
+
+                
+
             }
         }
     }
@@ -1018,6 +1120,24 @@ public class DeviceController : MonoBehaviour
     IntPtr resPtr;
 
     bool bDoingTrack = false;
+    IEnumerable SendPoseData()
+    {
+        if (bTracking)
+        {
+            byte[] bdata = new byte[fPoseData.Length * 4];
+            Buffer.BlockCopy(fPoseData, 0, bdata, 0, bdata.Length);
+            string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=DevicePosition&id=0" + "&src=" + SystemManager.Instance.User;
+            UnityWebRequest request = new UnityWebRequest(addr);
+            request.method = "POST";
+            UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
+            uH.contentType = "application/json";
+            request.uploadHandler = uH;
+            request.downloadHandler = new DownloadHandlerBuffer();
+            UnityWebRequestAsyncOperation res = request.SendWebRequest();
+            //Debug.Log(fPoseData[9] + " " + fPoseData[10] + " " + fPoseData[11]);
+        }
+        return null;
+    }
     IEnumerable TrackingCoroutine()//byte[] data)
     {
 
@@ -1049,14 +1169,15 @@ public class DeviceController : MonoBehaviour
             //#endif
             //            }
             SetFrame(id, 0.0, ref tt1, ref tt2);
-
-
             DateTime t2 = DateTime.Now;
             int nRes = 0;
             bTracking = Track(posePtr);
             DateTime t3 = DateTime.Now;
             TimeSpan time1 = t2 - t1;
-            TimeSpan time2 = t3 - t2;
+            TimeSpan time2 = t3 - t1;
+            float temp = (float)time2.Milliseconds;
+            SystemManager.Instance.TrackingTime.Update(temp);
+
             //StatusTxt.text = "Tracking = " + nRes + "::" + tt1 + ", " + tt2 + "::::" + time1.Milliseconds.ToString().PadLeft(3, '0') + ", " + time2.Milliseconds.ToString().PadLeft(3, '0');
 
             string aa = "Tracking Failed!!";
@@ -1083,7 +1204,7 @@ public class DeviceController : MonoBehaviour
                 request.uploadHandler = uH;
                 request.downloadHandler = new DownloadHandlerBuffer();
                 UnityWebRequestAsyncOperation res = request.SendWebRequest();
-                Debug.Log(fPoseData[9] + " " + fPoseData[10] + " " + fPoseData[11]);
+                //Debug.Log(fPoseData[9] + " " + fPoseData[10] + " " + fPoseData[11]);
             }
 
         }
@@ -1173,7 +1294,7 @@ public class DeviceController : MonoBehaviour
 
     void OnApplicationQuit()
     {
-        SaveAppData();
+        //SaveAppData();
     }
 
 }

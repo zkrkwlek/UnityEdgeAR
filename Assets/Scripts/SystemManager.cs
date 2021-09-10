@@ -13,18 +13,48 @@ public class SystemManager {
     public class AppData {
         public bool bMapping;
         public bool bTracking;
+        public bool bGyro;
+        public bool bAcc;
+    }
+
+    public class ProcessTime
+    {
+        public int nTotal;
+        public int nTotalSize;//jpeg
+        public float fAvgSize;//jpeg
+        public float fSum;
+        public float fSum_2;
+        public float fAvg;
+        public float fStddev;
+
+        public void Update(float ts)
+        {
+            nTotal++;
+            fSum += ts;
+            fSum_2 += (ts * ts);
+        }
+
+        public void Calculate() {
+            if (nTotal > 2)
+            {
+                int N = nTotal - 1;
+                fAvg = fSum / nTotal;
+                fStddev = Mathf.Sqrt(fSum_2 / N - fAvg * fSum / N);
+            }
+        }
     }
 
     public class InitConnectData
     {
         public InitConnectData() { }
-        public InitConnectData(string _userID, string _mapName, bool _bMapping, bool _bManager, 
+        public InitConnectData(string _userID, string _mapName, bool _bMapping, bool _bGyro, bool _bManager, 
             float _fx, float _fy, float _cx, float _cy, 
             float _d1, float _d2, float _d3, float _d4, int _w, int _h)
         {
             userID = _userID;
             mapName = _mapName;
             bMapping = _bMapping;
+            bGyro = _bGyro;
             bManager = _bManager;
             fx = _fx;
             fy = _fy;
@@ -39,7 +69,7 @@ public class SystemManager {
             type1 = "device";
             type2 = "raw";
             //생성할 키워드
-            keyword = "Image,DevicePosition,DeviceConnect,DeviceDisconnect,ContentGeneration,Map";
+            keyword = "Image,Gyro,Accelerometer,DevicePosition,DeviceConnect,DeviceDisconnect,ContentGeneration,Map";
             src = userID;
         }
         public string type1, type2, keyword, src;
@@ -47,7 +77,7 @@ public class SystemManager {
         public float fx, fy, cx, cy;
         public float d1, d2, d3, d4;
         public int w, h;
-        public bool bMapping, bManager;
+        public bool bMapping, bGyro, bManager;
     }
     /// <summary>
     /// 알림 서버에 내가 받을 키워드를 알림
@@ -70,7 +100,7 @@ public class SystemManager {
 
     public InitConnectData GetConnectData()
     {
-        return new InitConnectData(strUserID, strMapName, bMapping, bManagerMode, fx, fy, cx, cy, d1, d2, d3, d4, w, h);
+        return new InitConnectData(strUserID, strMapName, bMapping, bGyro, bManagerMode, fx, fy, cx, cy, d1, d2, d3, d4, w, h);
     }
 
     private static float[] fdata;
@@ -193,14 +223,7 @@ public class SystemManager {
             serveraddr = value;
         }
     }
-    static string[] imgFileLIst;
-    public string[] ImageData
-    {
-        get
-        {
-            return imgFileLIst;
-        }
-    }
+    
     static string imgPathTxt;
     public string ImagePath
     {
@@ -269,6 +292,42 @@ public class SystemManager {
             bDeviceTracking = value;
         }
     }
+    static int nSensorSpeed = 0;
+    public int SensorSpeed
+    {
+        get
+        {
+            return nSensorSpeed;
+        }
+        set
+        {
+            nSensorSpeed = value;
+        }
+    }
+    static bool bGyro, bAcc;
+    public bool UseAccelerometer
+    {
+        get
+        {
+            return bAcc;
+        }
+        set
+        {
+            bAcc = value;
+        }
+    }
+    public bool UseGyro
+    {
+        get
+        {
+            return bGyro;
+        }
+        set
+        {
+            bGyro = value;
+        }
+    }
+
 
     static bool bManagerMode = false;
     public bool Manager
@@ -286,6 +345,8 @@ public class SystemManager {
     public byte[] strBytes;
     public string strVocName;
 
+    public ProcessTime ReferenceTime, TrackingTime, ContentGenerationTime, JpegTime;
+
     static private SystemManager m_pInstance = null;
     static public SystemManager Instance
     {
@@ -294,6 +355,26 @@ public class SystemManager {
             {
                 m_pInstance = new SystemManager();
                 //LoadParameter();
+
+                try
+                {
+                    string strAddData = File.ReadAllText(Application.persistentDataPath + "/AppData.json");
+                    AppData appData = JsonUtility.FromJson<AppData>(strAddData);
+                    bMapping = appData.bMapping;
+                    bDeviceTracking = appData.bTracking;
+                    bGyro = appData.bGyro;
+                    bAcc = appData.bAcc;
+                }
+                catch (FileNotFoundException fe)
+                {
+                    AppData appData = new AppData();
+                    appData.bMapping = false;
+                    appData.bTracking = true;
+                    appData.bGyro = false;
+                    appData.bAcc = false;
+                    File.WriteAllText(Application.persistentDataPath + "/AppData.json", JsonUtility.ToJson(appData));
+                }
+
             }
             return m_pInstance;
         }
@@ -333,35 +414,79 @@ public class SystemManager {
         }
         //if (!bCam)
         {
-            string imgFileTxt = Application.persistentDataPath + Convert.ToString(dataText[numLine++].Split('=')[1]);
-            imgFileLIst = File.ReadAllLines(imgFileTxt);
+            //string imgFileTxt = Application.persistentDataPath + Convert.ToString(dataText[numLine++].Split('=')[1]);
+            //imgFileLIst = File.ReadAllLines(imgFileTxt);
             
             //nMaxImageIndex = mSystem.imageData.Length - 1;
             imgPathTxt = Convert.ToString(dataText[numLine++].Split('=')[1]);
 #if(UNITY_EDITOR_WIN)
-            Debug.Log(imgFileLIst.Length - 1);
-            Debug.Log("Load Datase = " + (imgFileLIst.Length - 3));
+            //Debug.Log(imgFileLIst.Length - 1);
+            //Debug.Log("Load Datase = " + (imgFileLIst.Length - 3));
             Debug.Log(imgPathTxt);
 #elif(UNITY_ANDROID)
             imgPathTxt = Application.persistentDataPath + imgPathTxt;
 #endif
         }
+        
+        //reference
         try
         {
-            string strAddData = File.ReadAllText(Application.persistentDataPath + "/AppData.json");
-            AppData appData = JsonUtility.FromJson<AppData>(strAddData);
-            bMapping = appData.bMapping;
-            bDeviceTracking = appData.bTracking;
+            string strAddData = File.ReadAllText(Application.persistentDataPath + "/Time/reference.json");
+            ReferenceTime = JsonUtility.FromJson<ProcessTime>(strAddData);
         }
         catch (FileNotFoundException fe)
         {
-            AppData appData = new AppData();
-            appData.bMapping = false;
-            appData.bTracking = true;
-            File.WriteAllText(Application.persistentDataPath + "/AppData.json", JsonUtility.ToJson(appData));
+            ProcessTime appData = new ProcessTime();
+            appData.nTotal = 0;
+            appData.fSum = 0.0f;
+            appData.fSum_2 = 0.0f;
+            File.WriteAllText(Application.persistentDataPath + "/Time/reference.json", JsonUtility.ToJson(appData));
+        }
+        //tracking
+        try
+        {
+            string strAddData = File.ReadAllText(Application.persistentDataPath + "/Time/tracking.json");
+            TrackingTime = JsonUtility.FromJson<ProcessTime>(strAddData);
+        }
+        catch (FileNotFoundException fe)
+        {
+            ProcessTime appData = new ProcessTime();
+            appData.nTotal = 0;
+            appData.fSum = 0.0f;
+            appData.fSum_2 = 0.0f;
+            File.WriteAllText(Application.persistentDataPath + "/Time/tracking.json", JsonUtility.ToJson(appData));
+        }
+        //content generation
+        try
+        {
+            string strAddData = File.ReadAllText(Application.persistentDataPath + "/Time/content.json");
+            ContentGenerationTime = JsonUtility.FromJson<ProcessTime>(strAddData);
+        }
+        catch (FileNotFoundException fe)
+        {
+            ProcessTime appData = new ProcessTime();
+            appData.nTotal = 0;
+            appData.fSum = 0.0f;
+            appData.fSum_2 = 0.0f;
+            File.WriteAllText(Application.persistentDataPath + "/Time/content.json", JsonUtility.ToJson(appData));
+        }
+        //jpeg
+        try
+        {
+            string strAddData = File.ReadAllText(Application.persistentDataPath + "/Time/jpeg.json");
+            JpegTime = JsonUtility.FromJson<ProcessTime>(strAddData);
+        }
+        catch (FileNotFoundException fe)
+        {
+            ProcessTime appData = new ProcessTime();
+            appData.nTotal = 0;
+            appData.nTotalSize = 0;
+            appData.fSum = 0.0f;
+            appData.fSum_2 = 0.0f;
+            File.WriteAllText(Application.persistentDataPath + "/Time/jpeg.json", JsonUtility.ToJson(appData));
         }
 
-            fx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+        fx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         fy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         cx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
         cy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
