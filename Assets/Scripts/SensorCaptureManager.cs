@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -49,7 +50,10 @@ public class SensorCaptureManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+#if UNITY_EDITOR_WIN
+#elif UNITY_ANDROID
         Init();
+#endif
     }
 
     // Update is called once per frame

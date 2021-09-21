@@ -403,8 +403,8 @@ public class SystemManager {
 
         strUserID = (dataText[numLine++].Split('=')[1]);
         strMapName = (dataText[numLine++].Split('=')[1]);
-        bMapping = Convert.ToBoolean(dataText[numLine++].Split('=')[1]);
-        bDeviceTracking = Convert.ToBoolean(dataText[numLine++].Split('=')[1]);
+        bool aMapping = Convert.ToBoolean(dataText[numLine++].Split('=')[1]);
+        bool aDeviceTracking = Convert.ToBoolean(dataText[numLine++].Split('=')[1]);
         numSkipFrame = Convert.ToInt32(dataText[numLine++].Split('=')[1]);
 
         if (datafile == "/File/cam.txt")

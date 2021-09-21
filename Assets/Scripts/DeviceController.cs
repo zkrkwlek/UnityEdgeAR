@@ -558,14 +558,7 @@ public class DeviceController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-#if UNITY_EDITOR_WIN
 
-#elif UNITY_ANDROID
-        if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(UnityEngine.Android.Permission.Camera))
-        {
-            UnityEngine.Android.Permission.RequestUserPermission(UnityEngine.Android.Permission.Camera);
-        }
-#endif
 
         try
         { 
@@ -583,7 +576,7 @@ public class DeviceController : MonoBehaviour
         //OrientationUI();
         Touched += TouchProcess;
 
-        //visualized image ptr
+        //visualized image ptr <- RGBA에서 BGR로 교체 중. result image도 수정 필요
         visData = new byte[SystemManager.Instance.ImageWidth * SystemManager.Instance.ImageHeight*4];
         visHandle = GCHandle.Alloc(visData, GCHandleType.Pinned);
         visPtr = visHandle.AddrOfPinnedObject();
@@ -611,61 +604,95 @@ public class DeviceController : MonoBehaviour
             StatusTxt.text = "err=" + ex.ToString();
         }
 
-        StartCoroutine("DeviceControl");
-        StartCoroutine("ImageSendingCoroutine");
-        //resized = new Color[SystemManager.Instance.ImageWidth*SystemManager.Instance.ImageHeight/4];
-        ////
+        try {
+
+            StartCoroutine("DeviceControl");
+            StartCoroutine("ImageSendingCoroutine");
+            //resized = new Color[SystemManager.Instance.ImageWidth*SystemManager.Instance.ImageHeight/4];
+            ////
 
 #if (UNITY_EDITOR_WIN)
-        byte[] b = System.Text.Encoding.ASCII.GetBytes(Application.persistentDataPath);
-        SetPath(b, b.Length);
-        //SystemManager.Instance.strBytes, SystemManager.Instance.strBytes.Length, 
+            byte[] b = System.Text.Encoding.ASCII.GetBytes(Application.persistentDataPath);
+            SetPath(b, b.Length);
+            //SystemManager.Instance.strBytes, SystemManager.Instance.strBytes.Length, 
 #elif (UNITY_ANDROID)
         SetPath(Application.persistentDataPath.ToCharArray());    
 #endif
-        SetInit(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.FocalLengthX, SystemManager.Instance.FocalLengthY, SystemManager.Instance.PrincipalPointX, SystemManager.Instance.PrincipalPointY,
-                    SystemManager.Instance.IntrinsicData[6], SystemManager.Instance.IntrinsicData[7], SystemManager.Instance.IntrinsicData[8], SystemManager.Instance.IntrinsicData[9]);
+            SetInit(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.FocalLengthX, SystemManager.Instance.FocalLengthY, SystemManager.Instance.PrincipalPointX, SystemManager.Instance.PrincipalPointY,
+                        SystemManager.Instance.IntrinsicData[6], SystemManager.Instance.IntrinsicData[7], SystemManager.Instance.IntrinsicData[8], SystemManager.Instance.IntrinsicData[9]);
 
-        tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.BGRA32, false);
-        SetTextureAddress(visPtr, SystemManager.Instance.Cam);
-        if (SystemManager.Instance.Cam)
-        {
-            //SetDeviceCamera(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, 30.0);
-
-            WebCamDevice[] devices = WebCamTexture.devices;
-            for (int i = 0; i < devices.Length; i++)
+            tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.BGRA32, false);
+            SetTextureAddress(visPtr, SystemManager.Instance.Cam);
+            if (SystemManager.Instance.Cam)
             {
+                //SetDeviceCamera(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, 30.0);
+
+                WebCamDevice[] devices = WebCamTexture.devices;
+                bool bAccessWebcam = false;
+                for (int i = 0; i < devices.Length; i++)
+                {
+
+                    bool bWebcamDevice = false;
 #if UNITY_EDITOR_WIN
-                if (devices[i].isFrontFacing)
-                {
-                    webCamTexture = new WebCamTexture(devices[i].name, SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, 30);
-                    break;
-                }
+                    bWebcamDevice = devices[i].isFrontFacing;
 #elif UNITY_ANDROID
-                if (!devices[i].isFrontFacing)
-                {
-                    webCamTexture = new WebCamTexture(devices[i].name, SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, 30);
-                    break;
+                                    bWebcamDevice = false;//!devices[i].isFrontFacing;
+#endif
+                    if (bWebcamDevice)
+                    {
+                        webCamTexture = new WebCamTexture(devices[i].name, SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, 30);
+                       
+                        bAccessWebcam = true;
+                        break;
+                    }
+
+//#if UNITY_EDITOR_WIN
+//                    if (devices[i].isFrontFacing)
+//                    {
+//                        webCamTexture = new WebCamTexture(devices[i].name, SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, 30);
+//                        break;
+//                    }
+//#elif UNITY_ANDROID
+//                if (!devices[i].isFrontFacing)
+//                {
+//                    bAccessWebcam = true;
+//                    webCamTexture = new WebCamTexture(devices[i].name, SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, 30);
+//                    break;
+//                }
+//#endif
+
                 }
+#if UNITY_EDITOR_WIN
+
+#elif UNITY_ANDROID
+                            webCamTexture = new WebCamTexture();
+                             webCamTexture.requestedHeight = SystemManager.Instance.ImageHeight;
+                            webCamTexture.requestedWidth =SystemManager.Instance.ImageWidth;
+                             webCamTexture.requestedFPS =30;
+#endif
+
+                if (!bAccessWebcam)
+                    StatusTxt.text = "Not access webcam";
+                else
+                    StatusTxt.text = "Access webcam";
+
+                webCamColorData = new Color32[SystemManager.Instance.ImageWidth * SystemManager.Instance.ImageHeight];
+                webCamHandle = GCHandle.Alloc(webCamColorData, GCHandleType.Pinned);
+                webCamPtr = webCamHandle.AddrOfPinnedObject();
+                webCamTexture.Play();
+                SetWebcamAddress(webCamPtr);
+                //background.texture = webCamTexture;
+
+            }
+            else
+            {
+#if (UNITY_EDITOR_WIN)
+                byte[] b2 = System.Text.Encoding.ASCII.GetBytes(SystemManager.Instance.ImagePath);
+                SetImageFiles(b2, b2.Length);
+#elif (UNITY_ANDROID)
+                SetImageFiles(SystemManager.Instance.ImagePath.ToCharArray());
 #endif
             }
-            webCamColorData = new Color32[SystemManager.Instance.ImageWidth * SystemManager.Instance.ImageHeight];
-            webCamHandle = GCHandle.Alloc(webCamColorData, GCHandleType.Pinned);
-            webCamPtr = webCamHandle.AddrOfPinnedObject();
-            webCamTexture.Play();
-            SetWebcamAddress(webCamPtr);
-            //background.texture = webCamTexture;
-
-        }
-        else
-        {
-#if (UNITY_EDITOR_WIN)
-            byte[] b2 = System.Text.Encoding.ASCII.GetBytes(SystemManager.Instance.ImagePath);
-            SetImageFiles(b2, b2.Length);
-#elif (UNITY_ANDROID)
-            SetImageFiles(SystemManager.Instance.ImagePath.ToCharArray());
-#endif
-        }
 
 #if (UNITY_EDITOR_WIN)
 
@@ -673,10 +700,18 @@ public class DeviceController : MonoBehaviour
             SetIMUAddress(imuPtr, SystemManager.Instance.UseGyro);
 #endif
 
-        background.texture = tex;
-        {
-            //test
+            background.texture = tex;
+            {
+                //test
+            }
+
         }
+        catch(Exception ex)
+        {
+            StatusTxt.text = "err=" + ex.ToString();
+        }
+
+        
 
     }
     double ts = 0.0;
@@ -697,69 +732,92 @@ public class DeviceController : MonoBehaviour
 
         if (SystemManager.Instance.Start && SystemManager.Instance.Connect)
         {
+            try {
 
-            if (SystemManager.Instance.Cam)
-            {
-                webCamTexture.GetPixels32(webCamColorData);
-            }
-            bSendImage = false;
-            bGrabImage = GrabImage(ref ts, mnFrameID);
-            if (bGrabImage)
-            {
-                tex.LoadRawTextureData(visPtr, visData.Length);
-                tex.Apply();
-                bSendImage = true;
-                //DateTime t1 = DateTime.Now;
-                //webCamByteData = tex.EncodeToJPG(100);
-                //DateTime t2 = DateTime.Now;
-                //TimeSpan time2 = t2 - t1;
-                //float temp = (float)time2.Milliseconds;
-                //SystemManager.Instance.JpegTime.Update(temp);
-                //SystemManager.Instance.JpegTime.nTotalSize += webCamByteData.Length;
-
-                if (SystemManager.Instance.IsDeviceTracking)
+                if (SystemManager.Instance.Cam && webCamTexture.didUpdateThisFrame)
                 {
-                    DateTime t1 = DateTime.Now;
-                    
-                    float tt1 = 0f;float tt2 = 0f;
-                    SetFrame(mnFrameID, 0.0, ref tt1, ref tt2);
-
-                    int nRes = 0;
-                    DeltaFrameR.Copy(ref fIMUPose, 0);
-                    bTracking = Track(posePtr);
-                    DateTime t2 = DateTime.Now;
-                    TimeSpan time1 = t2 - t1;
-                    float temp = (float)time1.Milliseconds;
-                    SystemManager.Instance.TrackingTime.Update(temp);
-                    StartCoroutine("SendPoseData");
-
-                    //if (bTracking)
-                    //{
-                    //    byte[] bdata = new byte[fPoseData.Length * 4];
-                    //    Buffer.BlockCopy(fPoseData, 0, bdata, 0, bdata.Length);
-                    //    Debug.Log(fPoseData[9] + " " + fPoseData[10] + " " + fPoseData[11]);
-                    //    string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=DevicePosition&id=0" + "&src=" + SystemManager.Instance.User;
-                    //    UnityWebRequest request = new UnityWebRequest(addr);
-                    //    request.method = "POST";
-                    //    UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
-                    //    uH.contentType = "application/json";
-                    //    request.uploadHandler = uH;
-                    //    request.downloadHandler = new DownloadHandlerBuffer();
-                    //    UnityWebRequestAsyncOperation res = request.SendWebRequest();
-                    //}
+                    ////s21
+                    webCamTexture.GetPixels32(webCamColorData);
+                    ////note8
+                    ///
+                 
+                    //Color32[] cdata = webCamTexture.GetPixels32();
+                    //webCamHandle = GCHandle.Alloc(cdata, GCHandleType.Pinned);
+                    //webCamPtr = webCamHandle.AddrOfPinnedObject();
+                    //SetWebcamAddress(webCamPtr);
+                    //tex.SetPixels(cdata);
+                    //tex.Apply();
+                    ////note8
                 }
-
-                if (GetMatchingImage(resPtr))
-                {
-                    tex.LoadRawTextureData(resPtr, resData.Length);
-                    tex.Apply();
-                    //background.texture = tex;
-                }
-
-                ReleaseImage();
-                ++mnFrameID;
                 
+                bSendImage = false;
+                bGrabImage = GrabImage(ref ts, mnFrameID);
+                if (bGrabImage)
+                {
+                    tex.LoadRawTextureData(visPtr, visData.Length);
+                    tex.Apply();
+                    bSendImage = true;
+                    //DateTime t1 = DateTime.Now;
+                    //webCamByteData = tex.EncodeToJPG(100);
+                    //DateTime t2 = DateTime.Now;
+                    //TimeSpan time2 = t2 - t1;
+                    //float temp = (float)time2.Milliseconds;
+                    //SystemManager.Instance.JpegTime.Update(temp);
+                    //SystemManager.Instance.JpegTime.nTotalSize += webCamByteData.Length;
+
+                    if (SystemManager.Instance.IsDeviceTracking)
+                    {
+                        DateTime t1 = DateTime.Now;
+
+                        float tt1 = 0f; float tt2 = 0f;
+                        SetFrame(mnFrameID, 0.0, ref tt1, ref tt2);
+
+                        int nRes = 0;
+                        if (SystemManager.Instance.UseGyro)
+                            DeltaFrameR.Copy(ref fIMUPose, 0);
+
+                        bTracking = Track(posePtr);
+                        DateTime t2 = DateTime.Now;
+                        TimeSpan time1 = t2 - t1;
+                        float temp = (float)time1.Milliseconds;
+                        SystemManager.Instance.TrackingTime.Update(temp);
+                        StartCoroutine("SendPoseData");
+
+                        //if (bTracking)
+                        //{
+                        //    byte[] bdata = new byte[fPoseData.Length * 4];
+                        //    Buffer.BlockCopy(fPoseData, 0, bdata, 0, bdata.Length);
+                        //    Debug.Log(fPoseData[9] + " " + fPoseData[10] + " " + fPoseData[11]);
+                        //    string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=DevicePosition&id=0" + "&src=" + SystemManager.Instance.User;
+                        //    UnityWebRequest request = new UnityWebRequest(addr);
+                        //    request.method = "POST";
+                        //    UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
+                        //    uH.contentType = "application/json";
+                        //    request.uploadHandler = uH;
+                        //    request.downloadHandler = new DownloadHandlerBuffer();
+                        //    UnityWebRequestAsyncOperation res = request.SendWebRequest();
+                        //}
+                    }
+
+                    //if (GetMatchingImage(resPtr))
+                    //{
+                    //    tex.LoadRawTextureData(resPtr, resData.Length);
+                    //    tex.Apply();
+                    //    //background.texture = tex;
+                    //}
+
+                    ReleaseImage();
+                    ++mnFrameID;
+
+                }
+
             }
+            catch(Exception ex)
+            {
+                StatusTxt.text = ex.ToString();
+            }
+
+            
             
         }
 
