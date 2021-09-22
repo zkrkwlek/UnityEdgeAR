@@ -9,7 +9,26 @@ public class SystemManager {
     /// <summary>
     /// 파사드 서버에 내가 생성할 키워드를 알림.
     /// </summary>
+    [Serializable]
+    public class CameraParams
+    {
+        public float fx;
+        public float fy;
+        public float cx;
+        public float cy;
+        public float d1;
+        public float d2;
+        public float d3;
+        public float d4;
+    }
 
+    [Serializable]
+    public class UserData
+    {
+        public CameraParams K;
+    }
+
+    [Serializable]
     public class AppData {
         public bool bMapping;
         public bool bTracking;

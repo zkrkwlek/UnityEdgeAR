@@ -34,6 +34,8 @@ public class DeviceController : MonoBehaviour
     [DllImport("UnityLibrary")]
     private static extern void SetWebcamAddress(IntPtr addr);
     [DllImport("UnityLibrary")]
+    private static extern bool GrabImage2(IntPtr addr, int id);
+    [DllImport("UnityLibrary")]
     private static extern bool GrabImage(ref double ts, int id);
     [DllImport("UnityLibrary")]
     private static extern void ReleaseImage();
@@ -82,6 +84,8 @@ public class DeviceController : MonoBehaviour
     private static extern void SetWebcamAddress(IntPtr addr);
     [DllImport("edgeslam")]
     private static extern bool GrabImage(ref double ts, int id);
+    [DllImport("edgeslam")]
+    private static extern bool GrabImage2(IntPtr addr, int id);
     [DllImport("edgeslam")]
     private static extern void ReleaseImage();
     [DllImport("edgeslam")]
@@ -157,6 +161,19 @@ public class DeviceController : MonoBehaviour
     }
     public void SetUI() {
         ////버튼 UI 설정
+        //////dropdown
+        //RectTransform rectTransform = drop1.GetComponent<RectTransform>();
+        //try
+        //{
+        //    rectTransform.anchoredPosition = new Vector2(0f, 0f);
+        //    Debug.Log(drop1.options[0].text);
+        //}
+        //catch(Exception e)
+        //{
+        //    Debug.Log(e.ToString());
+        //}
+        /////dropdown
+
         rect1 = new Rect(DiffScreen.x + Width, 60f, rectWidth, rectHeight);
         rect2 = new Rect(DiffScreen.x + Width, 60f + (60f + rectHeight), rectWidth, rectHeight);
         rect3 = new Rect(DiffScreen.x + Width, 60f + (60f + rectHeight) * 2, rectWidth, rectHeight);
@@ -263,8 +280,6 @@ public class DeviceController : MonoBehaviour
 
     int tabIndex;
     string[] tabSubject = { "ray", "object" };
-
-    
 
     void OnGUI()
     {
@@ -427,6 +442,7 @@ public class DeviceController : MonoBehaviour
     public Vector3 Center = new Vector3(0f, 0f, 0f);
     public Vector3 DIR = new Vector3(0f, 0f, 0f);
     int nUserID = -1;
+    string[] imgFileLIst;
 
     void Connect()
     {
@@ -447,6 +463,8 @@ public class DeviceController : MonoBehaviour
         if (!bCam)
         {
             imagePath = SystemManager.Instance.ImagePath;
+            string imgFileTxt = imagePath + "rgb.txt";
+            imgFileLIst = File.ReadAllLines(imgFileTxt);
         }
         
 
@@ -734,28 +752,43 @@ public class DeviceController : MonoBehaviour
         {
             try {
 
-                if (SystemManager.Instance.Cam && webCamTexture.didUpdateThisFrame)
+                if (SystemManager.Instance.Cam)
                 {
                     ////s21
-                    webCamTexture.GetPixels32(webCamColorData);
+                    //webCamTexture.GetPixels32(webCamColorData);
                     ////note8
                     ///
-                 
-                    //Color32[] cdata = webCamTexture.GetPixels32();
+
+                    Color[] cdata = webCamTexture.GetPixels();
                     //webCamHandle = GCHandle.Alloc(cdata, GCHandleType.Pinned);
                     //webCamPtr = webCamHandle.AddrOfPinnedObject();
                     //SetWebcamAddress(webCamPtr);
-                    //tex.SetPixels(cdata);
-                    //tex.Apply();
+                    
+                    tex.SetPixels(cdata);
+                    tex.Apply();
                     ////note8
                 }
-                
+                else
+                {
+                    Debug.Log(SystemManager.Instance.ImagePath);
+
+                    string imgFile = SystemManager.Instance.ImagePath + Convert.ToString(imgFileLIst[nImgFrameIDX++].Split(' ')[1]);
+                    
+                    //++mnFrameID;
+                    byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
+                    tex.LoadImage(byteTexture);
+                }
+
+                Color32[] texData = tex.GetPixels32();
+                texHandle = GCHandle.Alloc(texData, GCHandleType.Pinned);
+                texPtr = texHandle.AddrOfPinnedObject();
+
                 bSendImage = false;
-                bGrabImage = GrabImage(ref ts, mnFrameID);
+                bGrabImage = GrabImage2(texPtr, mnFrameID);//GrabImage(ref ts, mnFrameID);
+                
                 if (bGrabImage)
                 {
-                    tex.LoadRawTextureData(visPtr, visData.Length);
-                    tex.Apply();
+                   
                     bSendImage = true;
                     //DateTime t1 = DateTime.Now;
                     //webCamByteData = tex.EncodeToJPG(100);
@@ -783,28 +816,14 @@ public class DeviceController : MonoBehaviour
                         SystemManager.Instance.TrackingTime.Update(temp);
                         StartCoroutine("SendPoseData");
 
-                        //if (bTracking)
-                        //{
-                        //    byte[] bdata = new byte[fPoseData.Length * 4];
-                        //    Buffer.BlockCopy(fPoseData, 0, bdata, 0, bdata.Length);
-                        //    Debug.Log(fPoseData[9] + " " + fPoseData[10] + " " + fPoseData[11]);
-                        //    string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=DevicePosition&id=0" + "&src=" + SystemManager.Instance.User;
-                        //    UnityWebRequest request = new UnityWebRequest(addr);
-                        //    request.method = "POST";
-                        //    UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
-                        //    uH.contentType = "application/json";
-                        //    request.uploadHandler = uH;
-                        //    request.downloadHandler = new DownloadHandlerBuffer();
-                        //    UnityWebRequestAsyncOperation res = request.SendWebRequest();
-                        //}
                     }
 
-                    //if (GetMatchingImage(resPtr))
-                    //{
-                    //    tex.LoadRawTextureData(resPtr, resData.Length);
-                    //    tex.Apply();
-                    //    //background.texture = tex;
-                    //}
+                    if (GetMatchingImage(resPtr))
+                    {
+                        tex.LoadRawTextureData(resPtr, resData.Length);
+                        tex.Apply();
+                        //background.texture = tex;
+                    }
 
                     ReleaseImage();
                     ++mnFrameID;
@@ -1168,6 +1187,9 @@ public class DeviceController : MonoBehaviour
         }
 
     }
+
+    GCHandle texHandle;
+    IntPtr texPtr;
 
     byte[] visData;
     GCHandle visHandle;
