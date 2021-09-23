@@ -28,28 +28,12 @@ public class DeviceController : MonoBehaviour
     [DllImport("UnityLibrary")]
     private static extern void SetPath(byte[] name, int len);
     [DllImport("UnityLibrary")]
-    private static extern void SetImageFiles(byte[] name, int len);
-    [DllImport("UnityLibrary")]
-    private static extern void SetTextureAddress(IntPtr addr, bool bCam);
-    [DllImport("UnityLibrary")]
-    private static extern void SetWebcamAddress(IntPtr addr);
-    [DllImport("UnityLibrary")]
-    private static extern bool GrabImage2(IntPtr addr, int id);
-    [DllImport("UnityLibrary")]
-    private static extern bool GrabImage(ref double ts, int id);
+    private static extern bool GrabImage(IntPtr addr, int id);
     [DllImport("UnityLibrary")]
     private static extern void ReleaseImage();
-    [DllImport("UnityLibrary")]
-    private static extern void SetDeviceCamera(int w, int h, double fps);
     
     [DllImport("UnityLibrary")]
     private static extern void ConnectDevice();
-    [DllImport("UnityLibrary")]
-    private static extern void DisconnectDevice();
-
-    
-    [DllImport("UnityLibrary")]
-    private static extern void LoadImage(IntPtr addr, int w, int h);
     [DllImport("UnityLibrary")]
     private static extern void SetInit(int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4);//byte[] vocName, int len, 
     //[DllImport("UnityLibrary")]
@@ -73,34 +57,15 @@ public class DeviceController : MonoBehaviour
     [DllImport("edgeslam")]
     private static extern void SetPath(char[] path);
     [DllImport("edgeslam")]
-    private static extern void SetImageFiles(char[] path);
-    [DllImport("edgeslam")]
     private static extern void SetInit(int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4);
-    [DllImport("edgeslam")]
-    private static extern void SetTextureAddress(IntPtr addr, bool bCam);
     [DllImport("edgeslam")]
     private static extern void SetIMUAddress(IntPtr addr, bool bIMU);
     [DllImport("edgeslam")]
-    private static extern void SetWebcamAddress(IntPtr addr);
-    [DllImport("edgeslam")]
-    private static extern bool GrabImage(ref double ts, int id);
-    [DllImport("edgeslam")]
-    private static extern bool GrabImage2(IntPtr addr, int id);
+    private static extern bool GrabImage(IntPtr addr, int id);
     [DllImport("edgeslam")]
     private static extern void ReleaseImage();
     [DllImport("edgeslam")]
-    private static extern void SetDeviceCamera(int w, int h, double fps);
-    [DllImport("edgeslam")]
     private static extern void ConnectDevice();
-    [DllImport("edgeslam")]
-    private static extern void DisconnectDevice();
-        
-    [DllImport("edgeslam")]
-    private static extern int SetFrameByPtr(IntPtr addr, int w, int h, int id);
-    [DllImport("edgeslam")]
-    private static extern int SetFrameByFile(char[] name, int id, double ts, ref float t1, ref float t2);
-    [DllImport("edgeslam")]
-    private static extern int SetFrameByImage(byte[] raw, int len, int id, double ts, ref float t1, ref float t2);
     [DllImport("edgeslam")]
     private static extern int SetFrame(int id, double ts, ref float t1, ref float t2);
     [DllImport("edgeslam")]
@@ -111,6 +76,16 @@ public class DeviceController : MonoBehaviour
     private static extern bool GetMatchingImage(IntPtr data);
     [DllImport("edgeslam")]
     private static extern void AddContentInfo(int id, float x, float y, float z);
+
+
+        
+    [DllImport("edgeslam")]
+    private static extern int SetFrameByPtr(IntPtr addr, int w, int h, int id);
+    [DllImport("edgeslam")]
+    private static extern int SetFrameByFile(char[] name, int id, double ts, ref float t1, ref float t2);
+    [DllImport("edgeslam")]
+    private static extern int SetFrameByImage(byte[] raw, int len, int id, double ts, ref float t1, ref float t2);
+    
 #endif
 
     //// Calculate time
@@ -303,7 +278,6 @@ public class DeviceController : MonoBehaviour
             {
                 SystemManager.Instance.Connect = false;
                 Disconnect();
-                DisconnectDevice();
                 UdpAsyncHandler.Instance.UdpDisconnect();
                 UdpAsyncHandler.Instance.UdpDataReceived -= UdpDataReceivedProcess;
                 SaveAppData();
@@ -577,7 +551,6 @@ public class DeviceController : MonoBehaviour
     void Start()
     {
 
-
         try
         { 
         string path = Application.persistentDataPath + "/param.txt";
@@ -593,12 +566,7 @@ public class DeviceController : MonoBehaviour
         SetUI();
         //OrientationUI();
         Touched += TouchProcess;
-
-        //visualized image ptr <- RGBA에서 BGR로 교체 중. result image도 수정 필요
-        visData = new byte[SystemManager.Instance.ImageWidth * SystemManager.Instance.ImageHeight*4];
-        visHandle = GCHandle.Alloc(visData, GCHandleType.Pinned);
-        visPtr = visHandle.AddrOfPinnedObject();
-
+        
         //result image ptr
         resData = new byte[SystemManager.Instance.ImageWidth * SystemManager.Instance.ImageHeight * 4];
         resHandle = GCHandle.Alloc(resData, GCHandleType.Pinned);
@@ -608,7 +576,7 @@ public class DeviceController : MonoBehaviour
         fPoseData = new float[12];
         poseHandle = GCHandle.Alloc(fPoseData, GCHandleType.Pinned);
         posePtr = poseHandle.AddrOfPinnedObject();
-            ////pose ptr
+        ////pose ptr
 
         ////imu ptr
         fIMUPose = new float[12];
@@ -634,13 +602,13 @@ public class DeviceController : MonoBehaviour
             SetPath(b, b.Length);
             //SystemManager.Instance.strBytes, SystemManager.Instance.strBytes.Length, 
 #elif (UNITY_ANDROID)
-        SetPath(Application.persistentDataPath.ToCharArray());    
+            SetPath(Application.persistentDataPath.ToCharArray());    
 #endif
             SetInit(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.FocalLengthX, SystemManager.Instance.FocalLengthY, SystemManager.Instance.PrincipalPointX, SystemManager.Instance.PrincipalPointY,
                         SystemManager.Instance.IntrinsicData[6], SystemManager.Instance.IntrinsicData[7], SystemManager.Instance.IntrinsicData[8], SystemManager.Instance.IntrinsicData[9]);
 
             tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.BGRA32, false);
-            SetTextureAddress(visPtr, SystemManager.Instance.Cam);
+            
             if (SystemManager.Instance.Cam)
             {
                 //SetDeviceCamera(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, 30.0);
@@ -654,7 +622,7 @@ public class DeviceController : MonoBehaviour
 #if UNITY_EDITOR_WIN
                     bWebcamDevice = devices[i].isFrontFacing;
 #elif UNITY_ANDROID
-                                    bWebcamDevice = false;//!devices[i].isFrontFacing;
+                    bWebcamDevice = !devices[i].isFrontFacing;
 #endif
                     if (bWebcamDevice)
                     {
@@ -664,22 +632,8 @@ public class DeviceController : MonoBehaviour
                         break;
                     }
 
-//#if UNITY_EDITOR_WIN
-//                    if (devices[i].isFrontFacing)
-//                    {
-//                        webCamTexture = new WebCamTexture(devices[i].name, SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, 30);
-//                        break;
-//                    }
-//#elif UNITY_ANDROID
-//                if (!devices[i].isFrontFacing)
-//                {
-//                    bAccessWebcam = true;
-//                    webCamTexture = new WebCamTexture(devices[i].name, SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, 30);
-//                    break;
-//                }
-//#endif
-
                 }
+/*
 #if UNITY_EDITOR_WIN
 
 #elif UNITY_ANDROID
@@ -688,6 +642,7 @@ public class DeviceController : MonoBehaviour
                             webCamTexture.requestedWidth =SystemManager.Instance.ImageWidth;
                              webCamTexture.requestedFPS =30;
 #endif
+*/
 
                 if (!bAccessWebcam)
                     StatusTxt.text = "Not access webcam";
@@ -698,18 +653,9 @@ public class DeviceController : MonoBehaviour
                 webCamHandle = GCHandle.Alloc(webCamColorData, GCHandleType.Pinned);
                 webCamPtr = webCamHandle.AddrOfPinnedObject();
                 webCamTexture.Play();
-                SetWebcamAddress(webCamPtr);
+                //SetWebcamAddress(webCamPtr);
                 //background.texture = webCamTexture;
 
-            }
-            else
-            {
-#if (UNITY_EDITOR_WIN)
-                byte[] b2 = System.Text.Encoding.ASCII.GetBytes(SystemManager.Instance.ImagePath);
-                SetImageFiles(b2, b2.Length);
-#elif (UNITY_ANDROID)
-                SetImageFiles(SystemManager.Instance.ImagePath.ToCharArray());
-#endif
             }
 
 #if (UNITY_EDITOR_WIN)
@@ -719,17 +665,12 @@ public class DeviceController : MonoBehaviour
 #endif
 
             background.texture = tex;
-            {
-                //test
-            }
-
+           
         }
         catch(Exception ex)
         {
             StatusTxt.text = "err=" + ex.ToString();
         }
-
-        
 
     }
     double ts = 0.0;
@@ -754,27 +695,14 @@ public class DeviceController : MonoBehaviour
 
                 if (SystemManager.Instance.Cam)
                 {
-                    ////s21
-                    //webCamTexture.GetPixels32(webCamColorData);
-                    ////note8
-                    ///
-
                     Color[] cdata = webCamTexture.GetPixels();
-                    //webCamHandle = GCHandle.Alloc(cdata, GCHandleType.Pinned);
-                    //webCamPtr = webCamHandle.AddrOfPinnedObject();
-                    //SetWebcamAddress(webCamPtr);
-                    
                     tex.SetPixels(cdata);
                     tex.Apply();
-                    ////note8
                 }
                 else
                 {
                     Debug.Log(SystemManager.Instance.ImagePath);
-
                     string imgFile = SystemManager.Instance.ImagePath + Convert.ToString(imgFileLIst[nImgFrameIDX++].Split(' ')[1]);
-                    
-                    //++mnFrameID;
                     byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
                     tex.LoadImage(byteTexture);
                 }
@@ -784,7 +712,7 @@ public class DeviceController : MonoBehaviour
                 texPtr = texHandle.AddrOfPinnedObject();
 
                 bSendImage = false;
-                bGrabImage = GrabImage2(texPtr, mnFrameID);//GrabImage(ref ts, mnFrameID);
+                bGrabImage = GrabImage(texPtr, mnFrameID);
                 
                 if (bGrabImage)
                 {
@@ -818,12 +746,12 @@ public class DeviceController : MonoBehaviour
 
                     }
 
-                    if (GetMatchingImage(resPtr))
-                    {
-                        tex.LoadRawTextureData(resPtr, resData.Length);
-                        tex.Apply();
-                        //background.texture = tex;
-                    }
+                    //if (GetMatchingImage(resPtr))
+                    //{
+                    //    tex.LoadRawTextureData(resPtr, resData.Length);
+                    //    tex.Apply();
+                    //    //background.texture = tex;
+                    //}
 
                     ReleaseImage();
                     ++mnFrameID;
@@ -836,52 +764,7 @@ public class DeviceController : MonoBehaviour
                 StatusTxt.text = ex.ToString();
             }
 
-            
-            
         }
-
-        ///////트래킹
-        //if (SystemManager.Instance.Start)
-        //{
-        //    string imgFile = "";
-        //    bool bFrameUpdated = false;
-        //    //{
-        //    //    imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
-        //    //    byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
-        //    //    tex.LoadImage(byteTexture);
-        //    //    Texture2D.create
-        //    //    LoadImage(tex.GetNativeTexturePtr(), 640, 360);
-        //    //}
-        //    if (bCam)
-        //    {
-        //        if (webCamTexture.didUpdateThisFrame)
-        //        {
-        //            webCamTexture.GetPixels32(webCamColorData);
-        //            tex.SetPixels32(webCamColorData);
-        //            bFrameUpdated = true;
-        //        }
-        //    }
-        //    else {
-        //        imgFile = imagePath + Convert.ToString(imageData[nImgFrameIDX++].Split(' ')[1]);
-        //        byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
-        //        tex.LoadImage(byteTexture);
-        //        //background.texture = tex;
-        //        bFrameUpdated = true;
-        //    }
-
-        //    if (bFrameUpdated)
-        //    {
-        //        webCamByteData = tex.EncodeToJPG(100);
-        //        ++mnFrameID;
-        //        if (SystemManager.Instance.IsDeviceTracking)
-        //        {
-        //            StartCoroutine("TrackingCoroutine", imgFile);
-        //        }
-        //    }
-
-        //    //mnLastFrameID++;
-        //}
-        ///////트래킹
 
         //////터치 이벤트
         bool bTouch = false;
@@ -1190,11 +1073,7 @@ public class DeviceController : MonoBehaviour
 
     GCHandle texHandle;
     IntPtr texPtr;
-
-    byte[] visData;
-    GCHandle visHandle;
-    IntPtr visPtr;
-
+    
     byte[] resData;
     GCHandle resHandle;
     IntPtr resPtr;
