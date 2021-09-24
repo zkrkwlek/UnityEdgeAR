@@ -12,6 +12,7 @@ public class SystemManager {
     [Serializable]
     public class CameraParams
     {
+        public string name;
         public float fx;
         public float fy;
         public float cx;
@@ -20,22 +21,39 @@ public class SystemManager {
         public float d2;
         public float d3;
         public float d4;
+        public float w;
+        public float h;
     }
 
     [Serializable]
     public class UserData
     {
-        public CameraParams K;
+        public int numCameraParam;
+        public int numDataset;
+        public string UserName;
+        public string MapName;
+        public bool ModeMapping;
+        public bool ModeTracking;
+        public bool UseCamera;
+        public bool UseGyro;
+        public bool UseAccelerometer;
     }
 
     [Serializable]
-    public class AppData {
-        public bool bMapping;
-        public bool bTracking;
-        public bool bGyro;
-        public bool bAcc;
+    public class ApplicationData {
+        public string Address;
+        public string UdpAddres;
+        public int UdpPort;
+        public int LocalPort;
+        public int numPyramids;
+        public int numFeatures;
+        public int numSkipFrames;
+        public int numLocalMapPoints;
+        public int numLocalKeyFrames;
+        public string strBoW_database;
     }
 
+    [Serializable]
     public class ProcessTime
     {
         public int nTotal;
@@ -66,8 +84,8 @@ public class SystemManager {
     public class InitConnectData
     {
         public InitConnectData() { }
-        public InitConnectData(string _userID, string _mapName, bool _bMapping, bool _bGyro, bool _bManager, 
-            float _fx, float _fy, float _cx, float _cy, 
+        public InitConnectData(string _userID, string _mapName, bool _bMapping, bool _bGyro, bool _bManager,
+            float _fx, float _fy, float _cx, float _cy,
             float _d1, float _d2, float _d3, float _d4, int _w, int _h)
         {
             userID = _userID;
@@ -103,23 +121,25 @@ public class SystemManager {
     /// UdpConnect와 UdpDisconnect 참조
     /// 모든 키워드를 받을지 아니면 특정 아이디만 받을지 선택이 가능함. 근데 이것을 없앨까 생각중.
     /// </summary>
-     
-    public class EchoData {
-        public EchoData() { }
-        public EchoData(string _key, string _type, string _src)
-        {
-            keyword = _key;
-            type1 = _type;
-            src = _src;
-        }
-        public string keyword, type1, type2, src;
-        public byte[] data;
-        public int id, id2;
-    }
+
+    //public class EchoData {
+    //    public EchoData() { }
+    //    public EchoData(string _key, string _type, string _src)
+    //    {
+    //        keyword = _key;
+    //        type1 = _type;
+    //        src = _src;
+    //    }
+    //    public string keyword, type1, type2, src;
+    //    public byte[] data;
+    //    public int id, id2;
+    //    public DateTime sendedTime, receivedTime;
+    //}
 
     public InitConnectData GetConnectData()
     {
-        return new InitConnectData(strUserID, strMapName, bMapping, bGyro, bManagerMode, fx, fy, cx, cy, d1, d2, d3, d4, w, h);
+        CameraParams camParam = camParams[userData.numCameraParam];
+        return new InitConnectData(userData.UserName, userData.MapName, userData.ModeMapping, userData.UseGyro, bManagerMode, camParam.fx, camParam.fy, camParam.cx, camParam.cy, camParam.d1, camParam.d2, camParam.d3, camParam.d4, (int)camParam.w, (int)camParam.h);
     }
 
     private static float[] fdata;
@@ -127,66 +147,54 @@ public class SystemManager {
         get
         {
             return fdata;
-        } 
+        }
     }
-    private static int w, h;
-    private static float fx, fy, cx, cy;
-    float d1, d2, d3, d4;
+    
     public int ImageWidth
     {
         get
         {
-            return w;
+            return (int)camParams[userData.numCameraParam].w;
         }
     }
     public int ImageHeight
     {
         get
         {
-            return h;
+            return (int)camParams[userData.numCameraParam].h;
         }
     }
     public float FocalLengthX
     {
         get
         {
-            return fx;
+            return camParams[userData.numCameraParam].fx;
         }
     }
     public float FocalLengthY
     {
         get
         {
-            return fy;
+            return camParams[userData.numCameraParam].fy;
         }
     }
     public float PrincipalPointX
     {
         get
         {
-            return cx;
+            return camParams[userData.numCameraParam].cx;
         }
     }
     public float PrincipalPointY
     {
         get
         {
-            return cy;
+            return camParams[userData.numCameraParam].cy;
         }
     }
 
     static private Matrix3x3 k;
-    public Matrix3x3 K
-    {
-        get
-        {
-            return k;
-        }
-        set
-        {
-            k = value;
-        }
-    }
+    
     static private float dis_scale = 1f;
     public float DisplayScale
     {
@@ -199,56 +207,43 @@ public class SystemManager {
             dis_scale = value;
         }
     }
-    private static int numSkipFrame;
+    
     public int NumSkipFrame
     {
         get
         {
-            return numSkipFrame;
+            return appData.numSkipFrames;
         }
     }
-    private static string strUserID, strMapName;
-    public string User
+    
+    public string UserName
     {
         get
         {
-            return strUserID;
+            return userData.UserName;
         }
-        set
-        {
-            strUserID = value;
-        }
+        
     }
-    public string Map
+    public string MapName
     {
         get
         {
-            return strMapName;
-        }
-        set
-        {
-            strMapName = value;
+            return userData.MapName;
         }
     }
-    private static string serveraddr;
     public string ServerAddr
     {
         get
         {
-            return serveraddr;
-        }
-        set
-        {
-            serveraddr = value;
+            return appData.Address;
         }
     }
-    
-    static string imgPathTxt;
+
     public string ImagePath
     {
         get
         {
-            return imgPathTxt;
+            return path+datalists[userData.numDataset];
         }
     }
 
@@ -277,38 +272,28 @@ public class SystemManager {
         }
     }
 
-    static bool bCam = false;
+    
     public bool Cam
     {
         get
         {
-            return bCam;
+            return userData.UseCamera;
         }
     }
-
-    static bool bMapping;
+    
     public bool IsServerMapping
     {
         get
         {
-            return bMapping;
-        }
-        set
-        {
-            bMapping = value;
+            return userData.ModeMapping;
         }
     }
 
-    static bool bDeviceTracking;
     public bool IsDeviceTracking
     {
         get
         {
-            return bDeviceTracking;
-        }
-        set
-        {
-            bDeviceTracking = value;
+            return userData.ModeTracking;
         }
     }
     static int nSensorSpeed = 0;
@@ -323,30 +308,23 @@ public class SystemManager {
             nSensorSpeed = value;
         }
     }
-    static bool bGyro, bAcc;
+    
+    static bool bAcc = false;
     public bool UseAccelerometer
     {
         get
         {
             return bAcc;
         }
-        set
-        {
-            bAcc = value;
-        }
     }
     public bool UseGyro
     {
         get
         {
-            return bGyro;
+            return userData.UseGyro;
         }
-        set
-        {
-            bGyro = value;
-        }
+        
     }
-
 
     static bool bManagerMode = false;
     public bool Manager
@@ -361,8 +339,56 @@ public class SystemManager {
         }
     }
 
-    public byte[] strBytes;
-    public string strVocName;
+    static private string[] datalists;
+    public String[] DataLists
+    {
+        get {
+            return datalists;
+        }
+    }
+
+    public CameraParams[] Cameras
+    {
+        get
+        {
+            return camParams;
+        }
+    }
+    static private CameraParams[] camParams;
+
+    public UserData User
+    {
+        get
+        {
+            return userData;
+        }
+    }
+    static private UserData userData;
+
+    public CameraParams Camera
+    {
+        get {
+            return camParams[userData.numCameraParam]; ;
+        }
+    }
+
+    static private string path;
+    public string Path
+    {
+        get
+        {
+            return path;
+        }
+    }
+
+    static private ApplicationData appData;
+     public ApplicationData AppData
+    {
+        get
+        {
+            return appData;
+        }
+    }
 
     public ProcessTime ReferenceTime, TrackingTime, ContentGenerationTime, JpegTime;
 
@@ -374,25 +400,194 @@ public class SystemManager {
             {
                 m_pInstance = new SystemManager();
                 //LoadParameter();
+                
+                try
+                {
+                    string strIntrinsics = File.ReadAllText(Application.persistentDataPath + "/Data/CameraIntrinsics.json");
+                    camParams = JsonHelper.FromJson<CameraParams>(strIntrinsics);
+                }
+                catch(FileNotFoundException)
+                {
+                    camParams = new CameraParams[7];
+                    int idx = 0;
+                    camParams[idx] = new CameraParams();
+                    camParams[idx].name = "S21+_Camera";
+                    camParams[idx].fx = 476.6926f;
+                    camParams[idx].fy = 485.7888f;
+                    camParams[idx].cx = 328.5845f;
+                    camParams[idx].cy = 172.9118f;
+                    camParams[idx].d1 = 0.0919f;
+                    camParams[idx].d2 = -0.0314f;
+                    camParams[idx].d3 = -0.0242f;
+                    camParams[idx].d4 = 0.0023f;
+                    camParams[idx].w = 640f;
+                    camParams[idx].h = 360f;
+                    idx++;
+
+                    camParams[idx] = new CameraParams();
+                    camParams[idx].name = "S21+_Image";
+                    camParams[idx].fx = 541.8811f;
+                    camParams[idx].fy = 556.2014f;
+                    camParams[idx].cx = 323.0700f;
+                    camParams[idx].cy = 208.3839f;
+                    camParams[idx].d1 = -0.0377f;
+                    camParams[idx].d2 = 0.1729f;
+                    camParams[idx].d3 = -0.0169f;
+                    camParams[idx].d4 = -0.0019f;
+                    idx++;
+
+                    camParams[idx] = new CameraParams();
+                    camParams[idx].name = "NOTE8_Camera";
+                    camParams[idx].fx = 2.0f;
+                    camParams[idx].fy = 2.0f;
+                    camParams[idx].cx = 2.0f;
+                    camParams[idx].cy = 2.0f;
+                    camParams[idx].d1 = 1.0f;
+                    camParams[idx].d2 = 1.0f;
+                    camParams[idx].d3 = 1.0f;
+                    camParams[idx].d4 = 1.0f;
+                    camParams[idx].w = 640f;
+                    camParams[idx].h = 360f;
+                    idx++;
+
+                    camParams[idx] = new CameraParams();
+                    camParams[idx].name = "NOTE8_Image";
+                    camParams[idx].fx = 599.5733f;
+                    camParams[idx].fy = 610.5514f;
+                    camParams[idx].cx = 337.6243f;
+                    camParams[idx].cy = 176.1959f;
+                    camParams[idx].d1 = 0.1940f;
+                    camParams[idx].d2 = -0.4056f;
+                    camParams[idx].d3 = -0.0190f;
+                    camParams[idx].d4 = 0.0013f;
+                    camParams[idx].w = 640f;
+                    camParams[idx].h = 360f;
+                    idx++;
+
+                    camParams[idx] = new CameraParams();
+                    camParams[idx].name = "HOLOLENS2_Camera";
+                    camParams[idx].fx = 2.0f;
+                    camParams[idx].fy = 2.0f;
+                    camParams[idx].cx = 2.0f;
+                    camParams[idx].cy = 2.0f;
+                    camParams[idx].d1 = 1.0f;
+                    camParams[idx].d2 = 1.0f;
+                    camParams[idx].d3 = 1.0f;
+                    camParams[idx].d4 = 1.0f;
+                    camParams[idx].w = 640f;
+                    camParams[idx].h = 360f;
+                    idx++;
+
+                    camParams[idx] = new CameraParams();
+                    camParams[idx].name = "HOLOLENS2_Image";
+                    camParams[idx].fx = 2.0f;
+                    camParams[idx].fy = 2.0f;
+                    camParams[idx].cx = 2.0f;
+                    camParams[idx].cy = 2.0f;
+                    camParams[idx].d1 = 1.0f;
+                    camParams[idx].d2 = 1.0f;
+                    camParams[idx].d3 = 1.0f;
+                    camParams[idx].d4 = 1.0f;
+                    camParams[idx].w = 640f;
+                    camParams[idx].h = 360f;
+                    idx++;
+
+                    camParams[idx] = new CameraParams();
+                    camParams[idx].name = "Senz3D";
+                    camParams[idx].fx = 2.0f;
+                    camParams[idx].fy = 2.0f;
+                    camParams[idx].cx = 2.0f;
+                    camParams[idx].cy = 2.0f;
+                    camParams[idx].d1 = 1.0f;
+                    camParams[idx].d2 = 1.0f;
+                    camParams[idx].d3 = 1.0f;
+                    camParams[idx].d4 = 1.0f;
+                    camParams[idx].w = 640f;
+                    camParams[idx].h = 480f;
+                    idx++;
+
+                    string camJsonStr = JsonHelper.ToJson(camParams, true);
+                    File.WriteAllText(Application.persistentDataPath + "/Data/CameraIntrinsics.json", camJsonStr);
+                }
+                
+#if UNITY_EDITOR_WIN
+                path = "E:/SLAM_DATASET/MY";
+#elif UNITY_ANDROID
+                path = Application.persistentDataPath+"/FILE";
+#endif
 
                 try
                 {
-                    string strAddData = File.ReadAllText(Application.persistentDataPath + "/AppData.json");
-                    AppData appData = JsonUtility.FromJson<AppData>(strAddData);
-                    bMapping = appData.bMapping;
-                    bDeviceTracking = appData.bTracking;
-                    bGyro = appData.bGyro;
-                    bAcc = appData.bAcc;
+                    datalists =  File.ReadAllLines(Application.persistentDataPath + "/Data/DataLists.json");
+                    //for (int i = 0; i < datalists.Length; i++)
+                    //    datalists[i] = path + datalists[i];
                 }
-                catch (FileNotFoundException fe)
+                catch(FileNotFoundException)
                 {
-                    AppData appData = new AppData();
-                    appData.bMapping = false;
-                    appData.bTracking = true;
-                    appData.bGyro = false;
-                    appData.bAcc = false;
-                    File.WriteAllText(Application.persistentDataPath + "/AppData.json", JsonUtility.ToJson(appData));
+                    datalists = new string[3];
+                    datalists[0] = "/KI/S21+/1/";
+                    datalists[1] = "/KI/S21+/5/";
+                    datalists[2] = "/KI/NOTE8/1/";
+                    File.WriteAllLines(Application.persistentDataPath + "/Data/DataLists.json", datalists);
                 }
+
+                try
+                {
+                    string strAddData = File.ReadAllText(Application.persistentDataPath + "/Data/UserData.json");
+                    userData = JsonUtility.FromJson<UserData>(strAddData);
+                    
+                    
+                    //////
+                    //bMapping = appData.bMapping;
+                    //bDeviceTracking = appData.bTracking;
+                    //bGyro = appData.bGyro;
+                    //bAcc = appData.bAcc;
+
+                }
+                catch(FileNotFoundException)
+                {
+                    userData = new UserData();
+                    userData.numCameraParam = 1;
+                    userData.numDataset = 1;
+                    userData.UserName = "zkrkwlek";
+                    userData.MapName = "TestMap";
+                    File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(userData));
+                }
+
+                try
+                {
+                    string strAddData = File.ReadAllText(Application.persistentDataPath + "/Data/AppData.json");
+                    appData = JsonUtility.FromJson<ApplicationData>(strAddData);
+                    
+                }
+                catch (FileNotFoundException)
+                {
+                    appData = new ApplicationData();
+                    appData.Address = "http://143.248.6.143:35005";
+                    appData.UdpAddres = "143.248.6.143";
+                    appData.UdpPort = 35001;
+                    appData.LocalPort = 40003;
+                    appData.numSkipFrames = 3;
+                    appData.numPyramids = 4;
+                    appData.numFeatures = 800;
+                    appData.numLocalMapPoints = 600;
+                    appData.numLocalKeyFrames = 50;
+                    File.WriteAllText(Application.persistentDataPath + "/Data/AppData.json", JsonUtility.ToJson(appData));
+                }
+
+                fdata = new float[10];
+                int nidx = 0;
+                CameraParams camParam = camParams[userData.numCameraParam];
+                fdata[nidx++] = (float)camParam.w;
+                fdata[nidx++] = (float)camParam.h;
+                fdata[nidx++] = camParam.fx;
+                fdata[nidx++] = camParam.fy;
+                fdata[nidx++] = camParam.cx;
+                fdata[nidx++] = camParam.cy;
+                fdata[nidx++] = camParam.d1;
+                fdata[nidx++] = camParam.d2;
+                fdata[nidx++] = camParam.d3;
+                fdata[nidx++] = camParam.d4;
 
             }
             return m_pInstance;
@@ -414,6 +609,7 @@ public class SystemManager {
         프레임스킵
          */
         
+        /*
         serveraddr = (paramText[nUserData++].Split('=')[1]);
         string datafile = (paramText[nUserData++].Split('=')[1]);
 
@@ -438,22 +634,23 @@ public class SystemManager {
             
             //nMaxImageIndex = mSystem.imageData.Length - 1;
             imgPathTxt = Convert.ToString(dataText[numLine++].Split('=')[1]);
-#if(UNITY_EDITOR_WIN)
+#if (UNITY_EDITOR_WIN)
             //Debug.Log(imgFileLIst.Length - 1);
             //Debug.Log("Load Datase = " + (imgFileLIst.Length - 3));
             Debug.Log(imgPathTxt);
-#elif(UNITY_ANDROID)
+#elif (UNITY_ANDROID)
             imgPathTxt = Application.persistentDataPath + imgPathTxt;
 #endif
         }
-        
+        */
+
         //reference
         try
         {
             string strAddData = File.ReadAllText(Application.persistentDataPath + "/Time/reference.json");
             ReferenceTime = JsonUtility.FromJson<ProcessTime>(strAddData);
         }
-        catch (FileNotFoundException fe)
+        catch (FileNotFoundException)
         {
             ProcessTime appData = new ProcessTime();
             appData.nTotal = 0;
@@ -467,7 +664,7 @@ public class SystemManager {
             string strAddData = File.ReadAllText(Application.persistentDataPath + "/Time/tracking.json");
             TrackingTime = JsonUtility.FromJson<ProcessTime>(strAddData);
         }
-        catch (FileNotFoundException fe)
+        catch (FileNotFoundException)
         {
             ProcessTime appData = new ProcessTime();
             appData.nTotal = 0;
@@ -481,7 +678,7 @@ public class SystemManager {
             string strAddData = File.ReadAllText(Application.persistentDataPath + "/Time/content.json");
             ContentGenerationTime = JsonUtility.FromJson<ProcessTime>(strAddData);
         }
-        catch (FileNotFoundException fe)
+        catch (FileNotFoundException)
         {
             ProcessTime appData = new ProcessTime();
             appData.nTotal = 0;
@@ -495,7 +692,7 @@ public class SystemManager {
             string strAddData = File.ReadAllText(Application.persistentDataPath + "/Time/jpeg.json");
             JpegTime = JsonUtility.FromJson<ProcessTime>(strAddData);
         }
-        catch (FileNotFoundException fe)
+        catch (FileNotFoundException)
         {
             ProcessTime appData = new ProcessTime();
             appData.nTotal = 0;
@@ -505,38 +702,38 @@ public class SystemManager {
             File.WriteAllText(Application.persistentDataPath + "/Time/jpeg.json", JsonUtility.ToJson(appData));
         }
 
-        fx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
-        fy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
-        cx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
-        cy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
-        w = Convert.ToInt32(dataText[numLine++].Split('=')[1]);
-        h = Convert.ToInt32(dataText[numLine++].Split('=')[1]);
-        d1 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
-        d2 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
-        d3 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
-        d4 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+//        fx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+//        fy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+//        cx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+//        cy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+//        w = Convert.ToInt32(dataText[numLine++].Split('=')[1]);
+//        h = Convert.ToInt32(dataText[numLine++].Split('=')[1]);
+//        d1 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+//        d2 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+//        d3 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
+//        d4 = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
 
-        fdata = new float[10];
-        int nidx = 0;
-        fdata[nidx++] = (float)w;
-        fdata[nidx++] = (float)h;
-        fdata[nidx++] = fx;
-        fdata[nidx++] = fy;
-        fdata[nidx++] = cx;
-        fdata[nidx++] = cy;
-        fdata[nidx++] = d1;
-        fdata[nidx++] = d2;
-        fdata[nidx++] = d3;
-        fdata[nidx++] = d4;
+//        fdata = new float[10];
+//        int nidx = 0;
+//        fdata[nidx++] = (float)w;
+//        fdata[nidx++] = (float)h;
+//        fdata[nidx++] = fx;
+//        fdata[nidx++] = fy;
+//        fdata[nidx++] = cx;
+//        fdata[nidx++] = cy;
+//        fdata[nidx++] = d1;
+//        fdata[nidx++] = d2;
+//        fdata[nidx++] = d3;
+//        fdata[nidx++] = d4;
 
-        k = new Matrix3x3(fx, 0f, cx, 0f, fy, cy, 0f, 0f, 1f);
-#if (UNITY_EDITOR_WIN)
-        strVocName = Application.persistentDataPath + "/orbvoc.dbow3";
-        strBytes=System.Text.Encoding.ASCII.GetBytes(strVocName);
-#elif (UNITY_ANDROID)
-        strVocName = Application.persistentDataPath + "/orbvoc.dbow3";
-        strBytes=System.Text.Encoding.ASCII.GetBytes(strVocName);
-#endif
+//        k = new Matrix3x3(fx, 0f, cx, 0f, fy, cy, 0f, 0f, 1f);
+//#if (UNITY_EDITOR_WIN)
+//        strVocName = Application.persistentDataPath + "/orbvoc.dbow3";
+//        strBytes=System.Text.Encoding.ASCII.GetBytes(strVocName);
+//#elif (UNITY_ANDROID)
+//        strVocName = Application.persistentDataPath + "/orbvoc.dbow3";
+//        strBytes=System.Text.Encoding.ASCII.GetBytes(strVocName);
+//#endif
     }
 
     

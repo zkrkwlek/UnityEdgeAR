@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
@@ -15,6 +16,22 @@ public class UdpEventArgs : EventArgs
     public byte[] bdata { get; set; }
 }
 
+public class UdpData
+{
+    public UdpData() { }
+
+    public UdpData(string _key, string _type, string _src)
+    {
+        keyword = _key;
+        type1 = _type;
+        src = _src;
+    }
+    public string keyword, type1, type2, src;
+    public byte[] data;
+    public int id, id2;
+    public DateTime sendedTime, receivedTime;
+}
+
 public class UdpAsyncHandler
 {
     static private UdpAsyncHandler m_pInstance = null;
@@ -25,16 +42,23 @@ public class UdpAsyncHandler
             if (m_pInstance == null)
             {
                 m_pInstance = new UdpAsyncHandler();
-
-                //LoadParameter();
             }
             return m_pInstance;
         }
     }
 
-    public UdpState UdpConnect(int port)
+    static private UdpState stat;
+    public UdpState Status
     {
-        UdpState stat = new UdpState();
+        get
+        {
+            return stat;
+        }
+    }
+
+    public UdpState UdpSocketBegin(int port)
+    {
+        stat = new UdpState();
         try
         {
             IPEndPoint localEP = new IPEndPoint(IPAddress.Any, port);
@@ -43,7 +67,6 @@ public class UdpAsyncHandler
             stat.udp = udp;
             stat.lep = localEP;
             stat.rep = remoteEP;
-            //mListUDPs.Add(stat);
             udp.BeginReceive(new AsyncCallback(ReceiveCallback), stat);
         }
         catch (Exception e)
@@ -51,64 +74,62 @@ public class UdpAsyncHandler
             Debug.Log(e.ToString());
         }
 
-
         return stat;
     }
-    public UdpState UdpConnect(string rermoteip, int remoteport, int localport)
+
+    public UdpState UdpSocketBegin(string rermoteip, int remoteport, int localport)
     {
-        UdpState stat = new UdpState();
+        UdpDataReceived += UdpDataReceivedProcess;
+
+        stat = new UdpState();
         IPEndPoint localEP = new IPEndPoint(IPAddress.Any, 0);
         IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
         IPEndPoint hostEP = new IPEndPoint(IPAddress.Parse(rermoteip), remoteport);
         UdpClient udp = new UdpClient(localEP);
-        //udp.Connect(IPAddress.Parse(rermoteip), remoteport);
+        
         stat.udp = udp;
         stat.lep = localEP;
         stat.rep = remoteEP;
         stat.hep = hostEP;
-        //mListUDPs.Add(stat);
 
-        ////Connect
-        //float[] fdata = new float[1];
-        //fdata[0] = 10000f;
-        //byte[] bdata = new byte[4];
-        //Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
+        udp.BeginReceive(new AsyncCallback(ReceiveCallback), stat);
+        
+        return stat;
+    }
 
-        ////Connect Pose
-        SystemManager.EchoData jdata = new SystemManager.EchoData("Pose", "connect", SystemManager.Instance.User);
-        jdata.type2 = "single";
-        string msg = JsonUtility.ToJson(jdata);
+    public void UdpSocketClose()
+    {
+        stat.udp.Close();
+        UdpDataReceived -= UdpDataReceivedProcess;
+    }
+
+    public void Send(string src, string keyword, string method, string type)
+    {
+        UdpData data = new UdpData(keyword, method, src);
+        data.type2 = type;
+        string msg = JsonUtility.ToJson(data);
         byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
         stat.udp.Send(bdata, bdata.Length, stat.hep);
-        //////Connect Image
-        //jdata = new SystemManager.EchoData("Image", "connect", SystemManager.Instance.User);
-        //jdata.type2 = "single";
-        //msg = JsonUtility.ToJson(jdata);
-        //bdata = System.Text.Encoding.UTF8.GetBytes(msg);
-        //stat.udp.Send(bdata, bdata.Length, stat.hep);
-        ////Connect Image
-        jdata = new SystemManager.EchoData("Content", "connect", SystemManager.Instance.User);
+                
+    }
+    
+    /*
+      ////Connect Pose
+        
+        
+        jdata = new SystemManager.EchoData("Content", "connect", SystemManager.Instance.UserName);
         jdata.type2 = "all";
         msg = JsonUtility.ToJson(jdata);
         bdata = System.Text.Encoding.UTF8.GetBytes(msg);
         stat.udp.Send(bdata, bdata.Length, stat.hep);
         ////Connect
 
-        udp.BeginReceive(new AsyncCallback(ReceiveCallback), stat);
-        return stat;
-    }
 
-    private void EchoData(string v1, string v2)
-    {
-        throw new NotImplementedException();
-    }
+     */
 
-    public void UdpDisconnect()
-    {
-        foreach (UdpState stat in mListUDPs)
-        {
-            ////Connect Pose
-            SystemManager.EchoData jdata = new SystemManager.EchoData("Pose", "disconnect", SystemManager.Instance.User);
+    /*
+    ////Connect Pose
+            SystemManager.EchoData jdata = new SystemManager.EchoData("Pose", "disconnect", SystemManager.Instance.UserName);
             jdata.type2 = "single";
             string msg = JsonUtility.ToJson(jdata);
             byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
@@ -120,16 +141,18 @@ public class UdpAsyncHandler
             //bdata = System.Text.Encoding.UTF8.GetBytes(msg);
             //stat.udp.Send(bdata, bdata.Length, stat.hep);
             ////Connect Image
-            jdata = new SystemManager.EchoData("Content", "disconnect", SystemManager.Instance.User);
+            jdata = new SystemManager.EchoData("Content", "disconnect", SystemManager.Instance.UserName);
             jdata.type2 = "all";
             msg = JsonUtility.ToJson(jdata);
             bdata = System.Text.Encoding.UTF8.GetBytes(msg);
             stat.udp.Send(bdata, bdata.Length, stat.hep);
             ////Connect
+     */
 
-            stat.udp.Close();
-        }
-        mListUDPs.Clear();
+
+    private void EchoData(string v1, string v2)
+    {
+        throw new NotImplementedException();
     }
 
     public void SendData(UdpState stat, byte[] data)
@@ -164,12 +187,59 @@ public class UdpAsyncHandler
     }
 
     public event EventHandler<UdpEventArgs> UdpDataReceived;
-    private static List<UdpState> mListUDPs = new List<UdpState>();
-    public List<UdpState> ConnectedUDPs
+    
+    //private static List<UdpState> mListUDPs = new List<UdpState>();
+    //public List<UdpState> ConnectedUDPs
+    //{
+    //    get
+    //    {
+    //        return mListUDPs;
+    //    }
+    //}
+
+    static private ConcurrentQueue<UdpData> dataQueue = new ConcurrentQueue<UdpData>();
+    public ConcurrentQueue<UdpData> DataQueue
     {
         get
         {
-            return mListUDPs;
+            return dataQueue;
         }
     }
+    
+    void UdpDataReceivedProcess(object sender, UdpEventArgs e)
+    {
+        int size = e.bdata.Length;
+        string msg = System.Text.Encoding.Default.GetString(e.bdata);
+        UdpData data = JsonUtility.FromJson<UdpData>(msg);
+        data.receivedTime = DateTime.Now;
+
+        ////데이터 처리용
+        //if (data.keyword == "Pose")
+        //{
+        //    try
+        //    {
+        //        SystemManager.Instance.ReferenceTime.Update(temp);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Debug.Log("err = " + ex.ToString());
+        //    }
+
+        //}
+        //else if (data.keyword == "Content" && data.type2 == SystemManager.Instance.UserName)
+        //{
+        //    DateTime end = DateTime.Now;
+        //    TimeSpan time = end - mapContentTime[data.id2];
+
+        //    float temp = (float)time.Milliseconds;
+        //    SystemManager.Instance.ContentGenerationTime.Update(temp);
+        //}
+        //else
+        //{
+
+        //}
+        dataQueue.Enqueue(data);
+    }
+
+    //큐에서 
 }

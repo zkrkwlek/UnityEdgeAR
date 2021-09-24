@@ -241,7 +241,8 @@ public class DeviceController : MonoBehaviour
 
             byte[] bdata = new byte[fdata.Length * 4];
             Buffer.BlockCopy(fdata, 0, bdata, 0, bdata.Length);
-            UdpState stat = UdpAsyncHandler.Instance.ConnectedUDPs[0];
+
+            UdpState stat = UdpAsyncHandler.Instance.Status;
             stat.udp.Send(bdata, bdata.Length, stat.hep);
         }
     }
@@ -278,9 +279,8 @@ public class DeviceController : MonoBehaviour
             {
                 SystemManager.Instance.Connect = false;
                 Disconnect();
-                UdpAsyncHandler.Instance.UdpDisconnect();
-                UdpAsyncHandler.Instance.UdpDataReceived -= UdpDataReceivedProcess;
-                SaveAppData();
+                //UdpAsyncHandler.Instance.UdpDisconnect();
+                //UdpAsyncHandler.Instance.UdpDataReceived -= UdpDataReceivedProcess;
             }
         }
         else
@@ -290,16 +290,12 @@ public class DeviceController : MonoBehaviour
                 SystemManager.Instance.Connect = true;
                 Connect();
                 ConnectDevice();
-                UdpAsyncHandler.Instance.UdpDataReceived += UdpDataReceivedProcess;
-                UdpState cstat = UdpAsyncHandler.Instance.UdpConnect("143.248.6.143", 35001, 40003);
-                UdpAsyncHandler.Instance.ConnectedUDPs.Add(cstat);
+                
+                //UdpAsyncHandler.Instance.UdpDataReceived += UdpDataReceivedProcess;
+                //UdpState cstat = UdpAsyncHandler.Instance.UdpConnect("143.248.6.143", 35001, 40003);
+                //UdpAsyncHandler.Instance.ConnectedUDPs.Add(cstat);
             }
         }
-
-        SystemManager.Instance.IsServerMapping = GUI.Toggle(rectMappingToggle, SystemManager.Instance.IsServerMapping, "Mapping");
-        SystemManager.Instance.IsDeviceTracking = GUI.Toggle(rectTrackingToggle, SystemManager.Instance.IsDeviceTracking, "Tracking");
-        SystemManager.Instance.UseGyro = GUI.Toggle(rectGyroToggle, SystemManager.Instance.UseGyro, "Use Gyro");
-        SystemManager.Instance.UseAccelerometer = GUI.Toggle(rectAccToggle, SystemManager.Instance.UseAccelerometer, "Use Accelerometer");
 
         if (SystemManager.Instance.Start)
         {
@@ -317,98 +313,16 @@ public class DeviceController : MonoBehaviour
             }
         }
 
-        tabIndex = GUI.Toolbar(rect3, tabIndex, tabSubject);
-        switch (tabIndex)
-        {
-            case 0:
-                mnContentID = 0;
-                break;
-            case 1:
-                mnContentID = 1;
-                break;
-            case 2:
-                break;
-            default:
-                break;
-        }
-
-        //{ 
-        //    ////image
-        //    int w = Screen.width, h = Screen.height;
-        //    GUIStyle style = new GUIStyle();
-        //    Rect rect = new Rect(10, 40, w, h * 2 / 100);
-        //    style.alignment = TextAnchor.UpperLeft;
-        //    style.fontSize = h * 2 / 40;
-        //    style.normal.textColor = new Color(0.0f, 0.0f, 0.5f, 1.0f);
-        //    float avg = 0.0f;
-        //    float stddev = 0.0f;
-            
-        //    string text = string.Format("avg : {0:0.0} ms, stddev : ({1:0.0} )", avg, stddev);
-        //    GUI.Label(rect, text, style);
-        //}
-        //{
-        //    ////Content
-        //    int w = Screen.width, h = Screen.height;
-        //    GUIStyle style = new GUIStyle();
-        //    style.alignment = TextAnchor.UpperLeft;
-        //    style.fontSize = h * 2 / 40;
-        //    style.normal.textColor = new Color(0.0f, 0.0f, 0.5f, 1.0f);
-        //    Rect rect = new Rect(10, 40 + style.fontSize, w, h * 2 / 100);
-        //    float avg = 0.0f;
-        //    float stddev = 0.0f;
-        //    int N = nTotalContents - 1;
-        //    if (nTotalContents > 1)
-        //    {
-        //        avg = fSumContents / nTotalContents;
-        //        stddev = Mathf.Sqrt(fSumContents_2 / N - avg * fSumContents / N);
-        //    }
-        //    string text = string.Format("avg : {0:0.0} ms, stddev : ({1:0.0} )", avg, stddev);
-        //    GUI.Label(rect, text, style);
-        //}
-    }
-
-    void UdpDataReceivedProcess(object sender, UdpEventArgs e)
-    {
-        int size = e.bdata.Length;
-        string msg = System.Text.Encoding.Default.GetString(e.bdata);
         
-        SystemManager.EchoData data = JsonUtility.FromJson<SystemManager.EchoData>(msg);
-        if (data.keyword == "Pose")
-        {
-            try
-            {
-                DateTime end = DateTime.Now;
-                TimeSpan time = end - mapImageTime[data.id];
-
-                float temp = (float)time.Milliseconds;
-                SystemManager.Instance.ReferenceTime.Update(temp);
-                //cq.Enqueue(data);
-            }
-            catch (Exception ex)
-            {
-                Debug.Log("err = " + ex.ToString());
-            }
-
-        }
-        else if(data.keyword == "Content" && data.type2 == SystemManager.Instance.User)
-        {
-            DateTime end = DateTime.Now;
-            TimeSpan time = end - mapContentTime[data.id2];
-
-            float temp = (float)time.Milliseconds;
-            SystemManager.Instance.ContentGenerationTime.Update(temp);
-        }
-        else {
-            
-        }
-        cq.Enqueue(data);
     }
+
+    
 
 
     /// <summary>
     /// 접속 devices 관리 용
     /// </summary>
-    ConcurrentQueue<SystemManager.EchoData> cq = new ConcurrentQueue<SystemManager.EchoData>();
+    
 
     int nImgFrameIDX, nMaxImageIndex;
     string imagePath;
@@ -421,7 +335,7 @@ public class DeviceController : MonoBehaviour
     void Connect()
     {
 
-        
+          
         StatusTxt.text = "Init::Success";
 
         ////Reset
@@ -461,7 +375,7 @@ public class DeviceController : MonoBehaviour
 
         ////Device & Map store
         string addr2 = SystemManager.Instance.ServerAddr + "/Store?keyword=DeviceConnect&id=0&src=" + SystemManager.Instance.User;
-        string msg2 = SystemManager.Instance.User + "," + SystemManager.Instance.Map;
+        string msg2 = SystemManager.Instance.User + "," + SystemManager.Instance.MapName;
         byte[] bdatab = System.Text.Encoding.UTF8.GetBytes(msg2);
         float[] fdataa = SystemManager.Instance.IntrinsicData;
         byte[] bdata2 = new byte[2 + fdataa.Length * 4 + bdatab.Length];
@@ -491,7 +405,7 @@ public class DeviceController : MonoBehaviour
     {
         ////Device & Map store
         string addr2 = SystemManager.Instance.ServerAddr + "/Store?keyword=DeviceDisconnect&id=0&src=" + SystemManager.Instance.User;
-        string msg2 = SystemManager.Instance.User + "," + SystemManager.Instance.Map;
+        string msg2 = SystemManager.Instance.User + "," + SystemManager.Instance.MapName;
         byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg2);
 
         UnityWebRequest request = new UnityWebRequest(addr2);
@@ -562,9 +476,10 @@ public class DeviceController : MonoBehaviour
         fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
         fitter.aspectRatio = ((float)SystemManager.Instance.ImageWidth) / SystemManager.Instance.ImageHeight;
 
-        SetScreen();
-        SetUI();
+        //SetScreen();
+        //SetUI();
         //OrientationUI();
+
         Touched += TouchProcess;
         
         //result image ptr
@@ -888,26 +803,28 @@ public class DeviceController : MonoBehaviour
 
     void SaveAppData()
     {
-        SystemManager.AppData appData = new SystemManager.AppData();
-        appData.bMapping = SystemManager.Instance.IsServerMapping;
-        appData.bTracking = SystemManager.Instance.IsDeviceTracking;
-        appData.bGyro = SystemManager.Instance.UseGyro;
-        appData.bAcc = SystemManager.Instance.UseAccelerometer;
+        //File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.uu));
 
-        File.WriteAllText(Application.persistentDataPath + "/AppData.json", JsonUtility.ToJson(appData));
+        //SystemManager.AppData appData = new SystemManager.AppData();
+        //appData.bMapping = SystemManager.Instance.IsServerMapping;
+        //appData.bTracking = SystemManager.Instance.IsDeviceTracking;
+        //appData.bGyro = SystemManager.Instance.UseGyro;
+        //appData.bAcc = SystemManager.Instance.UseAccelerometer;
 
-        SystemManager.Instance.ReferenceTime.Calculate();
-        File.WriteAllText(Application.persistentDataPath + "/Time/reference.json", JsonUtility.ToJson(SystemManager.Instance.ReferenceTime));
+        //File.WriteAllText(Application.persistentDataPath + "/Data/AppData.json", JsonUtility.ToJson(appData));
 
-        SystemManager.Instance.TrackingTime.Calculate();
-        File.WriteAllText(Application.persistentDataPath + "/Time/tracking.json", JsonUtility.ToJson(SystemManager.Instance.TrackingTime));
+        //SystemManager.Instance.ReferenceTime.Calculate();
+        //File.WriteAllText(Application.persistentDataPath + "/Time/reference.json", JsonUtility.ToJson(SystemManager.Instance.ReferenceTime));
 
-        SystemManager.Instance.ContentGenerationTime.Calculate();
-        File.WriteAllText(Application.persistentDataPath + "/Time/content.json", JsonUtility.ToJson(SystemManager.Instance.ContentGenerationTime));
+        //SystemManager.Instance.TrackingTime.Calculate();
+        //File.WriteAllText(Application.persistentDataPath + "/Time/tracking.json", JsonUtility.ToJson(SystemManager.Instance.TrackingTime));
 
-        SystemManager.Instance.JpegTime.Calculate();
-        SystemManager.Instance.JpegTime.fAvgSize = ((float)SystemManager.Instance.JpegTime.nTotalSize) / SystemManager.Instance.JpegTime.nTotal;
-        File.WriteAllText(Application.persistentDataPath + "/Time/jpeg.json", JsonUtility.ToJson(SystemManager.Instance.JpegTime));
+        //SystemManager.Instance.ContentGenerationTime.Calculate();
+        //File.WriteAllText(Application.persistentDataPath + "/Time/content.json", JsonUtility.ToJson(SystemManager.Instance.ContentGenerationTime));
+
+        //SystemManager.Instance.JpegTime.Calculate();
+        //SystemManager.Instance.JpegTime.fAvgSize = ((float)SystemManager.Instance.JpegTime.nTotalSize) / SystemManager.Instance.JpegTime.nTotal;
+        //File.WriteAllText(Application.persistentDataPath + "/Time/jpeg.json", JsonUtility.ToJson(SystemManager.Instance.JpegTime));
     }
 
     int mnContentID;
@@ -1004,9 +921,11 @@ public class DeviceController : MonoBehaviour
 
     IEnumerator DeviceControl()
     {
+
         while (true)
         {
             yield return new WaitForFixedUpdate();
+            /*
             SystemManager.EchoData data;
             if (cq.TryDequeue(out data))
             {
@@ -1066,7 +985,7 @@ public class DeviceController : MonoBehaviour
                     //StatusTxt.text = "map data = " + fdata[0] + " " + fdata[1] + " " + fdata[2];
                 }
             }
-
+            */
         }
 
     }
