@@ -84,15 +84,18 @@ public class SystemManager {
     public class InitConnectData
     {
         public InitConnectData() { }
-        public InitConnectData(string _userID, string _mapName, bool _bMapping, bool _bGyro, bool _bManager,
+        public InitConnectData(string _userID, string _mapName, bool _bMapping, bool _bGyro, bool _bManager, bool _bDeviceTracking,
             float _fx, float _fy, float _cx, float _cy,
             float _d1, float _d2, float _d3, float _d4, int _w, int _h)
         {
             userID = _userID;
             mapName = _mapName;
             bMapping = _bMapping;
+            bDeviceTracking = _bDeviceTracking;
             bGyro = _bGyro;
+            
             bManager = _bManager;
+            
             fx = _fx;
             fy = _fy;
             cx = _cx;
@@ -114,7 +117,7 @@ public class SystemManager {
         public float fx, fy, cx, cy;
         public float d1, d2, d3, d4;
         public int w, h;
-        public bool bMapping, bGyro, bManager;
+        public bool bMapping, bGyro, bManager, bDeviceTracking;
     }
     /// <summary>
     /// 알림 서버에 내가 받을 키워드를 알림
@@ -139,13 +142,26 @@ public class SystemManager {
     public InitConnectData GetConnectData()
     {
         CameraParams camParam = camParams[userData.numCameraParam];
-        return new InitConnectData(userData.UserName, userData.MapName, userData.ModeMapping, userData.UseGyro, bManagerMode, camParam.fx, camParam.fy, camParam.cx, camParam.cy, camParam.d1, camParam.d2, camParam.d3, camParam.d4, (int)camParam.w, (int)camParam.h);
+        return new InitConnectData(userData.UserName, userData.MapName, userData.ModeMapping, userData.UseGyro, bManagerMode, userData.ModeTracking, camParam.fx, camParam.fy, camParam.cx, camParam.cy, camParam.d1, camParam.d2, camParam.d3, camParam.d4, (int)camParam.w, (int)camParam.h);
     }
 
     private static float[] fdata;
     public float[] IntrinsicData {
         get
         {
+            
+            int nidx = 0;
+            CameraParams camParam = camParams[userData.numCameraParam];
+            fdata[nidx++] = (float)camParam.w;
+            fdata[nidx++] = (float)camParam.h;
+            fdata[nidx++] = camParam.fx;
+            fdata[nidx++] = camParam.fy;
+            fdata[nidx++] = camParam.cx;
+            fdata[nidx++] = camParam.cy;
+            fdata[nidx++] = camParam.d1;
+            fdata[nidx++] = camParam.d2;
+            fdata[nidx++] = camParam.d3;
+            fdata[nidx++] = camParam.d4;
             return fdata;
         }
     }
@@ -434,6 +450,8 @@ public class SystemManager {
                     camParams[idx].d2 = 0.1729f;
                     camParams[idx].d3 = -0.0169f;
                     camParams[idx].d4 = -0.0019f;
+                    camParams[idx].w = 640f;
+                    camParams[idx].h = 360f;
                     idx++;
 
                     camParams[idx] = new CameraParams();
@@ -513,7 +531,7 @@ public class SystemManager {
 #if UNITY_EDITOR_WIN
                 path = "E:/SLAM_DATASET/MY";
 #elif UNITY_ANDROID
-                path = Application.persistentDataPath+"/FILE";
+                path = Application.persistentDataPath+"/File";
 #endif
 
                 try
@@ -574,20 +592,7 @@ public class SystemManager {
                     appData.numLocalKeyFrames = 50;
                     File.WriteAllText(Application.persistentDataPath + "/Data/AppData.json", JsonUtility.ToJson(appData));
                 }
-
                 fdata = new float[10];
-                int nidx = 0;
-                CameraParams camParam = camParams[userData.numCameraParam];
-                fdata[nidx++] = (float)camParam.w;
-                fdata[nidx++] = (float)camParam.h;
-                fdata[nidx++] = camParam.fx;
-                fdata[nidx++] = camParam.fy;
-                fdata[nidx++] = camParam.cx;
-                fdata[nidx++] = camParam.cy;
-                fdata[nidx++] = camParam.d1;
-                fdata[nidx++] = camParam.d2;
-                fdata[nidx++] = camParam.d3;
-                fdata[nidx++] = camParam.d4;
 
             }
             return m_pInstance;

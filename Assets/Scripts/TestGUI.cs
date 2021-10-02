@@ -1,11 +1,24 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class TestGUI : MonoBehaviour
 {
+
+#if UNITY_EDITOR_WIN
+    [DllImport("UnityLibrary")]
+    private static extern void SetPath(byte[] name, int len);
+    [DllImport("UnityLibrary")]
+    private static extern void LoadVocabulary();
+#elif UNITY_ANDROID
+    [DllImport("edgeslam")]
+    private static extern void SetPath(char[] path);
+    [DllImport("edgeslam")]
+    private static extern void LoadVocabulary();
+#endif
 
     public Dropdown drop;
     public Dropdown drop2;
@@ -28,6 +41,15 @@ public class TestGUI : MonoBehaviour
         AspectRatioFitter fitter = GameObject.Find("background").GetComponent<AspectRatioFitter>();
         fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
         fitter.aspectRatio = ((float)SystemManager.Instance.ImageWidth) / SystemManager.Instance.ImageHeight;
+
+#if (UNITY_EDITOR_WIN)
+        byte[] b = System.Text.Encoding.ASCII.GetBytes(Application.persistentDataPath);
+        SetPath(b, b.Length);
+        //SystemManager.Instance.strBytes, SystemManager.Instance.strBytes.Length, 
+#elif (UNITY_ANDROID)
+        SetPath(Application.persistentDataPath.ToCharArray());    
+#endif
+        LoadVocabulary();
 
         /////Initialize
         drop.options.Clear();
@@ -98,7 +120,8 @@ public class TestGUI : MonoBehaviour
                 ////
                 SystemManager.ApplicationData appData = SystemManager.Instance.AppData;
                 UdpAsyncHandler.Instance.UdpSocketBegin(appData.UdpAddres, appData.UdpPort, appData.LocalPort);
-                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "Pose", "connect", "single");
+                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "ReferenceFrame", "connect", "single");
+                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "LocalMap", "connect", "single");
                 UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "Content", "connect", "all");
             }
             else
@@ -109,7 +132,8 @@ public class TestGUI : MonoBehaviour
                 //개별 컨트롤러 해제 처리
                 Tracker.Instance.Disconnect();
                 ////
-                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "Pose", "disconnect", "single");
+                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "ReferenceFrame", "disconnect", "single");
+                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "LocalMap", "disconnect", "single");
                 UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "Content", "disconnect", "all");
                 UdpAsyncHandler.Instance.UdpSocketClose();
             }
@@ -157,19 +181,48 @@ public class TestGUI : MonoBehaviour
         RectTransform rt7 = toggleMapping.GetComponent<RectTransform>();//.anchoredPosition = new Vector3(-700, -124, 0);
         RectTransform rt8 = toggleTracking.GetComponent<RectTransform>();//.anchoredPosition = new Vector3(-700, -124, 0);
 
-        rt1.anchoredPosition = new Vector3(-Width / 2f - offset, 200f);
-        rt2.anchoredPosition = new Vector3(-Width / 2f - offset, 150f);
-        rt5.anchoredPosition = new Vector3(-Width / 2f - offset, 100f);
-        rt6.anchoredPosition = new Vector3(-Width / 2f - offset, 50f);
-        rt7.anchoredPosition = new Vector3(-Width / 2f - offset, 0f);
-        rt8.anchoredPosition = new Vector3(-Width / 2f - offset, -50f);
+        float w, w2, toggleHeight, margin;
+#if UNITY_EDITOR_WIN
+        w = 200f;
+        margin = 10;
+        w2 = 40f;
+        toggleHeight = 30f;
+#elif UNITY_ANDROID
+        w = 350f;//Width - 100f;
+        margin = 20;
+        w2 = 70f;
+        toggleHeight = 30f;
+#endif
 
-        rt3.anchoredPosition = new Vector3(Width / 2f + offset, 200f);
-        rt4.anchoredPosition = new Vector3(Width / 2f + offset, 150f);
+        rt1.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + w2);
+        rt2.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + w2);
+        rt5.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + toggleHeight);
+        rt6.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + toggleHeight);
+        rt7.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + toggleHeight);
+        rt8.anchoredPosition = new Vector3(-Width / 2f - offset, w);
+
+#if UNITY_EDITOR_WIN
+        w = 200f;
+#elif UNITY_ANDROID
+        w = 350f;//Width - 100f;
+#endif
+
+        rt3.anchoredPosition = new Vector3(Width / 2f + offset, w); w -= (margin + w2);
+        rt4.anchoredPosition = new Vector3(Width / 2f + offset, w); 
 
         //RectTransform rt = drop.GetComponent<RectTransform>();//.anchoredPosition = new Vector3(-700, -124, 0);
         //rt.anchoredPosition = new Vector3(-700, -124, 0);
-        //rt.sizeDelta = new Vector2(200f, 50f);
+
+
+        rt1.sizeDelta = new Vector2(200f, w2);
+        rt2.sizeDelta = new Vector2(200f, w2);
+        rt3.sizeDelta = new Vector2(200f, w2);
+        rt4.sizeDelta = new Vector2(200f, w2);
+        rt5.sizeDelta = new Vector2(200f, w2);
+        rt6.sizeDelta = new Vector2(200f, w2);
+        rt7.sizeDelta = new Vector2(200f, w2);
+        rt8.sizeDelta = new Vector2(200f, w2);
+
     }
 
     // Update is called once per frame
