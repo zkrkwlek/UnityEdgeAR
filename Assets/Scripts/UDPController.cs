@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.UI;
 
 public class UDPProcessor
 {
@@ -39,15 +40,15 @@ public class UDPController : MonoBehaviour
 {
 #if UNITY_EDITOR_WIN
     [DllImport("UnityLibrary")]
-    private static extern void SetDataFromUnity(IntPtr addr, char[] keyword, int len);
+    private static extern void SetDataFromUnity(IntPtr addr, char[] keyword, int len, int strlen);
 
 #elif UNITY_ANDROID
     [DllImport("edgeslam")]
-    private static extern void SetDataFromUnity(IntPtr addr, char[] keyword, int len);
+    private static extern void SetDataFromUnity(IntPtr addr, char[] keyword, int len, int strlen);
     
 #endif
 
-
+    public RawImage ResultImage;
     public UnityEngine.UI.Text StatusTxt;
     // Start is called before the first frame update
     void Start()
@@ -72,7 +73,7 @@ public class UDPController : MonoBehaviour
             if(UdpAsyncHandler.Instance.DataQueue.TryDequeue(out data))
             {
 
-                if(data.keyword == "ReferenceFrame" && SystemManager.Instance.IsDeviceTracking)
+                if (data.keyword == "ReferenceFrame" && SystemManager.Instance.IsDeviceTracking)
                 {
 
                     DateTime t1 = DateTime.Now;
@@ -89,8 +90,10 @@ public class UDPController : MonoBehaviour
                     UnityWebRequest req4 = GetRequest("LocalMapScales", data.id);
                     UnityWebRequest req5 = GetRequest("LocalMapAngles", data.id);
                     UnityWebRequest req6 = GetRequest("LocalMapPoints", data.id);
+                    UnityWebRequest req7 = GetRequest("LocalMapPointIDs", data.id);
+                    UnityWebRequest req8 = GetRequest("LocalMapPointObservation", data.id);
 
-                    while (!req1.downloadHandler.isDone || !req2.downloadHandler.isDone || !req3.downloadHandler.isDone || !req4.downloadHandler.isDone || !req5.downloadHandler.isDone || !req6.downloadHandler.isDone)
+                    while (!req1.downloadHandler.isDone || !req2.downloadHandler.isDone || !req3.downloadHandler.isDone || !req4.downloadHandler.isDone || !req5.downloadHandler.isDone || !req6.downloadHandler.isDone || !req7.downloadHandler.isDone || !req8.downloadHandler.isDone)
                     {
                         yield return null;
                     }
@@ -100,13 +103,32 @@ public class UDPController : MonoBehaviour
                     SetDataToDevice(req4, "LocalMapScales");
                     SetDataToDevice(req5, "LocalMapAngles");
                     SetDataToDevice(req6, "LocalMapPoints");
+                    SetDataToDevice(req7, "LocalMapPointIDs");
+                    SetDataToDevice(req7, "LocalMapPointIDs");
+                    SetDataToDevice(req8, "LocalMapPointObservation");
+                    Tracker.Instance.CreateReferenceFrame();
 
-                    //Tracker.Instance.CreateReferenceFrame();
                     DateTime t2 = DateTime.Now;
                     TimeSpan time1 = t2 - t1;
                     float temp = (float)time1.Milliseconds;
                     StatusTxt.text = "time = " + temp;
 
+                } else if (data.keyword == "MappingResult") {
+                    UnityWebRequest req1 = GetRequest("MappingResult", data.id);
+                    while (!req1.downloadHandler.isDone)
+                    {
+                        yield return null;
+                    }
+                    int[] a = new int[1];
+                    Buffer.BlockCopy(req1.downloadHandler.data, 0, a, 0, req1.downloadHandler.data.Length);
+                    StatusTxt.text = "mapping = " + a[0];
+                    if (a[0] > 30)
+                    {
+                        ResultImage.color = new Color(0.0f, 1.0f, 0.0f, 0.4f);
+                    }
+                    else {
+                        ResultImage.color = new Color(1.0f, 0.0f, 0.0f, 0.4f);
+                    }
                 }
             }
             yield return null;
@@ -128,7 +150,7 @@ public class UDPController : MonoBehaviour
         {
             GCHandle handle1 = GCHandle.Alloc(req.downloadHandler.data, GCHandleType.Pinned);
             IntPtr ptr1 = handle1.AddrOfPinnedObject();
-            SetDataFromUnity(ptr1, keyword.ToCharArray(), req.downloadHandler.data.Length);
+            SetDataFromUnity(ptr1, keyword.ToCharArray(), req.downloadHandler.data.Length, keyword.Length);
             handle1.Free();
         }
         catch (Exception e)
@@ -150,7 +172,7 @@ public class UDPController : MonoBehaviour
             {
                 GCHandle handle1 = GCHandle.Alloc(request.downloadHandler.data, GCHandleType.Pinned);
                 IntPtr ptr1 = handle1.AddrOfPinnedObject();
-                SetDataFromUnity(ptr1, keyword.ToCharArray(), request.downloadHandler.data.Length);
+                SetDataFromUnity(ptr1, keyword.ToCharArray(), request.downloadHandler.data.Length, keyword.Length);
             }catch(Exception e)
             {
                 StatusTxt.text = e.ToString();

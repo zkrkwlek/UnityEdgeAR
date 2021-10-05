@@ -16,18 +16,18 @@ public class Tracker
     [DllImport("UnityLibrary")]
     private static extern void SetInit(int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4, int nfeature, int nlevel, float fscale);
     [DllImport("UnityLibrary")]
-    private static extern void SetReferenceFrame(int id, float[] data);
+    private static extern void SetReferenceFrame();
     [DllImport("UnityLibrary")]
-    private static extern bool SetLocalMap(IntPtr addr1, int len1, IntPtr addr2, int len2, IntPtr addr3, int len3, IntPtr addr4, int len4);
+    private static extern bool SetLocalMap();
     [DllImport("UnityLibrary")]
     private static extern void ConnectDevice();
 #elif UNITY_ANDROID
     [DllImport("edgeslam")]
     private static extern void SetInit(int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4, int nfeature, int nlevel, float fscale);    
     [DllImport("edgeslam")]
-    private static extern void SetReferenceFrame(int id, float[] data);
+    private static extern void SetReferenceFrame();
     [DllImport("edgeslam")]
-    private static extern bool SetLocalMap(IntPtr addr1, int len1, IntPtr addr2, int len2, IntPtr addr3, int len3, IntPtr addr4, int len4);
+    private static extern bool SetLocalMap();
     [DllImport("edgeslam")]
     private static extern void ConnectDevice();
 #endif
@@ -227,6 +227,8 @@ public class Tracker
 
     public void CreateReferenceFrame()
     {
+        SetReferenceFrame();
+        SetLocalMap();
         //byte[] res1 = GetData("ReferenceFrame", data.id);
         //byte[] res_desc = GetData("LocalMap", data.id);
         //byte[] res_scale = GetData("LocalMapScales", data.id);
@@ -288,6 +290,7 @@ public class TrackingProcessor : MonoBehaviour
 #endif
 
     public UnityEngine.UI.Text StatusTxt;
+    public RawImage ResultImage;
     public RawImage background;
     GCHandle texHandle;
     IntPtr texPtr;
@@ -379,6 +382,16 @@ public class TrackingProcessor : MonoBehaviour
                     //bGrabImage = GrabImage(texPtr, mnFrameID);
                     float tt1 = 0f; float tt2 = 0f;
                     SetFrame(texPtr, mnFrameID, 0.0, ref tt1, ref tt2);
+                    if (SystemManager.Instance.UseGyro)
+                        DeltaFrameR.Copy(ref fIMUPose, 0);
+                    bool bTrack = Track(posePtr);
+                    if (bTrack)
+                    {
+                        ResultImage.color = new Color(0.0f, 1.0f, 0.0f, 4.0f);
+                    }
+                    else {
+                        ResultImage.color = new Color(1.0f, 0.0f, 0.0f, 4.0f);
+                    }
                     texHandle.Free();
                 }                
                 

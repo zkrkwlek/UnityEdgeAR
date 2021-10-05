@@ -424,8 +424,36 @@ public class SystemManager {
                 }
                 catch(FileNotFoundException)
                 {
-                    camParams = new CameraParams[7];
+                    camParams = new CameraParams[9];
                     int idx = 0;
+                    camParams[idx] = new CameraParams();
+                    camParams[idx].name = "S20+_Camera_Portrait";
+                    camParams[idx].fx = 476.6926f;
+                    camParams[idx].fy = 485.7888f;
+                    camParams[idx].cx = 328.5845f;
+                    camParams[idx].cy = 172.9118f;
+                    camParams[idx].d1 = 0.0919f;
+                    camParams[idx].d2 = -0.0314f;
+                    camParams[idx].d3 = -0.0242f;
+                    camParams[idx].d4 = 0.0023f;
+                    camParams[idx].w = 640f;
+                    camParams[idx].h = 360f;
+                    idx++;
+
+                    camParams[idx] = new CameraParams();
+                    camParams[idx].name = "S20+_Camera_Landscape";
+                    camParams[idx].fx = 442.6716f;
+                    camParams[idx].fy = 466.0769f;
+                    camParams[idx].cx = 323.6599f;
+                    camParams[idx].cy = 231.4053f;
+                    camParams[idx].d1 = 0.0437f;
+                    camParams[idx].d2 = 0.0421f;
+                    camParams[idx].d3 = -0.0050f;
+                    camParams[idx].d4 = 0.0084f;
+                    camParams[idx].w = 640f;
+                    camParams[idx].h = 360f;
+                    idx++;
+
                     camParams[idx] = new CameraParams();
                     camParams[idx].name = "S21+_Camera";
                     camParams[idx].fx = 476.6926f;
@@ -566,7 +594,7 @@ public class SystemManager {
                 {
                     userData = new UserData();
                     userData.numCameraParam = 1;
-                    userData.numDataset = 1;
+                    userData.numDataset = 0;
                     userData.UserName = "zkrkwlek";
                     userData.MapName = "TestMap";
                     File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(userData));

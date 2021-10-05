@@ -20,6 +20,7 @@ public class TestGUI : MonoBehaviour
     private static extern void LoadVocabulary();
 #endif
 
+    public RawImage ResultImage;
     public Dropdown drop;
     public Dropdown drop2;
     GameObject Canvas;
@@ -120,6 +121,7 @@ public class TestGUI : MonoBehaviour
                 ////
                 SystemManager.ApplicationData appData = SystemManager.Instance.AppData;
                 UdpAsyncHandler.Instance.UdpSocketBegin(appData.UdpAddres, appData.UdpPort, appData.LocalPort);
+                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "MappingResult", "connect", "single");
                 UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "ReferenceFrame", "connect", "single");
                 UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "LocalMap", "connect", "single");
                 UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "Content", "connect", "all");
@@ -132,6 +134,7 @@ public class TestGUI : MonoBehaviour
                 //개별 컨트롤러 해제 처리
                 Tracker.Instance.Disconnect();
                 ////
+                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "MappingResult", "disconnect", "single");
                 UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "ReferenceFrame", "disconnect", "single");
                 UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "LocalMap", "disconnect", "single");
                 UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "Content", "disconnect", "all");
@@ -167,6 +170,10 @@ public class TestGUI : MonoBehaviour
         float Width = (cam.w * Scale);
         float Height = (cam.h * Scale);
         float diff = (Screen.width - Width) * 0.5f;
+
+        RectTransform rt0 = ResultImage.GetComponent<RectTransform>();//.anchoredPosition = new Vector3(-700, -124, 0);
+        rt0.anchoredPosition = new Vector3(-Width/2f+25f,Height/2f-25f,0f);
+        ResultImage.color = new Color(0f, 1.0f, 0f, 0.3f);
 
         RectTransform rt1 = drop.GetComponent<RectTransform>();//.anchoredPosition = new Vector3(-700, -124, 0);
         float offset = rt1.sizeDelta.x / 2f+30f;
