@@ -41,11 +41,13 @@ public class UDPController : MonoBehaviour
 #if UNITY_EDITOR_WIN
     [DllImport("UnityLibrary")]
     private static extern void SetDataFromUnity(IntPtr addr, char[] keyword, int len, int strlen);
-
+    [DllImport("UnityLibrary")]
+    private static extern void AddContentInfo(int id, float x, float y, float z);
 #elif UNITY_ANDROID
     [DllImport("edgeslam")]
     private static extern void SetDataFromUnity(IntPtr addr, char[] keyword, int len, int strlen);
-    
+    [DllImport("edgeslam")]
+    private static extern void AddContentInfo(int id, float x, float y, float z);
 #endif
 
     public RawImage ResultImage;
@@ -75,15 +77,6 @@ public class UDPController : MonoBehaviour
 
                 if (data.keyword == "ReferenceFrame" && SystemManager.Instance.IsDeviceTracking)
                 {
-
-                    DateTime t1 = DateTime.Now;
-                    //yield return StartCoroutine(GetData("ReferenceFrame", data.id));
-                    //yield return StartCoroutine(GetData("ReferenceFrameDesc", data.id));
-                    //yield return StartCoroutine(GetData("LocalMap", data.id));
-                    //yield return StartCoroutine(GetData("LocalMapScales", data.id));
-                    //yield return StartCoroutine(GetData("LocalMapAngles", data.id));
-                    //yield return StartCoroutine(GetData("LocalMapPoints", data.id));
-
                     UnityWebRequest req1 = GetRequest("ReferenceFrame", data.id);
                     UnityWebRequest req2 = GetRequest("ReferenceFrameDesc", data.id);
                     UnityWebRequest req3 = GetRequest("LocalMap", data.id);
@@ -97,6 +90,8 @@ public class UDPController : MonoBehaviour
                     {
                         yield return null;
                     }
+                    DateTime t2 = DateTime.Now;
+
                     SetDataToDevice(req1, "ReferenceFrame");
                     SetDataToDevice(req2, "ReferenceFrameDesc");
                     SetDataToDevice(req3, "LocalMap");
@@ -106,12 +101,26 @@ public class UDPController : MonoBehaviour
                     SetDataToDevice(req7, "LocalMapPointIDs");
                     SetDataToDevice(req7, "LocalMapPointIDs");
                     SetDataToDevice(req8, "LocalMapPointObservation");
-                    Tracker.Instance.CreateReferenceFrame();
 
-                    DateTime t2 = DateTime.Now;
-                    TimeSpan time1 = t2 - t1;
-                    float temp = (float)time1.Milliseconds;
-                    StatusTxt.text = "time = " + temp;
+                    ////update 시간
+                    SystemManager.ExperimentData[] exdatas = SystemManager.Instance.Experiments;
+                    SystemManager.ExperimentMap[] maps = SystemManager.Instance.ExperimentMaps;
+                    int n1 = req1.downloadHandler.data.Length + req2.downloadHandler.data.Length;
+                    int n2 = req3.downloadHandler.data.Length + req4.downloadHandler.data.Length +
+                        req5.downloadHandler.data.Length + req6.downloadHandler.data.Length +
+                        req7.downloadHandler.data.Length + req8.downloadHandler.data.Length;
+                    
+                    exdatas[0].Update(n2);
+                    exdatas[1].Update(n1);
+                    TimeSpan time2 = t2 - maps[2].Get(data.id);
+                    exdatas[2].Update((float)time2.Milliseconds);
+
+                    SystemManager.Instance.Experiments = exdatas;
+                    SystemManager.Instance.ExperimentMaps = maps;
+                    ////update 시간
+
+
+                    Tracker.Instance.CreateReferenceFrame();
 
                 } else if (data.keyword == "MappingResult") {
                     UnityWebRequest req1 = GetRequest("MappingResult", data.id);
@@ -129,6 +138,16 @@ public class UDPController : MonoBehaviour
                     else {
                         ResultImage.color = new Color(1.0f, 0.0f, 0.0f, 0.4f);
                     }
+                }else if (data.keyword == "Content")
+                {
+                    UnityWebRequest req1 = GetRequest("Content", data.id, data.src);
+                    while (!req1.downloadHandler.isDone)
+                    {
+                        yield return null;
+                    }
+                    float[] fdata = new float[req1.downloadHandler.data.Length / 4];
+                    Buffer.BlockCopy(req1.downloadHandler.data, 0, fdata, 0, req1.downloadHandler.data.Length);
+                    AddContentInfo(data.id, fdata[0], fdata[1], fdata[2]);
                 }
             }
             yield return null;
@@ -137,6 +156,15 @@ public class UDPController : MonoBehaviour
     UnityWebRequest GetRequest(string keyword, int id)
     {
         string addr2 = SystemManager.Instance.ServerAddr + "/Load?keyword=" + keyword + "&id=" + id + "&src=" + SystemManager.Instance.UserName;
+        UnityWebRequest request = new UnityWebRequest(addr2);
+        request.method = "POST";
+        request.downloadHandler = new DownloadHandlerBuffer();
+        request.SendWebRequest();
+        return request;
+    }
+    UnityWebRequest GetRequest(string keyword, int id, string src)
+    {
+        string addr2 = SystemManager.Instance.ServerAddr + "/Load?keyword=" + keyword + "&id=" + id + "&src=" + src;
         UnityWebRequest request = new UnityWebRequest(addr2);
         request.method = "POST";
         request.downloadHandler = new DownloadHandlerBuffer();

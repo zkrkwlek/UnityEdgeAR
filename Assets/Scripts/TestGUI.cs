@@ -23,13 +23,15 @@ public class TestGUI : MonoBehaviour
     public RawImage ResultImage;
     public Dropdown drop;
     public Dropdown drop2;
+    public Dropdown drop3;
+
     GameObject Canvas;
     CanvasScaler Scaler;
 
     public Button btnConnect;
     public Button btnSend;
 
-    public Toggle toggleCam, toggleIMU, toggleMapping, toggleTracking;
+    public Toggle toggleCam, toggleIMU, toggleMapping, toggleTracking, toggleTest;
 
     // Start is called before the first frame update
     void Start()
@@ -55,7 +57,8 @@ public class TestGUI : MonoBehaviour
         /////Initialize
         drop.options.Clear();
         drop2.options.Clear();
-        foreach(SystemManager.CameraParams cam in SystemManager.Instance.Cameras)
+        drop3.options.Clear();
+        foreach (SystemManager.CameraParams cam in SystemManager.Instance.Cameras)
         {
             Dropdown.OptionData data = new Dropdown.OptionData();
             data.text = cam.name;
@@ -69,13 +72,22 @@ public class TestGUI : MonoBehaviour
             drop2.options.Add(data);
         }
 
+        foreach (string filename in SystemManager.Instance.FileLists)
+        {
+            Dropdown.OptionData data = new Dropdown.OptionData();
+            data.text = filename;
+            drop3.options.Add(data);
+        }
+
         drop.value = SystemManager.Instance.User.numCameraParam;
         drop2.value = SystemManager.Instance.User.numDataset;
+        drop3.value = SystemManager.Instance.User.numDatasetFileName;
 
         toggleCam.isOn = SystemManager.Instance.User.UseCamera;
         toggleIMU.isOn = SystemManager.Instance.User.UseGyro;
         toggleMapping.isOn = SystemManager.Instance.User.ModeMapping;
         toggleTracking.isOn = SystemManager.Instance.User.ModeTracking;
+        toggleTest.isOn = SystemManager.Instance.User.ModeMultiAgentTest;
 
         SetUI();
         /////Initialize
@@ -90,6 +102,10 @@ public class TestGUI : MonoBehaviour
         drop2.onValueChanged.AddListener(delegate
         {
             SystemManager.Instance.User.numDataset = drop2.value;
+        });
+        drop3.onValueChanged.AddListener(delegate
+        {
+            SystemManager.Instance.User.numDatasetFileName = drop3.value;
         });
 
         toggleCam.onValueChanged.AddListener(delegate {
@@ -106,6 +122,10 @@ public class TestGUI : MonoBehaviour
         toggleTracking.onValueChanged.AddListener(delegate
         {
             SystemManager.Instance.User.ModeTracking = toggleTracking.isOn;
+        });
+        toggleTest.onValueChanged.AddListener(delegate
+        {
+            SystemManager.Instance.User.ModeMultiAgentTest = toggleTest.isOn;
         });
 
         ////Connect & disconnect
@@ -142,7 +162,12 @@ public class TestGUI : MonoBehaviour
             }
 
             File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
-
+            SystemManager.ExperimentData[] datas = SystemManager.Instance.Experiments;
+            foreach(SystemManager.ExperimentData data in datas)
+            {
+                data.Calculate();
+            }
+            File.WriteAllText(Application.persistentDataPath + "/Data/Experiment.json", JsonHelper.ToJson(datas, true));
         });
 
         btnSend.onClick.AddListener(delegate {
@@ -171,42 +196,60 @@ public class TestGUI : MonoBehaviour
         float Height = (cam.h * Scale);
         float diff = (Screen.width - Width) * 0.5f;
 
-        RectTransform rt0 = ResultImage.GetComponent<RectTransform>();//.anchoredPosition = new Vector3(-700, -124, 0);
+        Tracker.Instance.BackgroundRect = new Rect(diff, 0f, Width, Height);
+        Tracker.Instance.Scale = Scale;
+        Tracker.Instance.Diff = new Vector2(diff, Height);
+
+        RectTransform rt0 = ResultImage.GetComponent<RectTransform>();
         rt0.anchoredPosition = new Vector3(-Width/2f+25f,Height/2f-25f,0f);
         ResultImage.color = new Color(0f, 1.0f, 0f, 0.3f);
 
-        RectTransform rt1 = drop.GetComponent<RectTransform>();//.anchoredPosition = new Vector3(-700, -124, 0);
-        float offset = rt1.sizeDelta.x / 2f+30f;
+        RectTransform rtDrop1 = drop.GetComponent<RectTransform>();
+        float offset = rtDrop1.sizeDelta.x / 2f+30f;
+        RectTransform rtDrop2 = drop2.GetComponent<RectTransform>();
+        RectTransform rtDrop3 = drop3.GetComponent<RectTransform>();
 
-        RectTransform rt2 = drop2.GetComponent<RectTransform>();//.anchoredPosition = new Vector3(-700, -124, 0);
+        RectTransform rtBtn1 = btnConnect.GetComponent<RectTransform>();
+        RectTransform rtBtn2 = btnSend.GetComponent<RectTransform>();
 
-        RectTransform rt3 = btnConnect.GetComponent<RectTransform>();//.anchoredPosition = new Vector3(-700, -124, 0);
-        RectTransform rt4 = btnSend.GetComponent<RectTransform>();//.anchoredPosition = new Vector3(-700, -124, 0);
-
-        RectTransform rt5 = toggleCam.GetComponent<RectTransform>();//.anchoredPosition = new Vector3(-700, -124, 0);
-        RectTransform rt6 = toggleIMU.GetComponent<RectTransform>();//.anchoredPosition = new Vector3(-700, -124, 0);
-        RectTransform rt7 = toggleMapping.GetComponent<RectTransform>();//.anchoredPosition = new Vector3(-700, -124, 0);
-        RectTransform rt8 = toggleTracking.GetComponent<RectTransform>();//.anchoredPosition = new Vector3(-700, -124, 0);
+        RectTransform rtToggle1 = toggleCam.GetComponent<RectTransform>();
+        RectTransform rtToggle2 = toggleIMU.GetComponent<RectTransform>();
+        RectTransform rtToggle3 = toggleMapping.GetComponent<RectTransform>();
+        RectTransform rtToggle4 = toggleTracking.GetComponent<RectTransform>();
+        RectTransform rtToggle5 = toggleTest.GetComponent<RectTransform>();
 
         float w, w2, toggleHeight, margin;
 #if UNITY_EDITOR_WIN
         w = 200f;
         margin = 10;
-        w2 = 40f;
+        w2 = 80f;
         toggleHeight = 30f;
 #elif UNITY_ANDROID
         w = 350f;//Width - 100f;
         margin = 20;
         w2 = 70f;
-        toggleHeight = 30f;
+        toggleHeight = 60f;
 #endif
 
-        rt1.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + w2);
-        rt2.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + w2);
-        rt5.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + toggleHeight);
-        rt6.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + toggleHeight);
-        rt7.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + toggleHeight);
-        rt8.anchoredPosition = new Vector3(-Width / 2f - offset, w);
+        rtDrop1.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + w2);
+        rtDrop2.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + w2);
+        rtDrop3.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + w2);
+
+        /*
+        rtToggle1.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + toggleHeight);
+        rtToggle2.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + toggleHeight);
+        rtToggle3.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + toggleHeight);
+        rtToggle4.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + toggleHeight);
+        rtToggle5.anchoredPosition = new Vector3(-Width / 2f - offset, w);
+        */
+
+        w = -Height/2f+100f;
+        rtToggle5.anchoredPosition = new Vector3(-Width / 2f - offset, w); w += (toggleHeight);
+        rtToggle4.anchoredPosition = new Vector3(-Width / 2f - offset, w); w += (toggleHeight);
+        rtToggle3.anchoredPosition = new Vector3(-Width / 2f - offset, w); w += (toggleHeight);
+        rtToggle2.anchoredPosition = new Vector3(-Width / 2f - offset, w); w += (toggleHeight);
+        rtToggle1.anchoredPosition = new Vector3(-Width / 2f - offset, w); 
+        
 
 #if UNITY_EDITOR_WIN
         w = 200f;
@@ -214,22 +257,19 @@ public class TestGUI : MonoBehaviour
         w = 350f;//Width - 100f;
 #endif
 
-        rt3.anchoredPosition = new Vector3(Width / 2f + offset, w); w -= (margin + w2);
-        rt4.anchoredPosition = new Vector3(Width / 2f + offset, w); 
+        rtBtn1.anchoredPosition = new Vector3(Width / 2f + offset, w); w -= (margin + w2);
+        rtBtn2.anchoredPosition = new Vector3(Width / 2f + offset, w); 
 
-        //RectTransform rt = drop.GetComponent<RectTransform>();//.anchoredPosition = new Vector3(-700, -124, 0);
-        //rt.anchoredPosition = new Vector3(-700, -124, 0);
-
-
-        rt1.sizeDelta = new Vector2(200f, w2);
-        rt2.sizeDelta = new Vector2(200f, w2);
-        rt3.sizeDelta = new Vector2(200f, w2);
-        rt4.sizeDelta = new Vector2(200f, w2);
-        rt5.sizeDelta = new Vector2(200f, w2);
-        rt6.sizeDelta = new Vector2(200f, w2);
-        rt7.sizeDelta = new Vector2(200f, w2);
-        rt8.sizeDelta = new Vector2(200f, w2);
-
+        rtDrop1.sizeDelta = new Vector2(200f, w2);
+        rtDrop2.sizeDelta = new Vector2(200f, w2);
+        rtDrop3.sizeDelta = new Vector2(200f, w2);
+        rtToggle1.sizeDelta = new Vector2(200f, w2);
+        rtToggle2.sizeDelta = new Vector2(200f, w2);
+        rtToggle3.sizeDelta = new Vector2(200f, w2);
+        rtToggle4.sizeDelta = new Vector2(200f, w2);
+        rtToggle5.sizeDelta = new Vector2(200f, w2);
+        rtBtn1.sizeDelta = new Vector2(200f, w2);
+        rtBtn2.sizeDelta = new Vector2(200f, w2);
     }
 
     // Update is called once per frame

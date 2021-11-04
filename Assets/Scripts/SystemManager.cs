@@ -30,10 +30,12 @@ public class SystemManager {
     {
         public int numCameraParam;
         public int numDataset;
+        public int numDatasetFileName;
         public string UserName;
         public string MapName;
         public bool ModeMapping;
         public bool ModeTracking;
+        public bool ModeMultiAgentTest;
         public bool UseCamera;
         public bool UseGyro;
         public bool UseAccelerometer;
@@ -45,6 +47,7 @@ public class SystemManager {
         public string UdpAddres;
         public int UdpPort;
         public int LocalPort;
+        public int JpegQuality;
         public int numPyramids;
         public int numFeatures;
         public int numSkipFrames;
@@ -53,9 +56,24 @@ public class SystemManager {
         public string strBoW_database;
     }
 
-    [Serializable]
-    public class ProcessTime
+    public class ExperimentMap
     {
+        public Dictionary<int, DateTime> map;// = new Dictionary<int, DateTime>();
+
+        public void Set(int id, DateTime t)
+        {
+            map[id] = t;
+        }
+        public DateTime Get(int id)
+        {
+            return map[id];
+        }
+    }
+
+    [Serializable]
+    public class ExperimentData
+    {
+        public string name;
         public int nTotal;
         public int nTotalSize;//jpeg
         public float fAvgSize;//jpeg
@@ -63,7 +81,7 @@ public class SystemManager {
         public float fSum_2;
         public float fAvg;
         public float fStddev;
-
+        
         public void Update(float ts)
         {
             nTotal++;
@@ -93,9 +111,9 @@ public class SystemManager {
             bMapping = _bMapping;
             bDeviceTracking = _bDeviceTracking;
             bGyro = _bGyro;
-            
+
             bManager = _bManager;
-            
+
             fx = _fx;
             fy = _fy;
             cx = _cx;
@@ -149,7 +167,7 @@ public class SystemManager {
     public float[] IntrinsicData {
         get
         {
-            
+
             int nidx = 0;
             CameraParams camParam = camParams[userData.numCameraParam];
             fdata[nidx++] = (float)camParam.w;
@@ -165,7 +183,7 @@ public class SystemManager {
             return fdata;
         }
     }
-    
+
     public int ImageWidth
     {
         get
@@ -210,7 +228,7 @@ public class SystemManager {
     }
 
     static private Matrix3x3 k;
-    
+
     static private float dis_scale = 1f;
     public float DisplayScale
     {
@@ -223,7 +241,7 @@ public class SystemManager {
             dis_scale = value;
         }
     }
-    
+
     public int NumSkipFrame
     {
         get
@@ -231,14 +249,14 @@ public class SystemManager {
             return appData.numSkipFrames;
         }
     }
-    
+
     public string UserName
     {
         get
         {
             return userData.UserName;
         }
-        
+
     }
     public string MapName
     {
@@ -259,7 +277,13 @@ public class SystemManager {
     {
         get
         {
-            return path+datalists[userData.numDataset];
+            return path + datalists[userData.numDataset];
+        }
+    }
+    public string DataFile
+    {
+        get{
+            return filelists[userData.numDatasetFileName];
         }
     }
 
@@ -339,7 +363,6 @@ public class SystemManager {
         {
             return userData.UseGyro;
         }
-        
     }
 
     static bool bManagerMode = false;
@@ -360,6 +383,15 @@ public class SystemManager {
     {
         get {
             return datalists;
+        }
+    }
+
+    static private string[] filelists;
+    public String[] FileLists
+    {
+        get
+        {
+            return filelists;
         }
     }
 
@@ -388,6 +420,33 @@ public class SystemManager {
         }
     }
 
+    public ExperimentData[] Experiments
+    {
+        get
+        {
+            return exDatas;
+        }
+        set
+        {
+            exDatas = value;
+        }
+    }
+    static private ExperimentData[] exDatas;
+
+    public ExperimentMap[] ExperimentMaps
+    {
+        get
+        {
+            return exMaps;
+        }
+        set
+        {
+            exMaps = value;
+        }
+    }
+    static private ExperimentMap[] exMaps;
+
+
     static private string path;
     public string Path
     {
@@ -406,7 +465,7 @@ public class SystemManager {
         }
     }
 
-    public ProcessTime ReferenceTime, TrackingTime, ContentGenerationTime, JpegTime;
+    //public ProcessTime ReferenceTime, TrackingTime, ContentGenerationTime, JpegTime;
 
     static private SystemManager m_pInstance = null;
     static public SystemManager Instance
@@ -424,7 +483,8 @@ public class SystemManager {
                 }
                 catch(FileNotFoundException)
                 {
-                    camParams = new CameraParams[9];
+                    int nTotalCam = 10;
+                    camParams = new CameraParams[nTotalCam];
                     int idx = 0;
                     camParams[idx] = new CameraParams();
                     camParams[idx].name = "S20+_Camera_Portrait";
@@ -552,6 +612,20 @@ public class SystemManager {
                     camParams[idx].h = 480f;
                     idx++;
 
+                    camParams[idx] = new CameraParams();
+                    camParams[idx].name = "TUM3";
+                    camParams[idx].fx = 535.4f;
+                    camParams[idx].fy = 539.2f;
+                    camParams[idx].cx = 320.1f;
+                    camParams[idx].cy = 247.6f;
+                    camParams[idx].d1 = 0.0f;
+                    camParams[idx].d2 = 0.0f;
+                    camParams[idx].d3 = 0.0f;
+                    camParams[idx].d4 = 0.0f;
+                    camParams[idx].w = 640f;
+                    camParams[idx].h = 480f;
+                    idx++;
+
                     string camJsonStr = JsonHelper.ToJson(camParams, true);
                     File.WriteAllText(Application.persistentDataPath + "/Data/CameraIntrinsics.json", camJsonStr);
                 }
@@ -570,11 +644,35 @@ public class SystemManager {
                 }
                 catch(FileNotFoundException)
                 {
-                    datalists = new string[3];
-                    datalists[0] = "/KI/S21+/1/";
-                    datalists[1] = "/KI/S21+/5/";
-                    datalists[2] = "/KI/NOTE8/1/";
+                    int nDataList = 4;
+                    datalists = new string[nDataList];
+                    int nIdx = 0;
+                    datalists[nIdx++] = "/KI/S21+/1/";
+                    datalists[nIdx++] = "/KI/S21+/5/";
+                    datalists[nIdx++] = "/KI/NOTE8/1/";
+                    datalists[nIdx++] = "/TUM/TUM3/long_office/";
                     File.WriteAllLines(Application.persistentDataPath + "/Data/DataLists.json", datalists);
+                }
+
+                try
+                {
+                    filelists = File.ReadAllLines(Application.persistentDataPath + "/Data/FileLists.json");
+                }
+                catch (FileNotFoundException)
+                {
+                    int nDataList = 9;
+                    filelists = new string[nDataList];
+                    int nIdx = 0;
+                    filelists[nIdx++] = "rgb.txt";
+                    filelists[nIdx++] = "test/scene1.txt";
+                    filelists[nIdx++] = "test/scene2.txt";
+                    filelists[nIdx++] = "test/scene3.txt";
+                    filelists[nIdx++] = "test/scene4.txt";
+                    filelists[nIdx++] = "test/scene5.txt";
+                    filelists[nIdx++] = "test/scene6.txt";
+                    filelists[nIdx++] = "test/scene7.txt";
+                    filelists[nIdx++] = "test/scene8.txt";
+                    File.WriteAllLines(Application.persistentDataPath + "/Data/FileLists.json", filelists);
                 }
 
                 try
@@ -593,10 +691,12 @@ public class SystemManager {
                 catch(FileNotFoundException)
                 {
                     userData = new UserData();
-                    userData.numCameraParam = 1;
+                    userData.numCameraParam = 0;
                     userData.numDataset = 0;
+                    userData.numDatasetFileName = 0;
                     userData.UserName = "zkrkwlek";
                     userData.MapName = "TestMap";
+                    userData.ModeMultiAgentTest = false;
                     File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(userData));
                 }
 
@@ -613,6 +713,7 @@ public class SystemManager {
                     appData.UdpAddres = "143.248.6.143";
                     appData.UdpPort = 35001;
                     appData.LocalPort = 40003;
+                    appData.JpegQuality = 95;
                     appData.numSkipFrames = 3;
                     appData.numPyramids = 4;
                     appData.numFeatures = 800;
@@ -621,6 +722,65 @@ public class SystemManager {
                     File.WriteAllText(Application.persistentDataPath + "/Data/AppData.json", JsonUtility.ToJson(appData));
                 }
                 fdata = new float[10];
+
+                try
+                {
+                    string strIntrinsics = File.ReadAllText(Application.persistentDataPath + "/Data/Experiment.json");
+                    exDatas = JsonHelper.FromJson<ExperimentData>(strIntrinsics);
+                    exMaps = new ExperimentMap[4];
+                    for(int i = 0; i < exMaps.Length;i++)
+                    {
+                        exMaps[i] = new ExperimentMap();
+                        exMaps[i].map = new Dictionary<int, DateTime>();
+                    }
+                }
+                catch (FileNotFoundException) {
+
+                    //local map size, ref size, content time, local map time
+                    int nData = 4;
+                    exDatas = new ExperimentData[nData];
+                    exMaps = new ExperimentMap[nData];
+
+                    int idx = 0;
+                    exDatas[idx] = new ExperimentData();
+                    exDatas[idx].name = "LocalMapTraffic";
+                    exDatas[idx].nTotal = 0;
+                    exDatas[idx].fSum = 0.0f;
+                    exDatas[idx].fSum_2 = 0.0f;
+                    exMaps[idx] = new ExperimentMap();
+                    exMaps[idx].map = new Dictionary<int, DateTime>();
+                    idx++;
+
+                    exDatas[idx] = new ExperimentData();
+                    exDatas[idx].name = "ReferenceTraffic";
+                    exDatas[idx].nTotal = 0;
+                    exDatas[idx].fSum = 0.0f;
+                    exDatas[idx].fSum_2 = 0.0f;
+                    exMaps[idx] = new ExperimentMap();
+                    exMaps[idx].map = new Dictionary<int, DateTime>();
+                    idx++;
+
+                    exDatas[idx] = new ExperimentData();
+                    exDatas[idx].name = "ReferenceReturnTime";
+                    exDatas[idx].nTotal = 0;
+                    exDatas[idx].fSum = 0.0f;
+                    exDatas[idx].fSum_2 = 0.0f;
+                    exMaps[idx] = new ExperimentMap();
+                    exMaps[idx].map = new Dictionary<int, DateTime>();
+                    idx++;
+
+                    exDatas[idx] = new ExperimentData();
+                    exDatas[idx].name = "ContentReturnTime";
+                    exDatas[idx].nTotal = 0;
+                    exDatas[idx].fSum = 0.0f;
+                    exDatas[idx].fSum_2 = 0.0f;
+                    exMaps[idx] = new ExperimentMap();
+                    exMaps[idx].map = new Dictionary<int, DateTime>();
+                    idx++;
+
+                    string camJsonStr = JsonHelper.ToJson(exDatas, true);
+                    File.WriteAllText(Application.persistentDataPath + "/Data/Experiment.json", camJsonStr);
+                }
 
             }
             return m_pInstance;
@@ -678,62 +838,62 @@ public class SystemManager {
         */
 
         //reference
-        try
-        {
-            string strAddData = File.ReadAllText(Application.persistentDataPath + "/Time/reference.json");
-            ReferenceTime = JsonUtility.FromJson<ProcessTime>(strAddData);
-        }
-        catch (FileNotFoundException)
-        {
-            ProcessTime appData = new ProcessTime();
-            appData.nTotal = 0;
-            appData.fSum = 0.0f;
-            appData.fSum_2 = 0.0f;
-            File.WriteAllText(Application.persistentDataPath + "/Time/reference.json", JsonUtility.ToJson(appData));
-        }
-        //tracking
-        try
-        {
-            string strAddData = File.ReadAllText(Application.persistentDataPath + "/Time/tracking.json");
-            TrackingTime = JsonUtility.FromJson<ProcessTime>(strAddData);
-        }
-        catch (FileNotFoundException)
-        {
-            ProcessTime appData = new ProcessTime();
-            appData.nTotal = 0;
-            appData.fSum = 0.0f;
-            appData.fSum_2 = 0.0f;
-            File.WriteAllText(Application.persistentDataPath + "/Time/tracking.json", JsonUtility.ToJson(appData));
-        }
-        //content generation
-        try
-        {
-            string strAddData = File.ReadAllText(Application.persistentDataPath + "/Time/content.json");
-            ContentGenerationTime = JsonUtility.FromJson<ProcessTime>(strAddData);
-        }
-        catch (FileNotFoundException)
-        {
-            ProcessTime appData = new ProcessTime();
-            appData.nTotal = 0;
-            appData.fSum = 0.0f;
-            appData.fSum_2 = 0.0f;
-            File.WriteAllText(Application.persistentDataPath + "/Time/content.json", JsonUtility.ToJson(appData));
-        }
-        //jpeg
-        try
-        {
-            string strAddData = File.ReadAllText(Application.persistentDataPath + "/Time/jpeg.json");
-            JpegTime = JsonUtility.FromJson<ProcessTime>(strAddData);
-        }
-        catch (FileNotFoundException)
-        {
-            ProcessTime appData = new ProcessTime();
-            appData.nTotal = 0;
-            appData.nTotalSize = 0;
-            appData.fSum = 0.0f;
-            appData.fSum_2 = 0.0f;
-            File.WriteAllText(Application.persistentDataPath + "/Time/jpeg.json", JsonUtility.ToJson(appData));
-        }
+        //try
+        //{
+        //    string strAddData = File.ReadAllText(Application.persistentDataPath + "/Time/reference.json");
+        //    ReferenceTime = JsonUtility.FromJson<ProcessTime>(strAddData);
+        //}
+        //catch (FileNotFoundException)
+        //{
+        //    ProcessTime appData = new ProcessTime();
+        //    appData.nTotal = 0;
+        //    appData.fSum = 0.0f;
+        //    appData.fSum_2 = 0.0f;
+        //    File.WriteAllText(Application.persistentDataPath + "/Time/reference.json", JsonUtility.ToJson(appData));
+        //}
+        ////tracking
+        //try
+        //{
+        //    string strAddData = File.ReadAllText(Application.persistentDataPath + "/Time/tracking.json");
+        //    TrackingTime = JsonUtility.FromJson<ProcessTime>(strAddData);
+        //}
+        //catch (FileNotFoundException)
+        //{
+        //    ProcessTime appData = new ProcessTime();
+        //    appData.nTotal = 0;
+        //    appData.fSum = 0.0f;
+        //    appData.fSum_2 = 0.0f;
+        //    File.WriteAllText(Application.persistentDataPath + "/Time/tracking.json", JsonUtility.ToJson(appData));
+        //}
+        ////content generation
+        //try
+        //{
+        //    string strAddData = File.ReadAllText(Application.persistentDataPath + "/Time/content.json");
+        //    ContentGenerationTime = JsonUtility.FromJson<ProcessTime>(strAddData);
+        //}
+        //catch (FileNotFoundException)
+        //{
+        //    ProcessTime appData = new ProcessTime();
+        //    appData.nTotal = 0;
+        //    appData.fSum = 0.0f;
+        //    appData.fSum_2 = 0.0f;
+        //    File.WriteAllText(Application.persistentDataPath + "/Time/content.json", JsonUtility.ToJson(appData));
+        //}
+        ////jpeg
+        //try
+        //{
+        //    string strAddData = File.ReadAllText(Application.persistentDataPath + "/Time/jpeg.json");
+        //    JpegTime = JsonUtility.FromJson<ProcessTime>(strAddData);
+        //}
+        //catch (FileNotFoundException)
+        //{
+        //    ProcessTime appData = new ProcessTime();
+        //    appData.nTotal = 0;
+        //    appData.nTotalSize = 0;
+        //    appData.fSum = 0.0f;
+        //    appData.fSum_2 = 0.0f;
+        //    File.WriteAllText(Application.persistentDataPath + "/Time/jpeg.json", JsonUtility.ToJson(appData));
+        //}
 
 //        fx = Convert.ToSingle(dataText[numLine++].Split('=')[1]);
 //        fy = Convert.ToSingle(dataText[numLine++].Split('=')[1]);

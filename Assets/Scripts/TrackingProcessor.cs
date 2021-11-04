@@ -48,12 +48,52 @@ public class Tracker
     static private Texture2D tex;
     public Texture2D Texture
     {
-        get 
+        get
         {
             return tex;
         }
     }
     static private WebCamTexture webCamTexture;
+
+    public Rect BackgroundRect
+    {
+        set 
+        {
+            backgroundrect = value;
+        }
+        get 
+        {
+            return backgroundrect;
+        }
+    }
+    static private Rect backgroundrect;
+
+    public Vector2 Diff
+    {
+        set
+        {
+            diff = value;
+        }
+        get
+        {
+            return diff;
+        }
+    }
+    static private Vector2 diff;
+
+    public float Scale
+    {
+        set
+        {
+            scale = value;
+        }
+        get 
+        {
+            return scale;
+        }
+    }
+    static private float scale;
+
     
     static private Tracker m_pInstance = null;
 
@@ -98,7 +138,7 @@ public class Tracker
 
         if (!SystemManager.Instance.Cam)
         {
-            string imgFileTxt = SystemManager.Instance.ImagePath + "rgb.txt";
+            string imgFileTxt = SystemManager.Instance.ImagePath + SystemManager.Instance.DataFile; //"rgb.txt";
             imgfilelist = File.ReadAllLines(imgFileTxt);
         }
 
@@ -210,6 +250,12 @@ public class Tracker
         tex.Apply();
     }
 
+    public void LoadRawTextureData(IntPtr ptr, int size) {
+        tex.LoadRawTextureData(ptr, size);
+        tex.Apply();
+    }
+
+
     public byte[] GetData(string keyword, int id)
     {
         string addr2 = SystemManager.Instance.ServerAddr + "/Load?keyword="+keyword+"&id=" + id + "&src=" + SystemManager.Instance.UserName;
@@ -272,9 +318,10 @@ public class TrackingProcessor : MonoBehaviour
     [DllImport("UnityLibrary")]
     private static extern bool GrabImage(IntPtr addr, int id);
     [DllImport("UnityLibrary")]
-    private static extern bool GetMatchingImage(IntPtr data);
+    private static extern bool VisualizeFrame(IntPtr data);
     [DllImport("UnityLibrary")]
     private static extern bool Track(IntPtr posePtr);
+    
 #elif UNITY_ANDROID
     [DllImport("edgeslam")]
     private static extern void SetIMUAddress(IntPtr addr, bool bIMU);
@@ -286,7 +333,8 @@ public class TrackingProcessor : MonoBehaviour
     [DllImport("edgeslam")]
     private static extern bool Track(IntPtr posePtr);
     [DllImport("edgeslam")]
-    private static extern bool GetMatchingImage(IntPtr data);
+    private static extern bool VisualizeFrame(IntPtr data);
+    
 #endif
 
     public UnityEngine.UI.Text StatusTxt;
@@ -338,7 +386,7 @@ public class TrackingProcessor : MonoBehaviour
 
         Tracker.Instance.Background = background;
         StartCoroutine("ImageSendingCoroutine");
-
+        StartCoroutine("TouchCoroutine");
 
         
 #if (UNITY_EDITOR_WIN)
@@ -384,7 +432,18 @@ public class TrackingProcessor : MonoBehaviour
                     SetFrame(texPtr, mnFrameID, 0.0, ref tt1, ref tt2);
                     if (SystemManager.Instance.UseGyro)
                         DeltaFrameR.Copy(ref fIMUPose, 0);
-                    bool bTrack = Track(posePtr);
+
+                    bool bTrack = false;
+                    if (!SystemManager.Instance.User.ModeMultiAgentTest)
+                    {
+                        bTrack = Track(posePtr);
+
+                        if (VisualizeFrame(texPtr))
+                        {
+                            Tracker.Instance.LoadRawTextureData(texPtr, texData.Length * 4);
+                        }
+                    }
+                    
                     if (bTrack)
                     {
                         ResultImage.color = new Color(0.0f, 1.0f, 0.0f, 4.0f);
@@ -394,43 +453,6 @@ public class TrackingProcessor : MonoBehaviour
                     }
                     texHandle.Free();
                 }                
-                
-
-                //texHandle.Free();
-                //Marshal.FreeHGlobal(texPtr);
-                /*
-                if (bGrabImage)
-                {
-                    bSendImage = true;
-                    
-                    if (SystemManager.Instance.IsDeviceTracking)
-                    { 
-                        DateTime t1 = DateTime.Now;
-
-                        float tt1 = 0f; float tt2 = 0f;
-                        SetFrame(mnFrameID, 0.0, ref tt1, ref tt2);
-
-                        int nRes = 0;
-                        if (SystemManager.Instance.UseGyro)
-                            DeltaFrameR.Copy(ref fIMUPose, 0);
-
-                        bTracking = Track(posePtr);
-                        //DateTime t2 = DateTime.Now;
-                        //TimeSpan time1 = t2 - t1;
-                        //float temp = (float)time1.Milliseconds;
-                        //SystemManager.Instance.TrackingTime.Update(temp);
-                        StartCoroutine("SendPoseData");
-
-                    }
-
-                    //if (GetMatchingImage(resPtr))
-                    //{
-                    //    tex.LoadRawTextureData(resPtr, resData.Length);
-                    //    tex.Apply();
-                    //}
-                }
-                ReleaseImage();
-                */
                 ++mnFrameID;
             }
             catch (Exception ex)
@@ -438,6 +460,56 @@ public class TrackingProcessor : MonoBehaviour
                 StatusTxt.text = ex.ToString();
             }
 
+            //touch 
+            Touch touch = Input.GetTouch(0);
+            if (touch.phase == TouchPhase.Began)
+            {
+                bTouch = true;
+            }
+            else if (touch.phase == TouchPhase.Moved)
+            {
+            }
+            else if (touch.phase == TouchPhase.Ended)
+            {
+            }
+            touchPos = touch.position;
+
+        }
+    }
+
+    bool bTouch = false;
+    Vector2 touchPos = Vector2.zero;
+    int mnTouchID = 0;
+    IEnumerator TouchCoroutine() {
+        while (true) {
+            if (bTouch && Tracker.Instance.BackgroundRect.Contains(touchPos)) {
+                float[] fdata = new float[3];
+                float scale = Tracker.Instance.Scale;
+                float width = Tracker.Instance.Diff.x;
+                float height = Tracker.Instance.Diff.y;
+                fdata[0] = (touchPos.x - width) / scale;
+                fdata[1] = (height - touchPos.y) / scale;
+                fdata[2] = 1.0f;
+
+                byte[] bdata = new byte[(fPoseData.Length + fdata.Length) * 4];
+                Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length * 4);
+                Buffer.BlockCopy(fPoseData, 0, bdata, fdata.Length * 4, fPoseData.Length * 4);
+                //Debug.Log(fPoseData[9] + " " + fPoseData[10] + " " + fPoseData[11]);
+                string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=ContentGeneration&id=" + ++mnTouchID + "&src=" + SystemManager.Instance.UserName;
+                UnityWebRequest request = new UnityWebRequest(addr);
+                request.method = "POST";
+                UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
+                uH.contentType = "application/json";
+                request.uploadHandler = uH;
+                request.downloadHandler = new DownloadHandlerBuffer();
+                UnityWebRequestAsyncOperation res = request.SendWebRequest();
+                while (request.uploadHandler.progress < 1f)
+                {
+                    yield return null;
+                }
+                bTouch = false;
+            }
+            yield return null;
         }
     }
 
@@ -445,26 +517,17 @@ public class TrackingProcessor : MonoBehaviour
     IEnumerator ImageSendingCoroutine()
     {
         int nSkipFrame = SystemManager.Instance.NumSkipFrame;
-
+        int nQuality = SystemManager.Instance.AppData.JpegQuality;
         while (true)
         {
             if (SystemManager.Instance.Start && mnFrameID % nSkipFrame == 0)
             {
                 ////JPEG 압축
-                DateTime t1 = DateTime.Now;
-                webCamByteData = Tracker.Instance.Texture.EncodeToJPG(100);
-                DateTime t2 = DateTime.Now;
-                TimeSpan time2 = t2 - t1;
-                float temp = (float)time2.Milliseconds;
-                //SystemManager.Instance.JpegTime.Update(temp);
-                //SystemManager.Instance.JpegTime.nTotalSize += webCamByteData.Length;
+                webCamByteData = Tracker.Instance.Texture.EncodeToJPG(nQuality);
                 ////JPEG 압축
 
                 int id = mnFrameID;
                 DateTime start = DateTime.Now;
-
-                string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=Image&id=" + id + "&src=" + SystemManager.Instance.UserName + "&type2=" + ts;
-                //mapImageTime[id] = start;
 
                 if (SystemManager.Instance.UseGyro)
                 {
@@ -483,6 +546,12 @@ public class TrackingProcessor : MonoBehaviour
                     UnityWebRequestAsyncOperation res2 = request2.SendWebRequest();
                     DeltaR = new Matrix3x3();
                 }
+
+                string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=Image&id=" + id + "&src=" + SystemManager.Instance.UserName + "&type2=" + ts;
+
+                SystemManager.ExperimentMap[] maps = SystemManager.Instance.ExperimentMaps;
+                maps[2].Set(id, start);
+                SystemManager.Instance.ExperimentMaps = maps;
 
                 UnityWebRequest request = new UnityWebRequest(addr);
                 request.method = "POST";
