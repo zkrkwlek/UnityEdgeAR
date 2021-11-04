@@ -26,9 +26,25 @@ public class UdpData
         type1 = _type;
         src = _src;
     }
+    public UdpData(string _key, string _src, int _id, byte[] _data)
+    {
+        keyword = _key;
+        src = _src;
+        id = _id;
+        data = _data;
+    }
+    public UdpData(string _key, string _src, int _id, byte[] _data, double _ts)
+    {
+        keyword = _key;
+        src = _src;
+        id = _id;
+        data = _data;
+        timestamp = _ts;
+    }
     public string keyword, type1, type2, src;
     public byte[] data;
     public int id, id2;
+    public double timestamp;
     public DateTime sendedTime, receivedTime;
 }
 
@@ -187,7 +203,7 @@ public class UdpAsyncHandler
     }
 
     public event EventHandler<UdpEventArgs> UdpDataReceived;
-    
+
     //private static List<UdpState> mListUDPs = new List<UdpState>();
     //public List<UdpState> ConnectedUDPs
     //{
@@ -197,14 +213,15 @@ public class UdpAsyncHandler
     //    }
     //}
 
-    static private ConcurrentQueue<UdpData> dataQueue = new ConcurrentQueue<UdpData>();
-    public ConcurrentQueue<UdpData> DataQueue
-    {
-        get
-        {
-            return dataQueue;
-        }
-    }
+    //ConcurrentQueue
+    //static private Queue<UdpData> dataQueue = new Queue<UdpData>();
+    //public Queue<UdpData> DataQueue
+    //{
+    //    get
+    //    {
+    //        return dataQueue;
+    //    }
+    //}
     
     void UdpDataReceivedProcess(object sender, UdpEventArgs e)
     {
@@ -238,8 +255,13 @@ public class UdpAsyncHandler
         //{
 
         //}
-        dataQueue.Enqueue(data);
-    }
 
+        //dataQueue.Enqueue(data);
+        DataQueue.Instance.ReceivingQueue.Enqueue(data);
+        
+    }
+    //IEnumerable Test() {
+    //    yield return null;
+    //}
     //큐에서 
 }

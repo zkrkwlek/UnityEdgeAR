@@ -306,6 +306,21 @@ public class Tracker
         ////SetReferenceFrame(data.id, fdata);
 
     }
+
+    ////PoseData
+    public float[] PoseData
+    {
+        set
+        {
+            pose = value;
+        }
+        get
+        {
+            return pose;
+        }
+    }
+    static private float[] pose;
+
 }
 
 
@@ -343,7 +358,7 @@ public class TrackingProcessor : MonoBehaviour
     GCHandle texHandle;
     IntPtr texPtr;
     
-    float[] fPoseData;
+    //float[] fPoseData;
     GCHandle poseHandle;
     IntPtr posePtr;
 
@@ -373,8 +388,8 @@ public class TrackingProcessor : MonoBehaviour
         resPtr = resHandle.AddrOfPinnedObject();
 
         ////pose ptr
-        fPoseData = new float[12];
-        poseHandle = GCHandle.Alloc(fPoseData, GCHandleType.Pinned);
+        Tracker.Instance.PoseData = new float[12];
+        poseHandle = GCHandle.Alloc(Tracker.Instance.PoseData, GCHandleType.Pinned);
         posePtr = poseHandle.AddrOfPinnedObject();
         ////pose ptr
 
@@ -385,8 +400,8 @@ public class TrackingProcessor : MonoBehaviour
         ////imu ptr
 
         Tracker.Instance.Background = background;
-        StartCoroutine("ImageSendingCoroutine");
-        StartCoroutine("TouchCoroutine");
+        //StartCoroutine("ImageSendingCoroutine");
+        //StartCoroutine("TouchCoroutine");
 
         
 #if (UNITY_EDITOR_WIN)
@@ -396,6 +411,10 @@ public class TrackingProcessor : MonoBehaviour
 #endif
         
     }
+
+    int nSkipFrame = SystemManager.Instance.NumSkipFrame;
+    int nQuality = SystemManager.Instance.AppData.JpegQuality;
+
     void Update()
     {
 
@@ -420,6 +439,37 @@ public class TrackingProcessor : MonoBehaviour
                     string imgFile = SystemManager.Instance.ImagePath + file;
                     byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
                     Tracker.Instance.Texture.LoadImage(byteTexture);
+                }
+
+                ////send data
+                if (mnFrameID % nSkipFrame == 0)
+                {
+                    ////이 부분 어떻게든 바꾸고 싶다.
+                    ////데이터 보낼 때 시간을 기록
+                    SystemManager.ExperimentMap[] maps = SystemManager.Instance.ExperimentMaps;
+                    maps[2].Set(mnFrameID, DateTime.Now);
+                    SystemManager.Instance.ExperimentMaps = maps;
+                    ////이 부분 어떻게든 바꾸고 싶다.
+                    ////데이터 보낼 때 시간을 기록
+
+                    string src = SystemManager.Instance.UserName;
+                    if (SystemManager.Instance.UseGyro)
+                    {
+                        //StatusTxt.text = DeltaR.m00 + " " + DeltaR.m11+" "+ DeltaR.m22;
+                        float[] fdata = new float[9];
+                        DeltaR.Copy(ref fdata, 0);
+                        byte[] bdata = new byte[(fdata.Length) * 4];
+                        Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length * 4);
+
+                        UdpData gdata = new UdpData("Gyro", src, mnFrameID, bdata);
+                        DataQueue.Instance.SendingQueue.Enqueue(gdata);
+                        //전송할때까지 다시 자이로 값을 누적함.
+                        DeltaR = new Matrix3x3();
+                    }
+
+                    ////압축 이미지를 바이트로 변환
+                    UdpData data = new UdpData("Image", src, mnFrameID, Tracker.Instance.Texture.EncodeToJPG(nQuality));
+                    DataQueue.Instance.SendingQueue.Enqueue(data);
                 }
 
                 if (SystemManager.Instance.IsDeviceTracking)
@@ -460,20 +510,7 @@ public class TrackingProcessor : MonoBehaviour
                 StatusTxt.text = ex.ToString();
             }
 
-            //touch 
-            Touch touch = Input.GetTouch(0);
-            if (touch.phase == TouchPhase.Began)
-            {
-                bTouch = true;
-            }
-            else if (touch.phase == TouchPhase.Moved)
-            {
-            }
-            else if (touch.phase == TouchPhase.Ended)
-            {
-            }
-            touchPos = touch.position;
-
+            
         }
     }
 
@@ -483,41 +520,41 @@ public class TrackingProcessor : MonoBehaviour
     IEnumerator TouchCoroutine() {
         while (true) {
             if (bTouch && Tracker.Instance.BackgroundRect.Contains(touchPos)) {
-                float[] fdata = new float[3];
-                float scale = Tracker.Instance.Scale;
-                float width = Tracker.Instance.Diff.x;
-                float height = Tracker.Instance.Diff.y;
-                fdata[0] = (touchPos.x - width) / scale;
-                fdata[1] = (height - touchPos.y) / scale;
-                fdata[2] = 1.0f;
+                //float[] fdata = new float[3];
+                //float scale = Tracker.Instance.Scale;
+                //float width = Tracker.Instance.Diff.x;
+                //float height = Tracker.Instance.Diff.y;
+                //fdata[0] = (touchPos.x - width) / scale;
+                //fdata[1] = (height - touchPos.y) / scale;
+                //fdata[2] = 1.0f;
 
-                byte[] bdata = new byte[(fPoseData.Length + fdata.Length) * 4];
-                Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length * 4);
-                Buffer.BlockCopy(fPoseData, 0, bdata, fdata.Length * 4, fPoseData.Length * 4);
-                //Debug.Log(fPoseData[9] + " " + fPoseData[10] + " " + fPoseData[11]);
-                string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=ContentGeneration&id=" + ++mnTouchID + "&src=" + SystemManager.Instance.UserName;
-                UnityWebRequest request = new UnityWebRequest(addr);
-                request.method = "POST";
-                UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
-                uH.contentType = "application/json";
-                request.uploadHandler = uH;
-                request.downloadHandler = new DownloadHandlerBuffer();
-                UnityWebRequestAsyncOperation res = request.SendWebRequest();
-                while (request.uploadHandler.progress < 1f)
-                {
-                    yield return null;
-                }
-                bTouch = false;
+                //byte[] bdata = new byte[(fPoseData.Length + fdata.Length) * 4];
+                //Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length * 4);
+                //Buffer.BlockCopy(fPoseData, 0, bdata, fdata.Length * 4, fPoseData.Length * 4);
+                ////Debug.Log(fPoseData[9] + " " + fPoseData[10] + " " + fPoseData[11]);
+                //string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=ContentGeneration&id=" + ++mnTouchID + "&src=" + SystemManager.Instance.UserName;
+                //UnityWebRequest request = new UnityWebRequest(addr);
+                //request.method = "POST";
+                //UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
+                //uH.contentType = "application/json";
+                //request.uploadHandler = uH;
+                //request.downloadHandler = new DownloadHandlerBuffer();
+                //UnityWebRequestAsyncOperation res = request.SendWebRequest();
+                //while (request.uploadHandler.progress < 1f)
+                //{
+                //    //yield return null;
+                //    yield return new WaitForFixedUpdate();
+                //}
+                //bTouch = false;
             }
             yield return null;
         }
     }
-
+    
     byte[] webCamByteData;
     IEnumerator ImageSendingCoroutine()
     {
-        int nSkipFrame = SystemManager.Instance.NumSkipFrame;
-        int nQuality = SystemManager.Instance.AppData.JpegQuality;
+        
         while (true)
         {
             if (SystemManager.Instance.Start && mnFrameID % nSkipFrame == 0)
@@ -546,7 +583,9 @@ public class TrackingProcessor : MonoBehaviour
                     UnityWebRequestAsyncOperation res2 = request2.SendWebRequest();
                     DeltaR = new Matrix3x3();
                 }
-
+                //TimeSpan timeSpan = (DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, 0));
+                //Debug.Log("" + timeSpan.TotalSeconds);
+            
                 string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=Image&id=" + id + "&src=" + SystemManager.Instance.UserName + "&type2=" + ts;
 
                 SystemManager.ExperimentMap[] maps = SystemManager.Instance.ExperimentMaps;
@@ -565,13 +604,9 @@ public class TrackingProcessor : MonoBehaviour
                 while (request.uploadHandler.progress < 1f)
                 {
                     //continue;
-                    //yield return new WaitForFixedUpdate();
-                    yield return null;
+                    yield return new WaitForFixedUpdate();
+                    //yield return null;
                 }
-                //while (!request.downloadHandler.isDone)
-                //{
-                //    yield return new WaitForFixedUpdate();
-                //}
 
             }
             yield return null;
