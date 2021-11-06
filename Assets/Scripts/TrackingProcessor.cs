@@ -165,11 +165,11 @@ public class Tracker
         byte[] bdatab = System.Text.Encoding.UTF8.GetBytes(msg2);
         float[] fdataa = SystemManager.Instance.IntrinsicData;
         byte[] bdata2 = new byte[3 + fdataa.Length * 4 + bdatab.Length];
-        bdata2[40] = SystemManager.Instance.IsServerMapping ? (byte)1 : (byte)0;
-        bdata2[41] = SystemManager.Instance.IsDeviceTracking ? (byte)1 : (byte)0;
-        bdata2[42] = SystemManager.Instance.UseGyro ? (byte)1 : (byte)0;
-        Buffer.BlockCopy(fdataa, 0, bdata2, 0, 40);
-        Buffer.BlockCopy(bdatab, 0, bdata2, 43, bdatab.Length);
+        bdata2[fdataa.Length * 4] = SystemManager.Instance.IsServerMapping ? (byte)1 : (byte)0;
+        bdata2[fdataa.Length * 4+1] = SystemManager.Instance.IsDeviceTracking ? (byte)1 : (byte)0;
+        bdata2[fdataa.Length * 4+2] = SystemManager.Instance.UseGyro ? (byte)1 : (byte)0;
+        Buffer.BlockCopy(fdataa, 0, bdata2, 0, fdataa.Length * 4);
+        Buffer.BlockCopy(bdatab, 0, bdata2, fdataa.Length * 4+3, bdatab.Length);
 
         //Debug.Log(msg2+" "+ bdatab.Length);
 
@@ -223,7 +223,6 @@ public class Tracker
             webCamTexture.Stop();
         }
 
-
         ////Device & Map store
         string addr2 = SystemManager.Instance.ServerAddr + "/Store?keyword=DeviceDisconnect&id=0&src=" + SystemManager.Instance.UserName;
         string msg2 = SystemManager.Instance.UserName + "," + SystemManager.Instance.MapName;
@@ -253,22 +252,6 @@ public class Tracker
     public void LoadRawTextureData(IntPtr ptr, int size) {
         tex.LoadRawTextureData(ptr, size);
         tex.Apply();
-    }
-
-
-    public byte[] GetData(string keyword, int id)
-    {
-        string addr2 = SystemManager.Instance.ServerAddr + "/Load?keyword="+keyword+"&id=" + id + "&src=" + SystemManager.Instance.UserName;
-        UnityWebRequest request = new UnityWebRequest(addr2);
-        request.method = "POST";
-        request.downloadHandler = new DownloadHandlerBuffer();
-
-        UnityWebRequestAsyncOperation res = request.SendWebRequest();
-        while (!request.downloadHandler.isDone)
-        {
-            continue;
-        }
-        return request.downloadHandler.data;
     }
 
     public void CreateReferenceFrame()
@@ -370,13 +353,8 @@ public class TrackingProcessor : MonoBehaviour
     GCHandle resHandle;
     IntPtr resPtr;
 
-    bool bTracking = false;
-    bool bDoingTrack = false;
-    bool bGrabImage = false;
-    bool bSendImage = false;
-
     int mnFrameID = 0;
-    double ts = 0.0;
+    double ts = 1.0;
     Matrix3x3 DeltaR = new Matrix3x3();
     Matrix3x3 DeltaFrameR;
 
@@ -400,9 +378,6 @@ public class TrackingProcessor : MonoBehaviour
         ////imu ptr
 
         Tracker.Instance.Background = background;
-        //StartCoroutine("ImageSendingCoroutine");
-        //StartCoroutine("TouchCoroutine");
-
         
 #if (UNITY_EDITOR_WIN)
 
@@ -417,7 +392,7 @@ public class TrackingProcessor : MonoBehaviour
 
     void Update()
     {
-
+        //StatusTxt.text = "Quality = " + nQuality;
         if (SystemManager.Instance.UseGyro)
         {
             DeltaFrameR = SensorManager.Instance.DeltaRotationMatrix();
@@ -432,26 +407,24 @@ public class TrackingProcessor : MonoBehaviour
                 if (SystemManager.Instance.Cam)
                 {
                     Tracker.Instance.LoadWebcamTextre();
+                    //TimeSpan span = DateTime.UtcNow- new DateTime(1970, 1, 1, 0, 0, 0);
+                    //ts = span.TotalSeconds;
+
                 }
                 else
                 {
-                    string file = Convert.ToString(Tracker.Instance.ImageList[Tracker.Instance.ImageFrameIndexX++].Split(' ')[1]);
+                    string[] strsplit = Tracker.Instance.ImageList[Tracker.Instance.ImageFrameIndexX++].Split(' ');
+                    ts = Convert.ToDouble(strsplit[0]);
+                    string file = Convert.ToString(strsplit[1]);
                     string imgFile = SystemManager.Instance.ImagePath + file;
                     byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
                     Tracker.Instance.Texture.LoadImage(byteTexture);
                 }
-
+                
                 ////send data
                 if (mnFrameID % nSkipFrame == 0)
                 {
-                    ////이 부분 어떻게든 바꾸고 싶다.
-                    ////데이터 보낼 때 시간을 기록
-                    SystemManager.ExperimentMap[] maps = SystemManager.Instance.ExperimentMaps;
-                    maps[2].Set(mnFrameID, DateTime.Now);
-                    SystemManager.Instance.ExperimentMaps = maps;
-                    ////이 부분 어떻게든 바꾸고 싶다.
-                    ////데이터 보낼 때 시간을 기록
-
+                    
                     string src = SystemManager.Instance.UserName;
                     if (SystemManager.Instance.UseGyro)
                     {
@@ -468,8 +441,13 @@ public class TrackingProcessor : MonoBehaviour
                     }
 
                     ////압축 이미지를 바이트로 변환
-                    UdpData data = new UdpData("Image", src, mnFrameID, Tracker.Instance.Texture.EncodeToJPG(nQuality));
-                    DataQueue.Instance.SendingQueue.Enqueue(data);
+                    if (!DataQueue.Instance.Sending) {
+                        DataQueue.Instance.Sending = true;
+                        UdpData data = new UdpData("Image", src, mnFrameID, Tracker.Instance.Texture.EncodeToJPG(nQuality), ts);
+                        data.sendedTime = DateTime.Now;
+                        DataQueue.Instance.Add(data);
+                        DataQueue.Instance.SendingQueue.Enqueue(data);
+                    }
                 }
 
                 if (SystemManager.Instance.IsDeviceTracking)
@@ -509,107 +487,8 @@ public class TrackingProcessor : MonoBehaviour
             {
                 StatusTxt.text = ex.ToString();
             }
-
             
         }
     }
 
-    bool bTouch = false;
-    Vector2 touchPos = Vector2.zero;
-    int mnTouchID = 0;
-    IEnumerator TouchCoroutine() {
-        while (true) {
-            if (bTouch && Tracker.Instance.BackgroundRect.Contains(touchPos)) {
-                //float[] fdata = new float[3];
-                //float scale = Tracker.Instance.Scale;
-                //float width = Tracker.Instance.Diff.x;
-                //float height = Tracker.Instance.Diff.y;
-                //fdata[0] = (touchPos.x - width) / scale;
-                //fdata[1] = (height - touchPos.y) / scale;
-                //fdata[2] = 1.0f;
-
-                //byte[] bdata = new byte[(fPoseData.Length + fdata.Length) * 4];
-                //Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length * 4);
-                //Buffer.BlockCopy(fPoseData, 0, bdata, fdata.Length * 4, fPoseData.Length * 4);
-                ////Debug.Log(fPoseData[9] + " " + fPoseData[10] + " " + fPoseData[11]);
-                //string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=ContentGeneration&id=" + ++mnTouchID + "&src=" + SystemManager.Instance.UserName;
-                //UnityWebRequest request = new UnityWebRequest(addr);
-                //request.method = "POST";
-                //UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
-                //uH.contentType = "application/json";
-                //request.uploadHandler = uH;
-                //request.downloadHandler = new DownloadHandlerBuffer();
-                //UnityWebRequestAsyncOperation res = request.SendWebRequest();
-                //while (request.uploadHandler.progress < 1f)
-                //{
-                //    //yield return null;
-                //    yield return new WaitForFixedUpdate();
-                //}
-                //bTouch = false;
-            }
-            yield return null;
-        }
-    }
-    
-    byte[] webCamByteData;
-    IEnumerator ImageSendingCoroutine()
-    {
-        
-        while (true)
-        {
-            if (SystemManager.Instance.Start && mnFrameID % nSkipFrame == 0)
-            {
-                ////JPEG 압축
-                webCamByteData = Tracker.Instance.Texture.EncodeToJPG(nQuality);
-                ////JPEG 압축
-
-                int id = mnFrameID;
-                DateTime start = DateTime.Now;
-
-                if (SystemManager.Instance.UseGyro)
-                {
-                    //StatusTxt.text = DeltaR.m00 + " " + DeltaR.m11+" "+ DeltaR.m22;
-                    float[] fdata = new float[9];
-                    DeltaR.Copy(ref fdata, 0);
-                    byte[] bdata = new byte[(fdata.Length) * 4];
-                    Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length * 4);
-                    string addr2 = SystemManager.Instance.ServerAddr + "/Store?keyword=Gyro&id=" + id + "&src=" + SystemManager.Instance.UserName;
-                    UnityWebRequest request2 = new UnityWebRequest(addr2);
-                    request2.method = "POST";
-                    UploadHandlerRaw uH2 = new UploadHandlerRaw(bdata);
-                    uH2.contentType = "application/json";
-                    request2.uploadHandler = uH2;
-                    request2.downloadHandler = new DownloadHandlerBuffer();
-                    UnityWebRequestAsyncOperation res2 = request2.SendWebRequest();
-                    DeltaR = new Matrix3x3();
-                }
-                //TimeSpan timeSpan = (DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, 0));
-                //Debug.Log("" + timeSpan.TotalSeconds);
-            
-                string addr = SystemManager.Instance.ServerAddr + "/Store?keyword=Image&id=" + id + "&src=" + SystemManager.Instance.UserName + "&type2=" + ts;
-
-                SystemManager.ExperimentMap[] maps = SystemManager.Instance.ExperimentMaps;
-                maps[2].Set(id, start);
-                SystemManager.Instance.ExperimentMaps = maps;
-
-                UnityWebRequest request = new UnityWebRequest(addr);
-                request.method = "POST";
-                UploadHandlerRaw uH = new UploadHandlerRaw(webCamByteData);
-                uH.contentType = "application/json";
-                request.uploadHandler = uH;
-                request.downloadHandler = new DownloadHandlerBuffer();
-
-                UnityWebRequestAsyncOperation res = request.SendWebRequest();
-                
-                while (request.uploadHandler.progress < 1f)
-                {
-                    //continue;
-                    yield return new WaitForFixedUpdate();
-                    //yield return null;
-                }
-
-            }
-            yield return null;
-        }
-    }
 }

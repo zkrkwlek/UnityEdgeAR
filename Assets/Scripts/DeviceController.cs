@@ -656,7 +656,7 @@ public class DeviceController : MonoBehaviour
                         DateTime t2 = DateTime.Now;
                         TimeSpan time1 = t2 - t1;
                         float temp = (float)time1.Milliseconds;
-                        SystemManager.Instance.TrackingTime.Update(temp);
+                        //SystemManager.Instance.TrackingTime.Update(temp);
                         StartCoroutine("SendPoseData");
 
                     }
@@ -866,8 +866,8 @@ public class DeviceController : MonoBehaviour
                 DateTime t2 = DateTime.Now;
                 TimeSpan time2 = t2 - t1;
                 float temp = (float)time2.Milliseconds;
-                SystemManager.Instance.JpegTime.Update(temp);
-                SystemManager.Instance.JpegTime.nTotalSize += webCamByteData.Length;
+                //SystemManager.Instance.JpegTime.Update(temp);
+                //SystemManager.Instance.JpegTime.nTotalSize += webCamByteData.Length;
                 ////JPEG 압축
 
                 int id = mnFrameID;
@@ -1054,7 +1054,7 @@ public class DeviceController : MonoBehaviour
             TimeSpan time1 = t2 - t1;
             TimeSpan time2 = t3 - t1;
             float temp = (float)time2.Milliseconds;
-            SystemManager.Instance.TrackingTime.Update(temp);
+            //SystemManager.Instance.TrackingTime.Update(temp);
 
             //StatusTxt.text = "Tracking = " + nRes + "::" + tt1 + ", " + tt2 + "::::" + time1.Milliseconds.ToString().PadLeft(3, '0') + ", " + time2.Milliseconds.ToString().PadLeft(3, '0');
 

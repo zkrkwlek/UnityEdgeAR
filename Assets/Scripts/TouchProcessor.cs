@@ -18,6 +18,10 @@ public class TouchProcessor : MonoBehaviour
         ////touch 
         bool bTouch = false;
         Vector2 touchPos = Vector2.zero;
+
+#if UNITY_EDITOR_WIN
+
+#elif UNITY_ANDROID
         Touch touch = Input.GetTouch(0);
         if (touch.phase == TouchPhase.Began)
         {
@@ -34,18 +38,12 @@ public class TouchProcessor : MonoBehaviour
             touchPos = touch.position;
             bTouch = true;
         }
+#endif
 
         if (bTouch && Tracker.Instance.BackgroundRect.Contains(touchPos))
         {
             ++mnTouchID;
-            ////이 부분 어떻게든 바꾸고 싶다.
-            ////데이터 보낼 때 시간을 기록
-            SystemManager.ExperimentMap[] maps = SystemManager.Instance.ExperimentMaps;
-            maps[3].Set(mnTouchID, DateTime.Now);
-            SystemManager.Instance.ExperimentMaps = maps;
-            ////이 부분 어떻게든 바꾸고 싶다.
-            ////데이터 보낼 때 시간을 기록
-
+            
             float[] fdata = new float[3];
             float scale = Tracker.Instance.Scale;
             float width = Tracker.Instance.Diff.x;
@@ -61,6 +59,8 @@ public class TouchProcessor : MonoBehaviour
             Buffer.BlockCopy(fPoseData, 0, bdata, fdata.Length * 4, fPoseData.Length * 4);
             
             UdpData data = new UdpData("ContentGeneration", SystemManager.Instance.UserName, mnTouchID, bdata);
+            data.sendedTime = DateTime.Now;
+            DataQueue.Instance.Add(data);
             DataQueue.Instance.SendingQueue.Enqueue(data);
         }
 

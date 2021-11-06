@@ -13,17 +13,11 @@ public class SensorCaptureManager : MonoBehaviour
     {
         try
         {
+
             plugin = new AndroidJavaClass("com.uvr.sensorplugin.SensorActivity").CallStatic<AndroidJavaObject>("GetInstance");
-            if (SystemManager.Instance.UseGyro) { 
-                plugin.Call("addSensor", 1, "SensorCapture", "RawGyroResult");
-                StatusTxt.text = "asdfasdfasdfgLoad Plugin!!!";
-            }
-            else
-            {
-                StatusTxt.text = "Not listen gyro!!!";
-            }
-            if (SystemManager.Instance.UseAccelerometer)
-                plugin.Call("addSensor", 2, "SensorCapture", "RawAccResult");
+            plugin.Call("addSensor", 1, "SensorCapture", "RawGyroResult");
+            //SensorManager.Instance.Plugin.Call("addSensor", 2, "SensorCapture", "RawAccResult");
+
             //plugin.Call("addSensor", 3, "SensorCapture", "GraResult");
 
             //plugin.Call("addSensor", 4, "SensorCapture", "RawMagResult");
@@ -50,6 +44,7 @@ public class SensorCaptureManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+
 #if UNITY_EDITOR_WIN
 #elif UNITY_ANDROID
         Init();
@@ -85,7 +80,6 @@ public class SensorCaptureManager : MonoBehaviour
 
     public void RawAccResult(string res)
     {
-
         string[] strs = res.Split(' ');
         Vector3 vAcc = new Vector3(System.Convert.ToSingle(strs[0]), System.Convert.ToSingle(strs[1]), System.Convert.ToSingle(strs[2]));
         //가장 최근 이용
@@ -98,8 +92,9 @@ public class SensorCaptureManager : MonoBehaviour
         SensorData tempSensorData = new SensorData(vAcc, dt, timestamp);
         //AppDataManager.SetTxt("TimeStamp=" + timestamp, AppDataManager.ErrTxt);
         //SensorPoseManager.SetLinearAcc(vAcc, dt);
+        
         SensorManager.Instance.SetAcc(tempSensorData);
-
+        
     }
     public void RawGyroResult(string res)
     {
@@ -119,5 +114,6 @@ public class SensorCaptureManager : MonoBehaviour
         SensorData tempSensorData = new SensorData(gyroRes, dt, timestamp);
         //SensorPoseManager.SetGyro(gyroRes, gyroDt);
         SensorManager.Instance.SetGyro(tempSensorData);
+        
     }
 }

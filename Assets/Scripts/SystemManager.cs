@@ -21,6 +21,7 @@ public class SystemManager {
         public float d2;
         public float d3;
         public float d4;
+        public float d5;
         public float w;
         public float h;
     }
@@ -180,6 +181,7 @@ public class SystemManager {
             fdata[nidx++] = camParam.d2;
             fdata[nidx++] = camParam.d3;
             fdata[nidx++] = camParam.d4;
+            fdata[nidx++] = camParam.d5;
             return fdata;
         }
     }
@@ -433,19 +435,18 @@ public class SystemManager {
     }
     static private ExperimentData[] exDatas;
 
-    public ExperimentMap[] ExperimentMaps
+    public List<string> Trajectory
     {
         get
         {
-            return exMaps;
+            return trajectory;
         }
-        set
+        set 
         {
-            exMaps = value;
+            trajectory = value;
         }
     }
-    static private ExperimentMap[] exMaps;
-
+    static private List<string> trajectory;
 
     static private string path;
     public string Path
@@ -478,12 +479,13 @@ public class SystemManager {
                 
                 try
                 {
+                    Debug.Log(Application.persistentDataPath);
                     string strIntrinsics = File.ReadAllText(Application.persistentDataPath + "/Data/CameraIntrinsics.json");
                     camParams = JsonHelper.FromJson<CameraParams>(strIntrinsics);
                 }
                 catch(FileNotFoundException)
                 {
-                    int nTotalCam = 10;
+                    int nTotalCam = 13;
                     camParams = new CameraParams[nTotalCam];
                     int idx = 0;
                     camParams[idx] = new CameraParams();
@@ -496,6 +498,7 @@ public class SystemManager {
                     camParams[idx].d2 = -0.0314f;
                     camParams[idx].d3 = -0.0242f;
                     camParams[idx].d4 = 0.0023f;
+                    camParams[idx].d5 = 0.0f;
                     camParams[idx].w = 640f;
                     camParams[idx].h = 360f;
                     idx++;
@@ -510,6 +513,7 @@ public class SystemManager {
                     camParams[idx].d2 = 0.0421f;
                     camParams[idx].d3 = -0.0050f;
                     camParams[idx].d4 = 0.0084f;
+                    camParams[idx].d5 = 0.0f;
                     camParams[idx].w = 640f;
                     camParams[idx].h = 360f;
                     idx++;
@@ -524,6 +528,7 @@ public class SystemManager {
                     camParams[idx].d2 = -0.0314f;
                     camParams[idx].d3 = -0.0242f;
                     camParams[idx].d4 = 0.0023f;
+                    camParams[idx].d5 = 0.0f;
                     camParams[idx].w = 640f;
                     camParams[idx].h = 360f;
                     idx++;
@@ -538,6 +543,7 @@ public class SystemManager {
                     camParams[idx].d2 = 0.1729f;
                     camParams[idx].d3 = -0.0169f;
                     camParams[idx].d4 = -0.0019f;
+                    camParams[idx].d5 = 0.0f;
                     camParams[idx].w = 640f;
                     camParams[idx].h = 360f;
                     idx++;
@@ -552,6 +558,7 @@ public class SystemManager {
                     camParams[idx].d2 = 1.0f;
                     camParams[idx].d3 = 1.0f;
                     camParams[idx].d4 = 1.0f;
+                    camParams[idx].d5 = 0.0f;
                     camParams[idx].w = 640f;
                     camParams[idx].h = 360f;
                     idx++;
@@ -566,6 +573,7 @@ public class SystemManager {
                     camParams[idx].d2 = -0.4056f;
                     camParams[idx].d3 = -0.0190f;
                     camParams[idx].d4 = 0.0013f;
+                    camParams[idx].d5 = 0.0f;
                     camParams[idx].w = 640f;
                     camParams[idx].h = 360f;
                     idx++;
@@ -580,6 +588,7 @@ public class SystemManager {
                     camParams[idx].d2 = 1.0f;
                     camParams[idx].d3 = 1.0f;
                     camParams[idx].d4 = 1.0f;
+                    camParams[idx].d5 = 0.0f;
                     camParams[idx].w = 640f;
                     camParams[idx].h = 360f;
                     idx++;
@@ -594,6 +603,7 @@ public class SystemManager {
                     camParams[idx].d2 = 1.0f;
                     camParams[idx].d3 = 1.0f;
                     camParams[idx].d4 = 1.0f;
+                    camParams[idx].d5 = 0.0f;
                     camParams[idx].w = 640f;
                     camParams[idx].h = 360f;
                     idx++;
@@ -608,6 +618,7 @@ public class SystemManager {
                     camParams[idx].d2 = 1.0f;
                     camParams[idx].d3 = 1.0f;
                     camParams[idx].d4 = 1.0f;
+                    camParams[idx].d5 = 0.0f;
                     camParams[idx].w = 640f;
                     camParams[idx].h = 480f;
                     idx++;
@@ -622,6 +633,54 @@ public class SystemManager {
                     camParams[idx].d2 = 0.0f;
                     camParams[idx].d3 = 0.0f;
                     camParams[idx].d4 = 0.0f;
+                    camParams[idx].d5 = 0.0f;
+                    camParams[idx].w = 640f;
+                    camParams[idx].h = 480f;
+                    idx++;
+
+
+                    camParams[idx] = new CameraParams();
+                    camParams[idx].name = "TUM2";
+                    camParams[idx].fx = 520.908620f;
+                    camParams[idx].fy = 521.007327f;
+                    camParams[idx].cx = 325.141442f;
+                    camParams[idx].cy = 249.701764f;
+                    camParams[idx].d1 = 0.231222f;
+                    camParams[idx].d2 = -0.784899f;
+                    camParams[idx].d3 = -0.003257f;
+                    camParams[idx].d4 = -0.000105f;
+                    camParams[idx].d5 = 0.917205f;
+                    camParams[idx].w = 640f;
+                    camParams[idx].h = 480f;
+                    idx++;
+
+                    camParams[idx] = new CameraParams();
+                    camParams[idx].name = "TUM1";
+                    camParams[idx].fx = 517.306408f;
+                    camParams[idx].fy = 516.469215f;
+                    camParams[idx].cx = 318.643040f;
+                    camParams[idx].cy = 255.313989f;
+                    camParams[idx].d1 = 0.262383f;
+                    camParams[idx].d2 = -0.953104f;
+                    camParams[idx].d3 = -0.005358f;
+                    camParams[idx].d4 = 0.002628f;
+                    camParams[idx].d5 = 1.163314f;
+                    camParams[idx].w = 640f;
+                    camParams[idx].h = 480f;
+                    idx++;
+
+
+                    camParams[idx] = new CameraParams();
+                    camParams[idx].name = "ICL_NUIM";
+                    camParams[idx].fx = 481.20f;
+                    camParams[idx].fy = -480.00f;
+                    camParams[idx].cx = 319.50f;
+                    camParams[idx].cy = 239.5f;
+                    camParams[idx].d1 = 0.0f;
+                    camParams[idx].d2 = 0.0f;
+                    camParams[idx].d3 = 0.0f;
+                    camParams[idx].d4 = 0.0f;
+                    camParams[idx].d5 = 0.0f;
                     camParams[idx].w = 640f;
                     camParams[idx].h = 480f;
                     idx++;
@@ -644,13 +703,24 @@ public class SystemManager {
                 }
                 catch(FileNotFoundException)
                 {
-                    int nDataList = 4;
+                    int nDataList = 15;
                     datalists = new string[nDataList];
                     int nIdx = 0;
                     datalists[nIdx++] = "/KI/S21+/1/";
                     datalists[nIdx++] = "/KI/S21+/5/";
                     datalists[nIdx++] = "/KI/NOTE8/1/";
+                    datalists[nIdx++] = "/TUM/TUM2/xyz/";
+                    datalists[nIdx++] = "/TUM/TUM2/desk/";
+                    datalists[nIdx++] = "/TUM/TUM2/large_no_loop/";
+                    datalists[nIdx++] = "/TUM/TUM2/large_with_loop/";
                     datalists[nIdx++] = "/TUM/TUM3/long_office/";
+                    datalists[nIdx++] = "/TUM/TUM3/str_tex_far/";
+                    datalists[nIdx++] = "/TUM/TUM3/str_tex_near/";
+                    datalists[nIdx++] = "/NUIM/lr0/";
+                    datalists[nIdx++] = "/NUIM/lr0n/";
+                    datalists[nIdx++] = "/NUIM/lr1/";
+                    datalists[nIdx++] = "/NUIM/lr2/";
+                    datalists[nIdx++] = "/NUIM/lr3/";
                     File.WriteAllLines(Application.persistentDataPath + "/Data/DataLists.json", datalists);
                 }
 
@@ -679,7 +749,6 @@ public class SystemManager {
                 {
                     string strAddData = File.ReadAllText(Application.persistentDataPath + "/Data/UserData.json");
                     userData = JsonUtility.FromJson<UserData>(strAddData);
-                    
                     
                     //////
                     //bMapping = appData.bMapping;
@@ -721,25 +790,18 @@ public class SystemManager {
                     appData.numLocalKeyFrames = 50;
                     File.WriteAllText(Application.persistentDataPath + "/Data/AppData.json", JsonUtility.ToJson(appData));
                 }
-                fdata = new float[10];
+                fdata = new float[11];
 
                 try
                 {
                     string strIntrinsics = File.ReadAllText(Application.persistentDataPath + "/Data/Experiment.json");
                     exDatas = JsonHelper.FromJson<ExperimentData>(strIntrinsics);
-                    exMaps = new ExperimentMap[4];
-                    for(int i = 0; i < exMaps.Length;i++)
-                    {
-                        exMaps[i] = new ExperimentMap();
-                        exMaps[i].map = new Dictionary<int, DateTime>();
-                    }
                 }
                 catch (FileNotFoundException) {
 
                     //local map size, ref size, content time, local map time
                     int nData = 4;
                     exDatas = new ExperimentData[nData];
-                    exMaps = new ExperimentMap[nData];
 
                     int idx = 0;
                     exDatas[idx] = new ExperimentData();
@@ -747,8 +809,6 @@ public class SystemManager {
                     exDatas[idx].nTotal = 0;
                     exDatas[idx].fSum = 0.0f;
                     exDatas[idx].fSum_2 = 0.0f;
-                    exMaps[idx] = new ExperimentMap();
-                    exMaps[idx].map = new Dictionary<int, DateTime>();
                     idx++;
 
                     exDatas[idx] = new ExperimentData();
@@ -756,8 +816,6 @@ public class SystemManager {
                     exDatas[idx].nTotal = 0;
                     exDatas[idx].fSum = 0.0f;
                     exDatas[idx].fSum_2 = 0.0f;
-                    exMaps[idx] = new ExperimentMap();
-                    exMaps[idx].map = new Dictionary<int, DateTime>();
                     idx++;
 
                     exDatas[idx] = new ExperimentData();
@@ -765,8 +823,6 @@ public class SystemManager {
                     exDatas[idx].nTotal = 0;
                     exDatas[idx].fSum = 0.0f;
                     exDatas[idx].fSum_2 = 0.0f;
-                    exMaps[idx] = new ExperimentMap();
-                    exMaps[idx].map = new Dictionary<int, DateTime>();
                     idx++;
 
                     exDatas[idx] = new ExperimentData();
@@ -774,14 +830,12 @@ public class SystemManager {
                     exDatas[idx].nTotal = 0;
                     exDatas[idx].fSum = 0.0f;
                     exDatas[idx].fSum_2 = 0.0f;
-                    exMaps[idx] = new ExperimentMap();
-                    exMaps[idx].map = new Dictionary<int, DateTime>();
                     idx++;
 
                     string camJsonStr = JsonHelper.ToJson(exDatas, true);
                     File.WriteAllText(Application.persistentDataPath + "/Data/Experiment.json", camJsonStr);
                 }
-
+                trajectory = new List<string>();
             }
             return m_pInstance;
         }

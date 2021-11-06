@@ -32,7 +32,6 @@ public class UDPProcessor
     
     }
 
-
     //여기에 처리 모듈을 등록
 }
 
@@ -55,7 +54,6 @@ public class UDPController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        //StartCoroutine("MessageParsing");
     }
 
     // Update is called once per frame
@@ -66,23 +64,6 @@ public class UDPController : MonoBehaviour
         {
             UdpData data = DataQueue.Instance.ReceivingQueue.Dequeue();
             StartCoroutine(MessageParsing(data));
-            //if (data.keyword == "ReferenceFrame" && SystemManager.Instance.IsDeviceTracking)
-            //{
-
-            //    ////update 시간
-            //    SystemManager.ExperimentData[] exdatas = SystemManager.Instance.Experiments;
-            //    SystemManager.ExperimentMap[] maps = SystemManager.Instance.ExperimentMaps;
-                
-            //    TimeSpan time2 = t3 - data.receivedTime;//maps[2].Get(data.id);
-            //    TimeSpan time3 = data.receivedTime - maps[2].Get(data.id);
-            //    exdatas[2].Update((float)time2.Milliseconds);
-            //    exdatas[3].Update((float)time3.Milliseconds);
-
-            //    SystemManager.Instance.Experiments = exdatas;
-            //    SystemManager.Instance.ExperimentMaps = maps;
-            //    ////update 시간
-
-            //}
         }
     }
 
@@ -104,7 +85,6 @@ public class UDPController : MonoBehaviour
                 //yield return null;
                 yield return new WaitForFixedUpdate();
             }
-            DateTime t2 = DateTime.Now;
 
             SetDataToDevice(req1, "ReferenceFrame");
             SetDataToDevice(req2, "ReferenceFrameDesc");
@@ -117,21 +97,24 @@ public class UDPController : MonoBehaviour
             SetDataToDevice(req8, "LocalMapPointObservation");
 
             ////update 시간
-            SystemManager.ExperimentData[] exdatas = SystemManager.Instance.Experiments;
-            SystemManager.ExperimentMap[] maps = SystemManager.Instance.ExperimentMaps;
+            UdpData data2 = DataQueue.Instance.Get("Image"+ data.id);
+            //SystemManager.ExperimentData[] exdatas = SystemManager.Instance.Experiments;
+            
+            //SystemManager.ExperimentMap[] maps = SystemManager.Instance.ExperimentMaps;
             int n1 = req1.downloadHandler.data.Length + req2.downloadHandler.data.Length;
             int n2 = req3.downloadHandler.data.Length + req4.downloadHandler.data.Length +
                 req5.downloadHandler.data.Length + req6.downloadHandler.data.Length +
                 req7.downloadHandler.data.Length + req8.downloadHandler.data.Length;
 
-            exdatas[0].Update(n2);
-            exdatas[1].Update(n1);
+            SystemManager.Instance.Experiments[0].Update(n2);
+            SystemManager.Instance.Experiments[1].Update(n1);
             //TimeSpan time2 = t3 - data.receivedTime;//maps[2].Get(data.id);
-            TimeSpan time2 = t2 - maps[2].Get(data.id);
-            exdatas[2].Update((float)time2.Milliseconds);
+            TimeSpan time2 = DateTime.Now - data2.sendedTime;
+            SystemManager.Instance.Experiments[2].Update((float)time2.Milliseconds);
             
-            SystemManager.Instance.Experiments = exdatas;
-            SystemManager.Instance.ExperimentMaps = maps;
+            //SystemManager.Instance.Experiments = exdatas;
+
+            //SystemManager.Instance.ExperimentMaps = maps;
             ////update 시간
 
             Tracker.Instance.CreateReferenceFrame();
@@ -142,13 +125,13 @@ public class UDPController : MonoBehaviour
             UnityWebRequest req1 = GetRequest("MappingResult", data.id);
             while (!req1.downloadHandler.isDone)
             {
-                //yield return null;
                 yield return new WaitForFixedUpdate();
             }
-            int[] a = new int[1];
+            float[] a = new float[8];
             Buffer.BlockCopy(req1.downloadHandler.data, 0, a, 0, req1.downloadHandler.data.Length);
-            StatusTxt.text = "mapping = " + a[0];
-            if (a[0] > 30)
+            int n = (int)a[0];
+
+            if (n > 30)
             {
                 ResultImage.color = new Color(0.0f, 1.0f, 0.0f, 0.4f);
             }
@@ -156,6 +139,11 @@ public class UDPController : MonoBehaviour
             {
                 ResultImage.color = new Color(1.0f, 0.0f, 0.0f, 0.4f);
             }
+
+            UdpData data2 = DataQueue.Instance.Get("Image" + data.id);
+            string t = data2.timestamp + " " + a[1] + " " + a[2] + " " + a[3] + " " + a[4] + " " + a[5] + " " + a[6] + " " + a[7];
+            SystemManager.Instance.Trajectory.Add(t);
+
         }
         else if (data.keyword == "Content")
         {
@@ -172,115 +160,21 @@ public class UDPController : MonoBehaviour
             AddContentInfo(data.id, fdata[0], fdata[1], fdata[2]);
 
             ////update 시간
-            SystemManager.ExperimentData[] exdatas = SystemManager.Instance.Experiments;
-            SystemManager.ExperimentMap[] maps = SystemManager.Instance.ExperimentMaps;
-            
-            TimeSpan time2 = t2 - maps[3].Get(data.id);
-            exdatas[3].Update((float)time2.Milliseconds);
+            //SystemManager.ExperimentData[] exdatas = SystemManager.Instance.Experiments;
+            UdpData data2 = DataQueue.Instance.Get("ContentGeneration" + data.id);
 
-            SystemManager.Instance.Experiments = exdatas;
-            SystemManager.Instance.ExperimentMaps = maps;
+
+            //SystemManager.ExperimentMap[] maps = SystemManager.Instance.ExperimentMaps;
+
+            TimeSpan time2 = DateTime.Now - data2.sendedTime;
+            SystemManager.Instance.Experiments[3].Update((float)time2.Milliseconds);
+
+            //SystemManager.Instance.Experiments = exdatas;
+            //SystemManager.Instance.ExperimentMaps = maps;
             ////update 시간
         }
         yield break;
     }
-
-    //IEnumerator MessageParsing()
-    //{
-
-    //    while (true)
-    //    {
-    //        //yield return null;
-    //        //yield return new WaitForFixedUpdate();
-            
-    //        //UdpData data;
-    //        DateTime t3 = DateTime.Now;
-    //        if(UdpAsyncHandler.Instance.DataQueue.Count > 0)// && UdpAsyncHandler.Instance.DataQueue.Dequeue(out data))
-    //        {
-    //            UdpData data = UdpAsyncHandler.Instance.DataQueue.Dequeue();
-    //            if (data.keyword == "ReferenceFrame" && SystemManager.Instance.IsDeviceTracking)
-    //            {
-    //                UnityWebRequest req1 = GetRequest("ReferenceFrame", data.id);
-    //                UnityWebRequest req2 = GetRequest("ReferenceFrameDesc", data.id);
-    //                UnityWebRequest req3 = GetRequest("LocalMap", data.id);
-    //                UnityWebRequest req4 = GetRequest("LocalMapScales", data.id);
-    //                UnityWebRequest req5 = GetRequest("LocalMapAngles", data.id);
-    //                UnityWebRequest req6 = GetRequest("LocalMapPoints", data.id);
-    //                UnityWebRequest req7 = GetRequest("LocalMapPointIDs", data.id);
-    //                UnityWebRequest req8 = GetRequest("LocalMapPointObservation", data.id);
-
-    //                while (!req1.downloadHandler.isDone || !req2.downloadHandler.isDone || !req3.downloadHandler.isDone || !req4.downloadHandler.isDone || !req5.downloadHandler.isDone || !req6.downloadHandler.isDone || !req7.downloadHandler.isDone || !req8.downloadHandler.isDone)
-    //                {
-    //                    //yield return null;
-    //                    yield return new WaitForFixedUpdate();
-    //                }
-    //                DateTime t2 = DateTime.Now;
-
-    //                SetDataToDevice(req1, "ReferenceFrame");
-    //                SetDataToDevice(req2, "ReferenceFrameDesc");
-    //                SetDataToDevice(req3, "LocalMap");
-    //                SetDataToDevice(req4, "LocalMapScales");
-    //                SetDataToDevice(req5, "LocalMapAngles");
-    //                SetDataToDevice(req6, "LocalMapPoints");
-    //                SetDataToDevice(req7, "LocalMapPointIDs");
-    //                SetDataToDevice(req7, "LocalMapPointIDs");
-    //                SetDataToDevice(req8, "LocalMapPointObservation");
-
-    //                ////update 시간
-    //                SystemManager.ExperimentData[] exdatas = SystemManager.Instance.Experiments;
-    //                SystemManager.ExperimentMap[] maps = SystemManager.Instance.ExperimentMaps;
-    //                int n1 = req1.downloadHandler.data.Length + req2.downloadHandler.data.Length;
-    //                int n2 = req3.downloadHandler.data.Length + req4.downloadHandler.data.Length +
-    //                    req5.downloadHandler.data.Length + req6.downloadHandler.data.Length +
-    //                    req7.downloadHandler.data.Length + req8.downloadHandler.data.Length;
-                    
-    //                exdatas[0].Update(n2);
-    //                exdatas[1].Update(n1);
-    //                TimeSpan time2 = t3 - data.receivedTime;//maps[2].Get(data.id);
-    //                TimeSpan time3 = data.receivedTime - maps[2].Get(data.id);
-    //                exdatas[2].Update((float)time2.Milliseconds);
-    //                exdatas[3].Update((float)time3.Milliseconds);
-
-    //                SystemManager.Instance.Experiments = exdatas;
-    //                SystemManager.Instance.ExperimentMaps = maps;
-    //                ////update 시간
-
-    //                Tracker.Instance.CreateReferenceFrame();
-
-    //            } else if (data.keyword == "MappingResult") {
-    //                UnityWebRequest req1 = GetRequest("MappingResult", data.id);
-    //                while (!req1.downloadHandler.isDone)
-    //                {
-    //                    //yield return null;
-    //                    yield return new WaitForFixedUpdate();
-    //                }
-    //                int[] a = new int[1];
-    //                Buffer.BlockCopy(req1.downloadHandler.data, 0, a, 0, req1.downloadHandler.data.Length);
-    //                StatusTxt.text = "mapping = " + a[0];
-    //                if (a[0] > 30)
-    //                {
-    //                    ResultImage.color = new Color(0.0f, 1.0f, 0.0f, 0.4f);
-    //                }
-    //                else {
-    //                    ResultImage.color = new Color(1.0f, 0.0f, 0.0f, 0.4f);
-    //                }
-    //            }else if (data.keyword == "Content")
-    //            {
-    //                UnityWebRequest req1 = GetRequest("Content", data.id, data.src);
-    //                while (!req1.downloadHandler.isDone)
-    //                {
-    //                    //yield return null;
-    //                    yield return new WaitForFixedUpdate();
-    //                }
-    //                float[] fdata = new float[req1.downloadHandler.data.Length / 4];
-    //                Buffer.BlockCopy(req1.downloadHandler.data, 0, fdata, 0, req1.downloadHandler.data.Length);
-    //                AddContentInfo(data.id, fdata[0], fdata[1], fdata[2]);
-    //            }
-    //        }
-    //        //yield return null;
-    //        yield return new WaitForFixedUpdate();
-    //    }
-    //}
 
     UnityWebRequest GetRequest(string keyword, int id)
     {
@@ -315,54 +209,5 @@ public class UDPController : MonoBehaviour
             StatusTxt.text = e.ToString();
         }
     }
-
-    IEnumerator GetData(string keyword, int id)
-    {
-        string addr2 = SystemManager.Instance.ServerAddr + "/Load?keyword=" + keyword + "&id=" + id + "&src=" + SystemManager.Instance.UserName;
-        UnityWebRequest request = new UnityWebRequest(addr2);
-        request.method = "POST";
-        request.downloadHandler = new DownloadHandlerBuffer();
-        yield return request.SendWebRequest();
-        if (request.downloadHandler.isDone)
-        {
-            try
-            {
-                GCHandle handle1 = GCHandle.Alloc(request.downloadHandler.data, GCHandleType.Pinned);
-                IntPtr ptr1 = handle1.AddrOfPinnedObject();
-                SetDataFromUnity(ptr1, keyword.ToCharArray(), request.downloadHandler.data.Length, keyword.Length);
-            }catch(Exception e)
-            {
-                StatusTxt.text = e.ToString();
-            }
-            
-
-            //yield return request.downloadHandler.data;
-            yield return null;
-            //set data 맵에 키워드로 넣기
-            //길이와 타입 데이ㅌㅓ
-           
-        }
-    }
-    //IEnumerator CreateReference(UdpData data)
-    //{
-    //    byte[] res1 = GetData("Pose", data.id);
-    //    byte[] res2 = GetData("LocalMap", data.id);
-    //    byte[] res3 = GetData("LocalMapScales", data.id);
-    //    byte[] res4 = GetData("LocalMapPoints", data.id);
-    //}
-
-    //public byte[] GetData(string keyword, int id)
-    //{
-    //    string addr2 = SystemManager.Instance.ServerAddr + "/Load?keyword=+" + keyword + "&id=" + id + "&src=" + SystemManager.Instance.UserName;
-    //    UnityWebRequest request = new UnityWebRequest(addr2);
-    //    request.method = "POST";
-    //    request.downloadHandler = new DownloadHandlerBuffer();
-
-    //    UnityWebRequestAsyncOperation res = request.SendWebRequest();
-    //    while (!request.downloadHandler.isDone)
-    //    {
-    //        continue;
-    //    }
-    //    return request.downloadHandler.data;
-    //}
+    
 }

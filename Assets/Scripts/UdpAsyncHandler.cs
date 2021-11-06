@@ -129,43 +129,6 @@ public class UdpAsyncHandler
                 
     }
     
-    /*
-      ////Connect Pose
-        
-        
-        jdata = new SystemManager.EchoData("Content", "connect", SystemManager.Instance.UserName);
-        jdata.type2 = "all";
-        msg = JsonUtility.ToJson(jdata);
-        bdata = System.Text.Encoding.UTF8.GetBytes(msg);
-        stat.udp.Send(bdata, bdata.Length, stat.hep);
-        ////Connect
-
-
-     */
-
-    /*
-    ////Connect Pose
-            SystemManager.EchoData jdata = new SystemManager.EchoData("Pose", "disconnect", SystemManager.Instance.UserName);
-            jdata.type2 = "single";
-            string msg = JsonUtility.ToJson(jdata);
-            byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
-            stat.udp.Send(bdata, bdata.Length, stat.hep);
-            //////Connect Image
-            //jdata = new SystemManager.EchoData("Image", "disconnect", SystemManager.Instance.User);
-            //jdata.type2 = "single";
-            //msg = JsonUtility.ToJson(jdata);
-            //bdata = System.Text.Encoding.UTF8.GetBytes(msg);
-            //stat.udp.Send(bdata, bdata.Length, stat.hep);
-            ////Connect Image
-            jdata = new SystemManager.EchoData("Content", "disconnect", SystemManager.Instance.UserName);
-            jdata.type2 = "all";
-            msg = JsonUtility.ToJson(jdata);
-            bdata = System.Text.Encoding.UTF8.GetBytes(msg);
-            stat.udp.Send(bdata, bdata.Length, stat.hep);
-            ////Connect
-     */
-
-
     private void EchoData(string v1, string v2)
     {
         throw new NotImplementedException();
@@ -204,64 +167,13 @@ public class UdpAsyncHandler
 
     public event EventHandler<UdpEventArgs> UdpDataReceived;
 
-    //private static List<UdpState> mListUDPs = new List<UdpState>();
-    //public List<UdpState> ConnectedUDPs
-    //{
-    //    get
-    //    {
-    //        return mListUDPs;
-    //    }
-    //}
-
-    //ConcurrentQueue
-    //static private Queue<UdpData> dataQueue = new Queue<UdpData>();
-    //public Queue<UdpData> DataQueue
-    //{
-    //    get
-    //    {
-    //        return dataQueue;
-    //    }
-    //}
-    
     void UdpDataReceivedProcess(object sender, UdpEventArgs e)
     {
         int size = e.bdata.Length;
         string msg = System.Text.Encoding.Default.GetString(e.bdata);
         UdpData data = JsonUtility.FromJson<UdpData>(msg);
         data.receivedTime = DateTime.Now;
-
-        ////데이터 처리용
-        //if (data.keyword == "Pose")
-        //{
-        //    try
-        //    {
-        //        SystemManager.Instance.ReferenceTime.Update(temp);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Debug.Log("err = " + ex.ToString());
-        //    }
-
-        //}
-        //else if (data.keyword == "Content" && data.type2 == SystemManager.Instance.UserName)
-        //{
-        //    DateTime end = DateTime.Now;
-        //    TimeSpan time = end - mapContentTime[data.id2];
-
-        //    float temp = (float)time.Milliseconds;
-        //    SystemManager.Instance.ContentGenerationTime.Update(temp);
-        //}
-        //else
-        //{
-
-        //}
-
-        //dataQueue.Enqueue(data);
         DataQueue.Instance.ReceivingQueue.Enqueue(data);
         
     }
-    //IEnumerable Test() {
-    //    yield return null;
-    //}
-    //큐에서 
 }

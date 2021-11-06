@@ -13,6 +13,8 @@ public class DataQueue
             if (m_pInstance == null)
             {
                 m_pInstance = new DataQueue();
+                map = new Dictionary<string, UdpData>();
+                bSending = false;
             }
             return m_pInstance;
         }
@@ -34,15 +36,40 @@ public class DataQueue
             return rqueue;
         }
     }
+    
+    public void Add(UdpData data)
+    {
+        string key = data.keyword + data.id;
+        map[key] = data;
+    }
 
+    public UdpData Get(string key)
+    {
+        return map[key];
+    }
+    public bool Sending
+    {
+        set
+        {
+            bSending = value;
+        }
+        get
+        {
+            return bSending;
+        }
+    }
+    static private bool bSending;
+    static private Dictionary<string, UdpData> map;
     //맵 추가하기
 }
 
     public class DataSender : MonoBehaviour
 {
-    UnityWebRequest SetRequest(string keyword, byte[] data, int id)
+    UnityWebRequest SetRequest(string keyword, byte[] data, int id, double ts)
     {
         string addr2 = SystemManager.Instance.ServerAddr + "/Store?keyword=" + keyword + "&id=" + id + "&src=" + SystemManager.Instance.UserName;
+        if (ts > 0.0)
+            addr2 += "&type2=" + ts;
         UnityWebRequest request = new UnityWebRequest(addr2);
         request.method = "POST";
         UploadHandlerRaw uH = new UploadHandlerRaw(data);
@@ -70,8 +97,16 @@ public class DataQueue
 
     IEnumerator SendData(UdpData data)
     {
-        UnityWebRequest req = SetRequest(data.keyword, data.data, data.id);
+        UnityWebRequest req = SetRequest(data.keyword, data.data, data.id, data.timestamp);
         req.SendWebRequest();
+        if(data.keyword == "Image")
+        {
+            while (req.uploadHandler.progress < 1f)
+            {
+                yield return null;
+            }
+            DataQueue.Instance.Sending = false;
+        }
         yield break;
     }
 }

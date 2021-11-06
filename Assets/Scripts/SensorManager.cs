@@ -29,31 +29,42 @@ public class SensorManager
 {
     static Matrix3x3 R;
     static Vector3 t;
-    static private ConcurrentQueue<SensorData> mQueueGyro, mQueueAcc;
-
+    static private AndroidJavaObject plugin;
+    static private Queue<SensorData> mQueueGyro, mQueueAcc;
+    static private bool bStart;
     static private SensorManager m_pInstance = null;
     static public SensorManager Instance
     {
-        get { 
-            if(m_pInstance == null)
+        get {
+            if (m_pInstance == null)
             {
+                bStart = false;
                 m_pInstance = new SensorManager();
-                mQueueGyro = new ConcurrentQueue<SensorData>();
-                mQueueAcc = new ConcurrentQueue<SensorData>();
+                mQueueGyro = new Queue<SensorData>();
+                mQueueAcc = new Queue<SensorData>();
+
+                //plugin = new AndroidJavaClass("com.uvr.sensorplugin.SensorActivity").CallStatic<AndroidJavaObject>("GetInstance");
+                
             }
             return m_pInstance;
         }
-        //if (m_pInstance == null)
-        //{
 
-        //    t = Vector3.zero;
-        //    R = new Matrix3x3();
+    }
 
-        //    //queue에서 sensor data만 가지고, android에서 pose와 bias를 전달 받도록 변경하기
-            
+    public AndroidJavaObject Plugin
+    {
+        get 
+        {
+            return plugin;
+        }
+    }
 
-        //}
-        //return m_pInstance;
+    public void Start()
+    {
+        if (bStart)
+            return;
+        bStart = true;
+        plugin.Call("startSensorListening", SystemManager.Instance.SensorSpeed);
     }
 
     public void SetGyro(SensorData data)
@@ -69,23 +80,6 @@ public class SensorManager
         mQueueAcc.Enqueue(data);
     }
 
-    public bool GetGyro(out SensorData data)
-    {
-        if (mQueueGyro.TryDequeue(out data))
-        {
-            return true;
-        }
-        return false;
-    }
-    public bool GetAcc(out SensorData data)
-    {
-        if (mQueueAcc.TryDequeue(out data))
-        {
-            return true;
-        }
-        return false;
-    }
-
     public Matrix3x3 DeltaRotationMatrix()
     {
         Matrix3x3 DeltaR = new Matrix3x3();
@@ -95,7 +89,7 @@ public class SensorManager
         for (int i = 0; i <N; i++)
         {
             SensorData tgyroData;
-            GetGyro(out tgyroData);
+            tgyroData = mQueueGyro.Dequeue();
             listGyro.Add(tgyroData);
         }
 
