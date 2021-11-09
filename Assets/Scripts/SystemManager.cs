@@ -422,18 +422,28 @@ public class SystemManager {
         }
     }
 
-    public ExperimentData[] Experiments
+    public Dictionary<string, ExperimentData> Experiments
     {
         get
         {
             return exDatas;
         }
-        set
-        {
-            exDatas = value;
-        }
+
     }
-    static private ExperimentData[] exDatas;
+    static private Dictionary<string, ExperimentData> exDatas;
+
+    //public ExperimentData[] Experiments
+    //{
+    //    get
+    //    {
+    //        return exDatas;
+    //    }
+    //    set
+    //    {
+    //        exDatas = value;
+    //    }
+    //}
+    //static private ExperimentData[] exDatas;
 
     public List<string> Trajectory
     {
@@ -794,45 +804,98 @@ public class SystemManager {
 
                 try
                 {
-                    string strIntrinsics = File.ReadAllText(Application.persistentDataPath + "/Data/Experiment.json");
-                    exDatas = JsonHelper.FromJson<ExperimentData>(strIntrinsics);
+                    string strExperiments = File.ReadAllText(Application.persistentDataPath + "/Data/Experiment.json");
+                    ExperimentData[] temp = JsonHelper.FromJson<ExperimentData>(strExperiments);
+                    exDatas = new Dictionary<string, ExperimentData>();
+                    foreach (ExperimentData data in temp)
+                    {
+                        exDatas[data.name] = data;
+                    }
                 }
                 catch (FileNotFoundException) {
 
                     //local map size, ref size, content time, local map time
-                    int nData = 4;
-                    exDatas = new ExperimentData[nData];
+                    exDatas = new Dictionary<string, ExperimentData>();
 
+                    ExperimentData data1 = new ExperimentData();
+                    data1.name = "LocalMapTraffic";
+                    data1.nTotal = 0;
+                    data1.fSum = 0.0f;
+                    data1.fSum_2 = 0.0f;
+                    exDatas[data1.name] = data1;
+
+                    ExperimentData data2 = new ExperimentData();
+                    data2.name = "ReferenceTraffic";
+                    data2.nTotal = 0;
+                    data2.fSum = 0.0f;
+                    data2.fSum_2 = 0.0f;
+                    exDatas[data2.name] = data2;
+
+                    ExperimentData data3 = new ExperimentData();
+                    data3.name = "ReferenceReturnTime";
+                    data3.nTotal = 0;
+                    data3.fSum = 0.0f;
+                    data3.fSum_2 = 0.0f;
+                    exDatas[data3.name] = data3;
+
+                    ExperimentData data4 = new ExperimentData();
+                    data4.name = "ContentReturnTime";
+                    data4.nTotal = 0;
+                    data4.fSum = 0.0f;
+                    data4.fSum_2 = 0.0f;
+                    exDatas[data4.name] = data4;
+
+                    ExperimentData data5 = new ExperimentData();
+                    data5.name = "SendingQueue";
+                    data5.nTotal = 0;
+                    data5.fSum = 0.0f;
+                    data5.fSum_2 = 0.0f;
+                    exDatas[data5.name] = data5;
+
+                    ExperimentData data6 = new ExperimentData();
+                    data6.name = "ReceivingQueue";
+                    data6.nTotal = 0;
+                    data6.fSum = 0.0f;
+                    data6.fSum_2 = 0.0f;
+                    exDatas[data6.name] = data6;
+
+                    ExperimentData data7 = new ExperimentData();
+                    data7.name = "UploadTime";
+                    data7.nTotal = 0;
+                    data7.fSum = 0.0f;
+                    data7.fSum_2 = 0.0f;
+                    exDatas[data7.name] = data7;
+
+                    ExperimentData data8 = new ExperimentData();
+                    data8.name = "DownloadTime";
+                    data8.nTotal = 0;
+                    data8.fSum = 0.0f;
+                    data8.fSum_2 = 0.0f;
+                    exDatas[data8.name] = data8;
+
+                    ExperimentData data9 = new ExperimentData();
+                    data9.name = "TestTime";
+                    data9.nTotal = 0;
+                    data9.fSum = 0.0f;
+                    data9.fSum_2 = 0.0f;
+                    exDatas[data9.name] = data9;
+
+                    Dictionary<string, SystemManager.ExperimentData>.ValueCollection values = exDatas.Values;
+                    SystemManager.ExperimentData[] datas = new SystemManager.ExperimentData[values.Count];
                     int idx = 0;
-                    exDatas[idx] = new ExperimentData();
-                    exDatas[idx].name = "LocalMapTraffic";
-                    exDatas[idx].nTotal = 0;
-                    exDatas[idx].fSum = 0.0f;
-                    exDatas[idx].fSum_2 = 0.0f;
-                    idx++;
+                    foreach (SystemManager.ExperimentData data in values)
+                    {
+                        data.Calculate();
+                        datas[idx++] = data;
+                    }
 
-                    exDatas[idx] = new ExperimentData();
-                    exDatas[idx].name = "ReferenceTraffic";
-                    exDatas[idx].nTotal = 0;
-                    exDatas[idx].fSum = 0.0f;
-                    exDatas[idx].fSum_2 = 0.0f;
-                    idx++;
+                    ExperimentData[] temp = new ExperimentData[exDatas.Count];
+                    temp[idx++] = data1;
+                    temp[idx++] = data2;
+                    temp[idx++] = data3;
+                    temp[idx++] = data4;
 
-                    exDatas[idx] = new ExperimentData();
-                    exDatas[idx].name = "ReferenceReturnTime";
-                    exDatas[idx].nTotal = 0;
-                    exDatas[idx].fSum = 0.0f;
-                    exDatas[idx].fSum_2 = 0.0f;
-                    idx++;
-
-                    exDatas[idx] = new ExperimentData();
-                    exDatas[idx].name = "ContentReturnTime";
-                    exDatas[idx].nTotal = 0;
-                    exDatas[idx].fSum = 0.0f;
-                    exDatas[idx].fSum_2 = 0.0f;
-                    idx++;
-
-                    string camJsonStr = JsonHelper.ToJson(exDatas, true);
+                    string camJsonStr = JsonHelper.ToJson(temp, true);
                     File.WriteAllText(Application.persistentDataPath + "/Data/Experiment.json", camJsonStr);
                 }
                 trajectory = new List<string>();

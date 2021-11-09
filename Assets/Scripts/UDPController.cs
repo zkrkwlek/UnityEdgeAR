@@ -59,8 +59,7 @@ public class UDPController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        DateTime t3 = DateTime.Now;
-        if (DataQueue.Instance.ReceivingQueue.Count > 0)
+        while (DataQueue.Instance.ReceivingQueue.Count > 0)
         {
             UdpData data = DataQueue.Instance.ReceivingQueue.Dequeue();
             StartCoroutine(MessageParsing(data));
@@ -68,7 +67,10 @@ public class UDPController : MonoBehaviour
     }
 
     IEnumerator MessageParsing(UdpData data) {
-        
+
+        TimeSpan QueueTimeSpan = DateTime.Now - data.receivedTime;
+        SystemManager.Instance.Experiments["ReceivingQueue"].Update((float)QueueTimeSpan.Milliseconds);
+
         if (data.keyword == "ReferenceFrame" && SystemManager.Instance.IsDeviceTracking)
         {
             UnityWebRequest req1 = GetRequest("ReferenceFrame", data.id);
@@ -80,11 +82,14 @@ public class UDPController : MonoBehaviour
             UnityWebRequest req7 = GetRequest("LocalMapPointIDs", data.id);
             UnityWebRequest req8 = GetRequest("LocalMapPointObservation", data.id);
 
+            DateTime t1 = DateTime.Now;
             while (!req1.downloadHandler.isDone || !req2.downloadHandler.isDone || !req3.downloadHandler.isDone || !req4.downloadHandler.isDone || !req5.downloadHandler.isDone || !req6.downloadHandler.isDone || !req7.downloadHandler.isDone || !req8.downloadHandler.isDone)
             {
                 //yield return null;
                 yield return new WaitForFixedUpdate();
             }
+            TimeSpan Dtimespan = DateTime.Now - t1;
+            SystemManager.Instance.Experiments["DownloadTime"].Update((float)Dtimespan.Milliseconds);
 
             SetDataToDevice(req1, "ReferenceFrame");
             SetDataToDevice(req2, "ReferenceFrameDesc");
@@ -106,12 +111,12 @@ public class UDPController : MonoBehaviour
                 req5.downloadHandler.data.Length + req6.downloadHandler.data.Length +
                 req7.downloadHandler.data.Length + req8.downloadHandler.data.Length;
 
-            SystemManager.Instance.Experiments[0].Update(n2);
-            SystemManager.Instance.Experiments[1].Update(n1);
+            SystemManager.Instance.Experiments["LocalMapTraffic"].Update(n2);
+            SystemManager.Instance.Experiments["ReferenceTraffic"].Update(n1);
             //TimeSpan time2 = t3 - data.receivedTime;//maps[2].Get(data.id);
             TimeSpan time2 = DateTime.Now - data2.sendedTime;
-            SystemManager.Instance.Experiments[2].Update((float)time2.Milliseconds);
-            
+            SystemManager.Instance.Experiments["ReferenceReturnTime"].Update((float)time2.Milliseconds);
+
             //SystemManager.Instance.Experiments = exdatas;
 
             //SystemManager.Instance.ExperimentMaps = maps;
@@ -123,10 +128,14 @@ public class UDPController : MonoBehaviour
         else if (data.keyword == "MappingResult")
         {
             UnityWebRequest req1 = GetRequest("MappingResult", data.id);
+            DateTime t1 = DateTime.Now;
             while (!req1.downloadHandler.isDone)
             {
                 yield return new WaitForFixedUpdate();
             }
+            TimeSpan Dtimespan = DateTime.Now - t1;
+            SystemManager.Instance.Experiments["DownloadTime"].Update((float)Dtimespan.Milliseconds);
+
             float[] a = new float[8];
             Buffer.BlockCopy(req1.downloadHandler.data, 0, a, 0, req1.downloadHandler.data.Length);
             int n = (int)a[0];
@@ -141,33 +150,41 @@ public class UDPController : MonoBehaviour
             }
 
             UdpData data2 = DataQueue.Instance.Get("Image" + data.id);
+            //Trajectory upadte
             string t = data2.timestamp + " " + a[1] + " " + a[2] + " " + a[3] + " " + a[4] + " " + a[5] + " " + a[6] + " " + a[7];
             SystemManager.Instance.Trajectory.Add(t);
 
+            ///Time update
+            TimeSpan time2 = DateTime.Now - data2.sendedTime;
+            SystemManager.Instance.Experiments["ReferenceReturnTime"].Update((float)time2.Milliseconds);
         }
         else if (data.keyword == "Content")
         {
             UnityWebRequest req1 = GetRequest("Content", data.id, data.src);
+            DateTime t1 = DateTime.Now;
             while (!req1.downloadHandler.isDone)
             {
                 //yield return null;
                 yield return new WaitForFixedUpdate();
             }
+            TimeSpan Dtimespan = DateTime.Now - t1;
+            SystemManager.Instance.Experiments["DownloadTime"].Update((float)Dtimespan.Milliseconds);
             DateTime t2 = DateTime.Now;
 
             float[] fdata = new float[req1.downloadHandler.data.Length / 4];
             Buffer.BlockCopy(req1.downloadHandler.data, 0, fdata, 0, req1.downloadHandler.data.Length);
             AddContentInfo(data.id, fdata[0], fdata[1], fdata[2]);
 
-            ////update 시간
-            //SystemManager.ExperimentData[] exdatas = SystemManager.Instance.Experiments;
-            UdpData data2 = DataQueue.Instance.Get("ContentGeneration" + data.id);
+            if (data.type2 == SystemManager.Instance.UserName)
+            {
+                ////update 시간
+                //SystemManager.ExperimentData[] exdatas = SystemManager.Instance.Experiments;
+                UdpData data2 = DataQueue.Instance.Get("ContentGeneration" + data.id);
+                //SystemManager.ExperimentMap[] maps = SystemManager.Instance.ExperimentMaps;
 
-
-            //SystemManager.ExperimentMap[] maps = SystemManager.Instance.ExperimentMaps;
-
-            TimeSpan time2 = DateTime.Now - data2.sendedTime;
-            SystemManager.Instance.Experiments[3].Update((float)time2.Milliseconds);
+                TimeSpan time2 = DateTime.Now - data2.sendedTime;
+                SystemManager.Instance.Experiments["ContentReturnTime"].Update((float)time2.Milliseconds);
+            }
 
             //SystemManager.Instance.Experiments = exdatas;
             //SystemManager.Instance.ExperimentMaps = maps;

@@ -435,19 +435,21 @@ public class TrackingProcessor : MonoBehaviour
                         Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length * 4);
 
                         UdpData gdata = new UdpData("Gyro", src, mnFrameID, bdata);
+                        gdata.sendedTime = DateTime.Now;
+
                         DataQueue.Instance.SendingQueue.Enqueue(gdata);
                         //전송할때까지 다시 자이로 값을 누적함.
                         DeltaR = new Matrix3x3();
                     }
 
                     ////압축 이미지를 바이트로 변환
-                    if (!DataQueue.Instance.Sending) {
-                        DataQueue.Instance.Sending = true;
+                    //if (!DataQueue.Instance.Sending) {
+                        //DataQueue.Instance.Sending = true;
                         UdpData data = new UdpData("Image", src, mnFrameID, Tracker.Instance.Texture.EncodeToJPG(nQuality), ts);
                         data.sendedTime = DateTime.Now;
                         DataQueue.Instance.Add(data);
                         DataQueue.Instance.SendingQueue.Enqueue(data);
-                    }
+                    //}
                 }
 
                 if (SystemManager.Instance.IsDeviceTracking)

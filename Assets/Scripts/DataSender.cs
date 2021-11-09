@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -88,7 +89,7 @@ public class DataQueue
     // Update is called once per frame
     void Update()
     {
-        if(DataQueue.Instance.SendingQueue.Count > 0)
+        while(DataQueue.Instance.SendingQueue.Count > 0)
         {
             UdpData data = DataQueue.Instance.SendingQueue.Dequeue();
             StartCoroutine(SendData(data));
@@ -97,16 +98,30 @@ public class DataQueue
 
     IEnumerator SendData(UdpData data)
     {
+        TimeSpan QueueTimeSpan = DateTime.Now - data.sendedTime;
+        SystemManager.Instance.Experiments["SendingQueue"].Update((float)QueueTimeSpan.Milliseconds);
+
         UnityWebRequest req = SetRequest(data.keyword, data.data, data.id, data.timestamp);
         req.SendWebRequest();
-        if(data.keyword == "Image")
+        //if(data.keyword == "Image")
+        //{
+        DateTime t1 = DateTime.Now;
+        while (req.uploadHandler.progress < 1f)
         {
-            while (req.uploadHandler.progress < 1f)
-            {
-                yield return null;
-            }
-            DataQueue.Instance.Sending = false;
+            yield return null;
         }
+        TimeSpan SnedingTimeSpan = DateTime.Now - t1;
+        SystemManager.Instance.Experiments["UploadTime"].Update((float)SnedingTimeSpan.Milliseconds);
+
+        while (!req.downloadHandler.isDone)
+        {
+            yield return null;
+        }
+        TimeSpan TestTime = DateTime.Now - data.sendedTime;
+        SystemManager.Instance.Experiments["TestTime"].Update((float)SnedingTimeSpan.Milliseconds);
+
+        //    DataQueue.Instance.Sending = false;
+        //}
         yield break;
     }
 }

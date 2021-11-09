@@ -165,10 +165,14 @@ public class TestGUI : MonoBehaviour
 
             ////save file
             File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
-            SystemManager.ExperimentData[] datas = SystemManager.Instance.Experiments;
-            foreach(SystemManager.ExperimentData data in datas)
+
+            Dictionary<string, SystemManager.ExperimentData>.ValueCollection values = SystemManager.Instance.Experiments.Values;
+            SystemManager.ExperimentData[] datas = new SystemManager.ExperimentData[values.Count];
+            int idx = 0;
+            foreach(SystemManager.ExperimentData data in values)
             {
                 data.Calculate();
+                datas[idx++] = data;
             }
             File.WriteAllText(Application.persistentDataPath + "/Data/Experiment.json", JsonHelper.ToJson(datas, true));
             
