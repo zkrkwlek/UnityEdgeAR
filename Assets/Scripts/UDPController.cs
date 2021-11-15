@@ -122,7 +122,7 @@ public class UDPController : MonoBehaviour
             //SystemManager.Instance.ExperimentMaps = maps;
             ////update 시간
 
-            Tracker.Instance.CreateReferenceFrame();
+            //Tracker.Instance.CreateReferenceFrame();
 
         }
         else if (data.keyword == "MappingResult")
@@ -132,11 +132,12 @@ public class UDPController : MonoBehaviour
             while (!req1.downloadHandler.isDone)
             {
                 yield return new WaitForFixedUpdate();
+                //yield return null;
             }
             TimeSpan Dtimespan = DateTime.Now - t1;
             SystemManager.Instance.Experiments["DownloadTime"].Update((float)Dtimespan.Milliseconds);
 
-            float[] a = new float[8];
+            float[] a = new float[req1.downloadHandler.data.Length/4];
             Buffer.BlockCopy(req1.downloadHandler.data, 0, a, 0, req1.downloadHandler.data.Length);
             int n = (int)a[0];
 

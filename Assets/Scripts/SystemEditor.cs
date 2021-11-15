@@ -30,9 +30,9 @@ public class SystemEditor : Editor
 
     public override void OnInspectorGUI()
     {
-        SystemManager.Instance.User = EditorGUILayout.TextField("User Name", SystemManager.Instance.User);
-        SystemManager.Instance.Map = EditorGUILayout.TextField("Map Name", SystemManager.Instance.Map);
-        SystemManager.Instance.ServerAddr = EditorGUILayout.TextField("Server Address", SystemManager.Instance.ServerAddr);
+        EditorGUILayout.TextField("User Name", SystemManager.Instance.UserName);
+        EditorGUILayout.TextField("Map Name", SystemManager.Instance.MapName);
+        EditorGUILayout.TextField("Server Address", SystemManager.Instance.ServerAddr);
         EditorGUILayout.TextField("Dataset Path", SystemManager.Instance.ImagePath);
         mSystem.nImgFrameIDX = EditorGUILayout.IntField("Image Index", mSystem.nImgFrameIDX);
         EditorGUILayout.IntField("Target Frame ID", mSystem.nTargetID);
@@ -42,7 +42,7 @@ public class SystemEditor : Editor
         EditorGUILayout.LabelField("Connect", GUILayout.Width(50f));
         SystemManager.Instance.Connect = EditorGUILayout.Toggle(SystemManager.Instance.Connect, GUILayout.Width(30f));
         EditorGUILayout.LabelField("Mapping", GUILayout.Width(50f));
-        SystemManager.Instance.IsServerMapping = EditorGUILayout.Toggle(SystemManager.Instance.IsServerMapping, GUILayout.Width(30f));
+        EditorGUILayout.Toggle(SystemManager.Instance.IsServerMapping, GUILayout.Width(30f));
         EditorGUILayout.LabelField("Manager", GUILayout.Width(50f));
         SystemManager.Instance.Manager = EditorGUILayout.Toggle(SystemManager.Instance.Manager, GUILayout.Width(30f));
         GUILayout.EndHorizontal();
@@ -59,7 +59,6 @@ public class SystemEditor : Editor
             mSystem.tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.RGB24, false);
             mSystem.nImgFrameIDX = 3;
 
-            mSystem.imageData = SystemManager.Instance.ImageData;
             mSystem.imagePath = SystemManager.Instance.ImagePath;
             mSystem.nMaxImageIndex = mSystem.imageData.Length - 1;
             mSystem.Init();

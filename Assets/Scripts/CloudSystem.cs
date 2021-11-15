@@ -92,10 +92,7 @@ public class CloudSystem : MonoBehaviour
         //Debug.Log("cam = " + bCam);
         if (!bCam)
         {
-            imageData = SystemManager.Instance.ImageData;
-            //Debug.Log(imageData.ToString());
             imagePath = SystemManager.Instance.ImagePath;
-            //nMaxImageIndex = mSystem.imageData.Length - 1;
         }
         else
         {
@@ -130,7 +127,7 @@ public class CloudSystem : MonoBehaviour
 
         ////Device & Map store
         string addr2 = SystemManager.Instance.ServerAddr + "/Store?keyword=DeviceConnect&id=0&src=" + SystemManager.Instance.User;
-        string msg2 = SystemManager.Instance.User + "," + SystemManager.Instance.Map;
+        string msg2 = SystemManager.Instance.User + "," + SystemManager.Instance.MapName;
         byte[] bdatab = System.Text.Encoding.UTF8.GetBytes(msg2);
         float[] fdataa = SystemManager.Instance.IntrinsicData;
         byte[] bdata2 = new byte[1 + fdataa.Length * 4 + bdatab.Length];
@@ -152,9 +149,8 @@ public class CloudSystem : MonoBehaviour
         UdpAsyncHandler.Instance.UdpDataReceived += UdpDataReceivedProcess;
 
         //connect to echo server
-        UdpState cstat = UdpAsyncHandler.Instance.UdpConnect("143.248.6.143", 35001, 40001);
-        UdpAsyncHandler.Instance.ConnectedUDPs.Add(cstat);
-
+        UdpState cstat = UdpAsyncHandler.Instance.UdpSocketBegin("143.248.6.143", 35001, 40001);
+        
         nDurationSendFrame = SystemManager.Instance.NumSkipFrame;
         ThreadStart();
 
@@ -202,7 +198,7 @@ public class CloudSystem : MonoBehaviour
     {
         SystemManager.Instance.Connect = false;
         string addr2 = SystemManager.Instance.ServerAddr + "/Store?keyword=DeviceDisconnect&id=0&src=" + SystemManager.Instance.User;
-        string msg2 = SystemManager.Instance.User + "," + SystemManager.Instance.Map;
+        string msg2 = SystemManager.Instance.User + "," + SystemManager.Instance.MapName;
         byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg2);
 
         UnityWebRequest request = new UnityWebRequest(addr2);
@@ -218,8 +214,7 @@ public class CloudSystem : MonoBehaviour
             continue;
         }
 
-        UdpAsyncHandler.Instance.UdpDisconnect();
-        UdpAsyncHandler.Instance.UdpDataReceived -= UdpDataReceivedProcess;
+        UdpAsyncHandler.Instance.UdpSocketClose();
 
         ThreadStop();
 
@@ -302,7 +297,7 @@ public class CloudSystem : MonoBehaviour
     {
         Init();
 
-        string addr = SystemManager.Instance.ServerAddr + "/reset?map=" + SystemManager.Instance.Map;
+        string addr = SystemManager.Instance.ServerAddr + "/reset?map=" + SystemManager.Instance.MapName;
         Debug.Log("Reset:" + addr);
         UnityWebRequest request = new UnityWebRequest(addr);
         request.method = "POST";
@@ -312,7 +307,7 @@ public class CloudSystem : MonoBehaviour
 
     public void SaveMap()
     {
-        string addr = SystemManager.Instance.ServerAddr + "/RequestSaveMap?map=" + SystemManager.Instance.Map;
+        string addr = SystemManager.Instance.ServerAddr + "/RequestSaveMap?map=" + SystemManager.Instance.MapName;
         UnityWebRequest request = new UnityWebRequest(addr);
         request.method = "POST";
         request.downloadHandler = new DownloadHandlerBuffer();
@@ -322,7 +317,7 @@ public class CloudSystem : MonoBehaviour
 
     public void LoadMap()
     {
-        string addr = SystemManager.Instance.ServerAddr + "/LoadMap?map=" + SystemManager.Instance.Map;
+        string addr = SystemManager.Instance.ServerAddr + "/LoadMap?map=" + SystemManager.Instance.MapName;
         UnityWebRequest request = new UnityWebRequest(addr);
         request.method = "POST";
         request.downloadHandler = new DownloadHandlerBuffer();
@@ -342,7 +337,6 @@ public class CloudSystem : MonoBehaviour
     public void MapGeneration()
     {
         bMappingThread = !bMappingThread;
-        imageData = SystemManager.Instance.ImageData;
         imagePath = SystemManager.Instance.ImagePath;
         Debug.Log(imagePath + " " + bMappingThread);
         if (!bMappingThreadStart)
@@ -569,7 +563,7 @@ public class CloudSystem : MonoBehaviour
 
     public void GetModel()
     {
-        string addr = SystemManager.Instance.ServerAddr + "/SendData?map=" + SystemManager.Instance.Map + "&attr=Models&id=1&key=bregion";
+        string addr = SystemManager.Instance.ServerAddr + "/SendData?map=" + SystemManager.Instance.MapName + "&attr=Models&id=1&key=bregion";
         UnityWebRequest request = new UnityWebRequest(addr);
         request.method = "POST";
         request.downloadHandler = new DownloadHandlerBuffer();

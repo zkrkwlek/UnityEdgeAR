@@ -113,15 +113,6 @@ public class DataQueue
         TimeSpan SnedingTimeSpan = DateTime.Now - t1;
         SystemManager.Instance.Experiments["UploadTime"].Update((float)SnedingTimeSpan.Milliseconds);
 
-        while (!req.downloadHandler.isDone)
-        {
-            yield return null;
-        }
-        TimeSpan TestTime = DateTime.Now - data.sendedTime;
-        SystemManager.Instance.Experiments["TestTime"].Update((float)SnedingTimeSpan.Milliseconds);
-
-        //    DataQueue.Instance.Sending = false;
-        //}
         yield break;
     }
 }
