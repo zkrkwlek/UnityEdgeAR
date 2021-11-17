@@ -94,7 +94,32 @@ public class Tracker
     }
     static private float scale;
 
-    
+    public int SkipFrame
+    {
+        get
+        {
+            return nSkip;
+        }
+        set 
+        {
+            nSkip = value;
+        }
+    }
+    static private int nSkip;
+
+    public int ImageQuality
+    {
+        get
+        {
+            return nQuality;
+        }
+        set
+        {
+            nQuality = value;
+        }
+    }
+    static private int nQuality;
+
     static private Tracker m_pInstance = null;
 
     static public Tracker Instance
@@ -212,6 +237,9 @@ public class Tracker
             webCamTexture.Play();
         }
         background.texture = tex;
+
+        nSkip = SystemManager.Instance.AppData.numSkipFrames;
+        nQuality = SystemManager.Instance.AppData.JpegQuality;
 
         ConnectDevice();
     }
@@ -387,9 +415,6 @@ public class TrackingProcessor : MonoBehaviour
         
     }
 
-    int nSkipFrame = SystemManager.Instance.NumSkipFrame;
-    int nQuality = SystemManager.Instance.AppData.JpegQuality;
-
     void Update()
     {
         //StatusTxt.text = "Quality = " + nQuality;
@@ -407,9 +432,6 @@ public class TrackingProcessor : MonoBehaviour
                 if (SystemManager.Instance.Cam)
                 {
                     Tracker.Instance.LoadWebcamTextre();
-                    //TimeSpan span = DateTime.UtcNow- new DateTime(1970, 1, 1, 0, 0, 0);
-                    //ts = span.TotalSeconds;
-
                 }
                 else
                 {
@@ -422,7 +444,7 @@ public class TrackingProcessor : MonoBehaviour
                 }
                 
                 ////send data
-                if (mnFrameID % nSkipFrame == 0)
+                if (mnFrameID % Tracker.Instance.SkipFrame == 0)
                 {
                     
                     string src = SystemManager.Instance.UserName;
@@ -445,7 +467,7 @@ public class TrackingProcessor : MonoBehaviour
                     ////압축 이미지를 바이트로 변환
                     //if (!DataQueue.Instance.Sending) {
                         //DataQueue.Instance.Sending = true;
-                        UdpData data = new UdpData("Image", src, mnFrameID, Tracker.Instance.Texture.EncodeToJPG(nQuality), ts);
+                        UdpData data = new UdpData("Image", src, mnFrameID, Tracker.Instance.Texture.EncodeToJPG(Tracker.Instance.ImageQuality), ts);
                         data.sendedTime = DateTime.Now;
                         DataQueue.Instance.Add(data);
                         DataQueue.Instance.SendingQueue.Enqueue(data);
@@ -467,13 +489,13 @@ public class TrackingProcessor : MonoBehaviour
                     if (!SystemManager.Instance.User.ModeMultiAgentTest)
                     {
                         bTrack = Track(posePtr);
-
-                        if (VisualizeFrame(texPtr))
-                        {
-                            Tracker.Instance.LoadRawTextureData(texPtr, texData.Length * 4);
-                        }
                     }
-                    
+
+                    if (VisualizeFrame(texPtr))
+                    {
+                        Tracker.Instance.LoadRawTextureData(texPtr, texData.Length * 4);
+                    }
+
                     if (bTrack)
                     {
                         ResultImage.color = new Color(0.0f, 1.0f, 0.0f, 4.0f);

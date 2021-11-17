@@ -126,7 +126,7 @@ public class SystemManager {
             w = _w;
             h = _h;
             type1 = "device";
-            type2 = "raw";
+            type2 = "NONE";
             //생성할 키워드
             keyword = "Image,Gyro,Accelerometer,DevicePosition,DeviceConnect,DeviceDisconnect,ContentGeneration,Map";
             src = userID;
@@ -837,6 +837,13 @@ public class SystemManager {
                     data3.fSum = 0.0f;
                     data3.fSum_2 = 0.0f;
                     exDatas[data3.name] = data3;
+
+                    ExperimentData dataObject = new ExperimentData();
+                    dataObject.name = "ObjectDetectionTime";
+                    dataObject.nTotal = 0;
+                    dataObject.fSum = 0.0f;
+                    dataObject.fSum_2 = 0.0f;
+                    exDatas[dataObject.name] = dataObject;
 
                     ExperimentData data4 = new ExperimentData();
                     data4.name = "ContentReturnTime";

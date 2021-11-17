@@ -141,9 +141,10 @@ public class TestGUI : MonoBehaviour
                 ////
                 SystemManager.ApplicationData appData = SystemManager.Instance.AppData;
                 UdpAsyncHandler.Instance.UdpSocketBegin(appData.UdpAddres, appData.UdpPort, appData.LocalPort);
-                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "MappingResult", "connect", "single");
+                //UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "MappingResult", "connect", "single");
+                //UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "LocalMap", "connect", "single");
                 UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "ReferenceFrame", "connect", "single");
-                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "LocalMap", "connect", "single");
+                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "ObjectDetection", "connect", "single");
                 UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "Content", "connect", "all");
 
             }
@@ -155,9 +156,8 @@ public class TestGUI : MonoBehaviour
                 //개별 컨트롤러 해제 처리
                 Tracker.Instance.Disconnect();
                 ////
-                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "MappingResult", "disconnect", "single");
                 UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "ReferenceFrame", "disconnect", "single");
-                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "LocalMap", "disconnect", "single");
+                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "ObjectDetection", "disconnect", "single");
                 UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "Content", "disconnect", "all");
                 UdpAsyncHandler.Instance.UdpSocketClose();
                 File.WriteAllLines(Application.persistentDataPath + "/Data/Trajectory.txt", SystemManager.Instance.Trajectory);
