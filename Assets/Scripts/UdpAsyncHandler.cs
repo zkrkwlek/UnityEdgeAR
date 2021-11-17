@@ -95,7 +95,7 @@ public class UdpAsyncHandler
 
     public UdpState UdpSocketBegin(string rermoteip, int remoteport, int localport)
     {
-        UdpDataReceived += UdpDataReceivedProcess;
+        //UdpDataReceived += UdpDataReceivedProcess;
 
         stat = new UdpState();
         IPEndPoint localEP = new IPEndPoint(IPAddress.Any, 0);
@@ -116,7 +116,7 @@ public class UdpAsyncHandler
     public void UdpSocketClose()
     {
         stat.udp.Close();
-        UdpDataReceived -= UdpDataReceivedProcess;
+        //UdpDataReceived -= UdpDataReceivedProcess;
     }
 
     public void Send(string src, string keyword, string method, string type)
@@ -174,6 +174,6 @@ public class UdpAsyncHandler
         UdpData data = JsonUtility.FromJson<UdpData>(msg);
         data.receivedTime = DateTime.Now;
         DataQueue.Instance.ReceivingQueue.Enqueue(data);
-        
     }
+    
 }

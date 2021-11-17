@@ -386,6 +386,8 @@ public class TrackingProcessor : MonoBehaviour
     Matrix3x3 DeltaR = new Matrix3x3();
     Matrix3x3 DeltaFrameR;
 
+    DataTransfer sender;
+
     void Start()
     {
         //result image ptr
@@ -406,13 +408,13 @@ public class TrackingProcessor : MonoBehaviour
         ////imu ptr
 
         Tracker.Instance.Background = background;
-        
+
 #if (UNITY_EDITOR_WIN)
 
 #elif (UNITY_ANDROID)
         SetIMUAddress(imuPtr, SystemManager.Instance.UseGyro);
 #endif
-        
+        sender = new DataTransfer();
     }
 
     void Update()
@@ -459,7 +461,8 @@ public class TrackingProcessor : MonoBehaviour
                         UdpData gdata = new UdpData("Gyro", src, mnFrameID, bdata);
                         gdata.sendedTime = DateTime.Now;
 
-                        DataQueue.Instance.SendingQueue.Enqueue(gdata);
+                        //DataQueue.Instance.SendingQueue.Enqueue(gdata);
+                        StartCoroutine(sender.SendData(gdata));
                         //전송할때까지 다시 자이로 값을 누적함.
                         DeltaR = new Matrix3x3();
                     }
@@ -470,7 +473,8 @@ public class TrackingProcessor : MonoBehaviour
                         UdpData data = new UdpData("Image", src, mnFrameID, Tracker.Instance.Texture.EncodeToJPG(Tracker.Instance.ImageQuality), ts);
                         data.sendedTime = DateTime.Now;
                         DataQueue.Instance.Add(data);
-                        DataQueue.Instance.SendingQueue.Enqueue(data);
+                        //DataQueue.Instance.SendingQueue.Enqueue(data);
+                        StartCoroutine(sender.SendData(data));
                     //}
                 }
 

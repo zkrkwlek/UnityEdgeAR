@@ -2,15 +2,16 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
 
 public class TouchProcessor : MonoBehaviour
 {
     // Start is called before the first frame update
     void Start()
     {
-        
+        sender = new DataTransfer();
     }
-
+    DataTransfer sender;
     int mnTouchID = 0;
     // Update is called once per frame
     void Update()
@@ -61,9 +62,10 @@ public class TouchProcessor : MonoBehaviour
             UdpData data = new UdpData("ContentGeneration", SystemManager.Instance.UserName, mnTouchID, bdata);
             data.sendedTime = DateTime.Now;
             DataQueue.Instance.Add(data);
-            DataQueue.Instance.SendingQueue.Enqueue(data);
+            //DataQueue.Instance.SendingQueue.Enqueue(data);
+            StartCoroutine(sender.SendData(data));
         }
-
         ////touch 
     }
+
 }

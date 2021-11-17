@@ -1760,12 +1760,12 @@ GameObject:
   m_Component:
   - component: {fileID: 739606614}
   - component: {fileID: 739606616}
+  - component: {fileID: 739606619}
+  - component: {fileID: 739606617}
+  - component: {fileID: 739606615}
   - component: {fileID: 739606613}
   - component: {fileID: 739606612}
-  - component: {fileID: 739606615}
-  - component: {fileID: 739606617}
   - component: {fileID: 739606618}
-  - component: {fileID: 739606619}
   m_Layer: 0
   m_Name: EdgeSLAM
   m_TagString: Untagged
@@ -1780,7 +1780,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 739606611}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 03e5ea8b3a012e14e8269357271de67f, type: 3}
   m_Name: 
@@ -1886,7 +1886,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 739606611}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 91e8e0b7ca646de4aa590676fc5176d3, type: 3}
   m_Name: 

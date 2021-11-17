@@ -64,8 +64,8 @@ public class DataQueue
     //맵 추가하기
 }
 
-    public class DataSender : MonoBehaviour
-{
+public class DataTransfer {
+
     UnityWebRequest SetRequest(string keyword, byte[] data, int id, double ts)
     {
         string addr2 = SystemManager.Instance.ServerAddr + "/Store?keyword=" + keyword + "&id=" + id + "&src=" + SystemManager.Instance.UserName;
@@ -79,6 +79,30 @@ public class DataQueue
         request.downloadHandler = new DownloadHandlerBuffer();
         return request;
     }
+
+    public IEnumerator SendData(UdpData data)
+    {
+        //TimeSpan QueueTimeSpan = DateTime.Now - data.sendedTime;
+        //SystemManager.Instance.Experiments["SendingQueue"].Update((float)QueueTimeSpan.Milliseconds);
+
+        UnityWebRequest req = SetRequest(data.keyword, data.data, data.id, data.timestamp);
+        req.SendWebRequest();
+
+        DateTime t1 = DateTime.Now;
+        while (req.uploadHandler.progress < 1f)
+        {
+            yield return new WaitForFixedUpdate();
+            //yield return new WaitForSecondsRealtime(0.001f);
+        }
+        TimeSpan SnedingTimeSpan = DateTime.Now - t1;
+        SystemManager.Instance.Experiments["UploadTime"].Update((float)SnedingTimeSpan.Milliseconds);
+
+        yield break;
+    }
+}
+    public class DataSender : MonoBehaviour
+{
+    
     
     // Start is called before the first frame update
     void Start()
@@ -89,30 +113,11 @@ public class DataQueue
     // Update is called once per frame
     void Update()
     {
-        while(DataQueue.Instance.SendingQueue.Count > 0)
-        {
-            UdpData data = DataQueue.Instance.SendingQueue.Dequeue();
-            StartCoroutine(SendData(data));
-        }
-    }
-
-    IEnumerator SendData(UdpData data)
-    {
-        TimeSpan QueueTimeSpan = DateTime.Now - data.sendedTime;
-        SystemManager.Instance.Experiments["SendingQueue"].Update((float)QueueTimeSpan.Milliseconds);
-
-        UnityWebRequest req = SetRequest(data.keyword, data.data, data.id, data.timestamp);
-        req.SendWebRequest();
-        //if(data.keyword == "Image")
+        //while(DataQueue.Instance.SendingQueue.Count > 0)
         //{
-        DateTime t1 = DateTime.Now;
-        while (req.uploadHandler.progress < 1f)
-        {
-            yield return null;
-        }
-        TimeSpan SnedingTimeSpan = DateTime.Now - t1;
-        SystemManager.Instance.Experiments["UploadTime"].Update((float)SnedingTimeSpan.Milliseconds);
-
-        yield break;
+        //    UdpData data = DataQueue.Instance.SendingQueue.Dequeue();
+        //    StartCoroutine(SendData(data));
+        //}
     }
+
 }

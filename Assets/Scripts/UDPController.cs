@@ -58,37 +58,44 @@ public class UDPController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        UdpAsyncHandler.Instance.UdpDataReceived += Process;
+    }
+    void Process(object sender, UdpEventArgs e) {
+        int size = e.bdata.Length;
+        string msg = System.Text.Encoding.Default.GetString(e.bdata);
+        UdpData data = JsonUtility.FromJson<UdpData>(msg);
+        data.receivedTime = DateTime.Now;
+        StartCoroutine(MessageParsing(data));
     }
 
     // Update is called once per frame
     void Update()
     {
+        /*
         while (DataQueue.Instance.ReceivingQueue.Count > 0)
         {
             UdpData data = DataQueue.Instance.ReceivingQueue.Dequeue();
             StartCoroutine(MessageParsing(data));
         }
+        */
     }
 
     IEnumerator MessageParsing(UdpData data) {
 
-        TimeSpan QueueTimeSpan = DateTime.Now - data.receivedTime;
-        SystemManager.Instance.Experiments["ReceivingQueue"].Update((float)QueueTimeSpan.Milliseconds);
+        //TimeSpan QueueTimeSpan = DateTime.Now - data.receivedTime;
+        //SystemManager.Instance.Experiments["ReceivingQueue"].Update((float)QueueTimeSpan.Milliseconds);
+
+        UnityWebRequest req1 = GetRequest(data.keyword, data.id);
+        DateTime t1 = DateTime.Now;
+        while (!req1.downloadHandler.isDone)
+        {
+            yield return new WaitForFixedUpdate();
+        }
+        TimeSpan Dtimespan = DateTime.Now - t1;
+        SystemManager.Instance.Experiments["DownloadTime"].Update((float)Dtimespan.Milliseconds);
 
         if (data.keyword == "ReferenceFrame" )
         {
-             UnityWebRequest req1 = GetRequest("ReferenceFrame", data.id);
-           
-
-            DateTime t1 = DateTime.Now;
-            while (!req1.downloadHandler.isDone)
-            {
-                //yield return null;
-                yield return new WaitForFixedUpdate();
-            }
-            TimeSpan Dtimespan = DateTime.Now - t1;
-            SystemManager.Instance.Experiments["DownloadTime"].Update((float)Dtimespan.Milliseconds);
-
             SetDataToDevice(req1, "ReferenceFrame");
             //SetDataToDevice(req2, "ReferenceFrameDesc");
 
@@ -122,17 +129,6 @@ public class UDPController : MonoBehaviour
         }
         else if (data.keyword == "Content")
         {
-            UnityWebRequest req1 = GetRequest("Content", data.id, data.src);
-            DateTime t1 = DateTime.Now;
-            while (!req1.downloadHandler.isDone)
-            {
-                //yield return null;
-                yield return new WaitForFixedUpdate();
-            }
-            TimeSpan Dtimespan = DateTime.Now - t1;
-            SystemManager.Instance.Experiments["DownloadTime"].Update((float)Dtimespan.Milliseconds);
-            DateTime t2 = DateTime.Now;
-
             float[] fdata = new float[req1.downloadHandler.data.Length / 4];
             Buffer.BlockCopy(req1.downloadHandler.data, 0, fdata, 0, req1.downloadHandler.data.Length);
             AddContentInfo(data.id, fdata[0], fdata[1], fdata[2]);
@@ -140,27 +136,13 @@ public class UDPController : MonoBehaviour
             if (data.type2 == SystemManager.Instance.UserName)
             {
                 ////update 시간
-                //SystemManager.ExperimentData[] exdatas = SystemManager.Instance.Experiments;
                 UdpData data2 = DataQueue.Instance.Get("ContentGeneration" + data.id);
-                //SystemManager.ExperimentMap[] maps = SystemManager.Instance.ExperimentMaps;
-
                 TimeSpan time2 = DateTime.Now - data2.sendedTime;
                 SystemManager.Instance.Experiments["ContentReturnTime"].Update((float)time2.Milliseconds);
             }
-
-            //SystemManager.Instance.Experiments = exdatas;
-            //SystemManager.Instance.ExperimentMaps = maps;
-            ////update 시간
         }
         else if(data.keyword == "ObjectDetection")
         {
-            UnityWebRequest req1 = GetRequest("ObjectDetection", data.id, data.src);
-            DateTime t1 = DateTime.Now;
-            while (!req1.downloadHandler.isDone)
-            {
-                //yield return null;
-                yield return new WaitForFixedUpdate();
-            }
             UdpData data2 = DataQueue.Instance.Get("Image" + data.id);
             TimeSpan time2 = DateTime.Now - data2.sendedTime;
             SystemManager.Instance.Experiments["ObjectDetectionTime"].Update((float)time2.Milliseconds);
