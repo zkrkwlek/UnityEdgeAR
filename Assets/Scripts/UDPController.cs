@@ -39,12 +39,16 @@ public class UDPController : MonoBehaviour
 {
 #if UNITY_EDITOR_WIN
     [DllImport("UnityLibrary")]
+    private static extern void SetReferenceFrame(int id);
+    [DllImport("UnityLibrary")]
     private static extern void SetDataFromUnity(IntPtr addr, char[] keyword, int len, int strlen);
     [DllImport("UnityLibrary")]
     private static extern void AddContentInfo(int id, float x, float y, float z);
     [DllImport("UnityLibrary")]
     private static extern void AddObjectInfos();
 #elif UNITY_ANDROID
+    [DllImport("edgeslam")]
+    private static extern void SetReferenceFrame(int id);
     [DllImport("edgeslam")]
     private static extern void SetDataFromUnity(IntPtr addr, char[] keyword, int len, int strlen);
     [DllImport("edgeslam")]
@@ -120,7 +124,8 @@ public class UDPController : MonoBehaviour
             }
 
             ////레퍼런스 프레임 설정
-            //Tracker.Instance.CreateReferenceFrame();
+            if(SystemManager.Instance.IsDeviceTracking)
+                SetReferenceFrame(data.id);
 
             //UdpData data2 = DataQueue.Instance.Get("Image" + data.id);
             //Trajectory upadte

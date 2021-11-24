@@ -14,20 +14,13 @@ public class Tracker
 {
 #if UNITY_EDITOR_WIN
     [DllImport("UnityLibrary")]
-    private static extern void SetInit(int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4, int nfeature, int nlevel, float fscale);
-    [DllImport("UnityLibrary")]
-    private static extern void SetReferenceFrame();
-    [DllImport("UnityLibrary")]
-    private static extern bool SetLocalMap();
+    private static extern void SetInit(int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4, int nfeature, int nlevel, float fscale, int nskip);
     [DllImport("UnityLibrary")]
     private static extern void ConnectDevice();
 #elif UNITY_ANDROID
     [DllImport("edgeslam")]
-    private static extern void SetInit(int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4, int nfeature, int nlevel, float fscale);    
-    [DllImport("edgeslam")]
-    private static extern void SetReferenceFrame();
-    [DllImport("edgeslam")]
-    private static extern bool SetLocalMap();
+    private static extern void SetInit(int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4, int nfeature, int nlevel, float fscale, int nskip);    
+    
     [DllImport("edgeslam")]
     private static extern void ConnectDevice();
 #endif
@@ -209,7 +202,7 @@ public class Tracker
         //SystemManager.Instance.AppData.
         SetInit(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.FocalLengthX, SystemManager.Instance.FocalLengthY, SystemManager.Instance.PrincipalPointX, SystemManager.Instance.PrincipalPointY,
                         SystemManager.Instance.IntrinsicData[6], SystemManager.Instance.IntrinsicData[7], SystemManager.Instance.IntrinsicData[8], SystemManager.Instance.IntrinsicData[9],
-                        SystemManager.Instance.AppData.numFeatures,SystemManager.Instance.AppData.numPyramids, 1.2f);
+                        SystemManager.Instance.AppData.numFeatures,SystemManager.Instance.AppData.numPyramids, 1.2f, SystemManager.Instance.AppData.numSkipFrames);
 
         tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.BGRA32, false);
 
@@ -280,42 +273,6 @@ public class Tracker
     public void LoadRawTextureData(IntPtr ptr, int size) {
         tex.LoadRawTextureData(ptr, size);
         tex.Apply();
-    }
-
-    public void CreateReferenceFrame()
-    {
-        SetReferenceFrame();
-        SetLocalMap();
-        //byte[] res1 = GetData("ReferenceFrame", data.id);
-        //byte[] res_desc = GetData("LocalMap", data.id);
-        //byte[] res_scale = GetData("LocalMapScales", data.id);
-        //byte[] res_angle = GetData("LocalMapAngles", data.id);
-        //byte[] res_points = GetData("LocalMapPoints", data.id);
-
-        //GCHandle handle1 = GCHandle.Alloc(res_points, GCHandleType.Pinned);
-        //IntPtr ptr1 = handle1.AddrOfPinnedObject();
-        //GCHandle handle2 = GCHandle.Alloc(res_desc, GCHandleType.Pinned);
-        //IntPtr ptr2 = handle2.AddrOfPinnedObject();
-        //GCHandle handle3 = GCHandle.Alloc(res_scale, GCHandleType.Pinned);
-        //IntPtr ptr3 = handle3.AddrOfPinnedObject();
-        //GCHandle handle4 = GCHandle.Alloc(res_angle, GCHandleType.Pinned);
-        //IntPtr ptr4 = handle4.AddrOfPinnedObject();
-
-        //SetLocalMap(ptr1, res_points.Length, ptr2, res_desc.Length, ptr3, res_scale.Length, ptr4, res_angle.Length);
-
-        //handle1.Free();
-        //handle2.Free();
-        //handle3.Free();
-        //handle4.Free();
-
-        //Pose
-        //keypoint(2d, angle, scale)
-        //mp(3d, predicted scale, descriptor)
-
-        //float[] fdata = new float[request.downloadHandler.data.Length / 4];
-        //Buffer.BlockCopy(request.downloadHandler.data, 0, fdata, 0, request.downloadHandler.data.Length);
-        ////SetReferenceFrame(data.id, fdata);
-
     }
 
     ////PoseData
@@ -480,6 +437,7 @@ public class TrackingProcessor : MonoBehaviour
 
                 if (SystemManager.Instance.IsDeviceTracking)
                 {
+                    StatusTxt.text = Tracker.Instance.Texture.format.ToString();
                     Color32[] texData = Tracker.Instance.Texture.GetPixels32();
                     GCHandle texHandle = GCHandle.Alloc(texData, GCHandleType.Pinned);
                     IntPtr texPtr = texHandle.AddrOfPinnedObject();
