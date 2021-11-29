@@ -376,16 +376,17 @@ public class TrackingProcessor : MonoBehaviour
 
     void Update()
     {
-        //StatusTxt.text = "Quality = " + nQuality;
-        if (SystemManager.Instance.UseGyro)
+        try
         {
-            DeltaFrameR = SensorManager.Instance.DeltaRotationMatrix();
-            DeltaR = DeltaR * DeltaFrameR;
-        }
 
-        if (SystemManager.Instance.Start && SystemManager.Instance.Connect)
-        {
-            try
+            //StatusTxt.text = "Quality = " + nQuality;
+            if (SystemManager.Instance.UseGyro)
+            {
+                DeltaFrameR = SensorManager.Instance.DeltaRotationMatrix();
+                DeltaR = DeltaR * DeltaFrameR;
+            }
+
+            if (SystemManager.Instance.Start && SystemManager.Instance.Connect)
             {
 
                 if (SystemManager.Instance.Cam)
@@ -394,6 +395,12 @@ public class TrackingProcessor : MonoBehaviour
                 }
                 else
                 {
+                    if(Tracker.Instance.ImageFrameIndexX >= Tracker.Instance.ImageList.Length)
+                    {
+                        Tracker.Instance.ImageFrameIndexX = 3;
+                        SystemManager.Instance.Start = false;
+                        return;
+                    }
                     string[] strsplit = Tracker.Instance.ImageList[Tracker.Instance.ImageFrameIndexX++].Split(' ');
                     ts = Convert.ToDouble(strsplit[0]);
                     string file = Convert.ToString(strsplit[1]);
@@ -425,14 +432,10 @@ public class TrackingProcessor : MonoBehaviour
                     }
 
                     ////압축 이미지를 바이트로 변환
-                    //if (!DataQueue.Instance.Sending) {
-                        //DataQueue.Instance.Sending = true;
-                        UdpData data = new UdpData("Image", src, mnFrameID, Tracker.Instance.Texture.EncodeToJPG(Tracker.Instance.ImageQuality), ts);
-                        data.sendedTime = DateTime.Now;
-                        DataQueue.Instance.Add(data);
-                        //DataQueue.Instance.SendingQueue.Enqueue(data);
-                        StartCoroutine(sender.SendData(data));
-                    //}
+                    UdpData data = new UdpData("Image", src, mnFrameID, Tracker.Instance.Texture.EncodeToJPG(Tracker.Instance.ImageQuality), ts);
+                    data.sendedTime = DateTime.Now;
+                    DataQueue.Instance.Add(data);
+                    StartCoroutine(sender.SendData(data));
                 }
 
                 if (SystemManager.Instance.IsDeviceTracking)
@@ -441,7 +444,7 @@ public class TrackingProcessor : MonoBehaviour
                     Color32[] texData = Tracker.Instance.Texture.GetPixels32();
                     GCHandle texHandle = GCHandle.Alloc(texData, GCHandleType.Pinned);
                     IntPtr texPtr = texHandle.AddrOfPinnedObject();
-                    //bGrabImage = GrabImage(texPtr, mnFrameID);
+                    
                     float tt1 = 0f; float tt2 = 0f;
                     SetFrame(texPtr, mnFrameID, 0.0, ref tt1, ref tt2);
                     if (SystemManager.Instance.UseGyro)
@@ -469,11 +472,10 @@ public class TrackingProcessor : MonoBehaviour
                 }                
                 ++mnFrameID;
             }
-            catch (Exception ex)
-            {
-                StatusTxt.text = ex.ToString();
-            }
-            
+        }
+        catch (Exception ex)
+        {
+            StatusTxt.text = ex.ToString();
         }
     }
 

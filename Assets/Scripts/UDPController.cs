@@ -65,30 +65,25 @@ public class UDPController : MonoBehaviour
         UdpAsyncHandler.Instance.UdpDataReceived += Process;
     }
     void Process(object sender, UdpEventArgs e) {
-        int size = e.bdata.Length;
-        string msg = System.Text.Encoding.Default.GetString(e.bdata);
-        UdpData data = JsonUtility.FromJson<UdpData>(msg);
-        data.receivedTime = DateTime.Now;
-        StartCoroutine(MessageParsing(data));
+        try {
+            int size = e.bdata.Length;
+            string msg = System.Text.Encoding.Default.GetString(e.bdata);
+            UdpData data = JsonUtility.FromJson<UdpData>(msg);
+            data.receivedTime = DateTime.Now;
+            StartCoroutine(MessageParsing(data));
+        }
+        catch(Exception ex)
+        {
+            StatusTxt.text = ex.ToString();
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
-        /*
-        while (DataQueue.Instance.ReceivingQueue.Count > 0)
-        {
-            UdpData data = DataQueue.Instance.ReceivingQueue.Dequeue();
-            StartCoroutine(MessageParsing(data));
-        }
-        */
     }
 
     IEnumerator MessageParsing(UdpData data) {
-
-        //TimeSpan QueueTimeSpan = DateTime.Now - data.receivedTime;
-        //SystemManager.Instance.Experiments["ReceivingQueue"].Update((float)QueueTimeSpan.Milliseconds);
-
         UnityWebRequest req1 = GetRequest(data.keyword, data.id);
         DateTime t1 = DateTime.Now;
         while (!req1.downloadHandler.isDone)
