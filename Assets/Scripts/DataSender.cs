@@ -77,27 +77,24 @@ public class DataTransfer {
         uH.contentType = "application/json";
         request.uploadHandler = uH;
         request.downloadHandler = new DownloadHandlerBuffer();
+        //request.SendWebRequest();
         return request;
     }
 
     public IEnumerator SendData(UdpData data)
     {
-        //TimeSpan QueueTimeSpan = DateTime.Now - data.sendedTime;
-        //SystemManager.Instance.Experiments["SendingQueue"].Update((float)QueueTimeSpan.Milliseconds);
-
         UnityWebRequest req = SetRequest(data.keyword, data.data, data.id, data.timestamp);
-        req.SendWebRequest();
+        yield return req.SendWebRequest();
 
-        DateTime t1 = DateTime.Now;
-        while (req.uploadHandler.progress < 1f)
-        {
-            yield return new WaitForFixedUpdate();
-            //yield return new WaitForSecondsRealtime(0.001f);
-        }
-        TimeSpan SnedingTimeSpan = DateTime.Now - t1;
-        SystemManager.Instance.Experiments["UploadTime"].Update((float)SnedingTimeSpan.Milliseconds);
-
-        yield break;
+        //DateTime t1 = DateTime.Now;
+        //while (req.uploadHandler.progress < 1f)
+        //{
+        //    yield return new WaitForFixedUpdate();
+        //    //yield return new WaitForSecondsRealtime(0.001f);
+        //}
+        //TimeSpan SnedingTimeSpan = DateTime.Now - t1;
+        //SystemManager.Instance.Experiments["UploadTime"+data.keyword].Update((float)SnedingTimeSpan.Milliseconds);
+        //yield break;
     }
 }
     public class DataSender : MonoBehaviour
