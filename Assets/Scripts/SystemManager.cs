@@ -168,7 +168,7 @@ public class SystemManager {
     public float[] IntrinsicData {
         get
         {
-
+            fdata = new float[12];
             int nidx = 0;
             CameraParams camParam = camParams[userData.numCameraParam];
             fdata[nidx++] = (float)camParam.w;
@@ -182,6 +182,7 @@ public class SystemManager {
             fdata[nidx++] = camParam.d3;
             fdata[nidx++] = camParam.d4;
             fdata[nidx++] = camParam.d5;
+            fdata[nidx++] = appData.JpegQuality;
             return fdata;
         }
     }
@@ -260,11 +261,17 @@ public class SystemManager {
         }
 
     }
+    static private string mapName;
     public string MapName
     {
         get
         {
-            return userData.MapName;
+            //return userData.MapName;
+            return mapName;
+        }
+        set 
+        {
+            mapName = value;
         }
     }
     public string ServerAddr
@@ -377,6 +384,14 @@ public class SystemManager {
         set
         {
             bManagerMode = value;
+        }
+    }
+    static private string[] mapnamelist;
+    public string[] MapNameList
+    {
+        get
+        {
+            return mapnamelist;
         }
     }
 
@@ -705,33 +720,64 @@ public class SystemManager {
                 path = Application.persistentDataPath+"/File";
 #endif
 
+                string[] templist;
                 try
                 {
-                    datalists =  File.ReadAllLines(Application.persistentDataPath + "/Data/DataLists.json");
-                    //for (int i = 0; i < datalists.Length; i++)
-                    //    datalists[i] = path + datalists[i];
+                    templist = File.ReadAllLines(Application.persistentDataPath + "/Data/DataLists.json");
+                    datalists = new string[templist.Length];
+                    mapnamelist = new string[templist.Length];
+                    for(int i = 0; i < templist.Length; i++)
+                    {
+                        string[] strs = templist[i].Split(',');
+                        mapnamelist[i] = strs[0];
+                        datalists[i] = strs[1];
+                    }
                 }
-                catch(FileNotFoundException)
+                catch (FileNotFoundException)
                 {
-                    int nDataList = 15;
-                    datalists = new string[nDataList];
+                    int nDataList = 26;
+                    templist = new string[nDataList];
                     int nIdx = 0;
-                    datalists[nIdx++] = "/KI/S21+/1/";
-                    datalists[nIdx++] = "/KI/S21+/5/";
-                    datalists[nIdx++] = "/KI/NOTE8/1/";
-                    datalists[nIdx++] = "/TUM/TUM2/xyz/";
-                    datalists[nIdx++] = "/TUM/TUM2/desk/";
-                    datalists[nIdx++] = "/TUM/TUM2/large_no_loop/";
-                    datalists[nIdx++] = "/TUM/TUM2/large_with_loop/";
-                    datalists[nIdx++] = "/TUM/TUM3/long_office/";
-                    datalists[nIdx++] = "/TUM/TUM3/str_tex_far/";
-                    datalists[nIdx++] = "/TUM/TUM3/str_tex_near/";
-                    datalists[nIdx++] = "/NUIM/lr0/";
-                    datalists[nIdx++] = "/NUIM/lr0n/";
-                    datalists[nIdx++] = "/NUIM/lr1/";
-                    datalists[nIdx++] = "/NUIM/lr2/";
-                    datalists[nIdx++] = "/NUIM/lr3/";
-                    File.WriteAllLines(Application.persistentDataPath + "/Data/DataLists.json", datalists);
+                    templist[nIdx++] = "TEST,/KI/S21+/1/";
+                    templist[nIdx++] = "TEST,/KI/S21+/5/";
+                    templist[nIdx++] = "TEST,/KI/NOTE8/1/";
+                    templist[nIdx++] = "tum1_desk,/TUM/TUM1/desk/";
+                    templist[nIdx++] = "tum1_floor,/TUM/TUM1/floor/";
+                    templist[nIdx++] = "tum1_room,/TUM/TUM1/room/";
+                    templist[nIdx++] = "tum1_xyz,/TUM/TUM1/xyz/";
+                    templist[nIdx++] = "tum2_xyz,/TUM/TUM2/xyz/";
+                    templist[nIdx++] = "tum2_desk,/TUM/TUM2/desk/";
+                    templist[nIdx++] = "tum2_360,/TUM/TUM2/360/";
+                    templist[nIdx++] = "tum2_no_loop,/TUM/TUM2/large_no_loop/";
+                    templist[nIdx++] = "tum2_loop,/TUM/TUM2/large_with_loop/";
+                    templist[nIdx++] = "tum3_office,/TUM/TUM3/long_office/";
+                    templist[nIdx++] = "tum3_strtexfar,/TUM/TUM3/str_tex_far/";
+                    templist[nIdx++] = "tum3_strtexnear,/TUM/TUM3/str_tex_near/";
+                    templist[nIdx++] = "tum3_sitting_half,/TUM/TUM3/sitting_half/";
+                    templist[nIdx++] = "tum3_walking_static,/TUM/TUM3/walking_static/";
+                    templist[nIdx++] = "tum3_walking_xyz,/TUM/TUM3/walking_xyz/";
+                    templist[nIdx++] = "lr0,/NUIM/lr0/";
+                    templist[nIdx++] = "lr0n,/NUIM/lr0n/";
+                    templist[nIdx++] = "lr1,/NUIM/lr1/";
+                    templist[nIdx++] = "lr1n,/NUIM/lr1n/";
+                    templist[nIdx++] = "lr2,/NUIM/lr2/";
+                    templist[nIdx++] = "lr2n,/NUIM/lr2n/";
+                    templist[nIdx++] = "lr3,/NUIM/lr3/";
+                    templist[nIdx++] = "lr3n,/NUIM/lr3n/";
+
+                    datalists = new string[templist.Length];
+                    mapnamelist = new string[templist.Length];
+                    for (int i = 0; i < templist.Length; i++)
+                    {
+                        string[] strs = templist[i].Split(',');
+                        mapnamelist[i] = strs[0];
+                        datalists[i] = strs[1];
+                    }
+
+                    File.WriteAllLines(Application.persistentDataPath + "/Data/DataLists.json", templist);
+                }
+                finally {
+                    
                 }
 
                 try
@@ -800,8 +846,7 @@ public class SystemManager {
                     appData.numLocalKeyFrames = 50;
                     File.WriteAllText(Application.persistentDataPath + "/Data/AppData.json", JsonUtility.ToJson(appData));
                 }
-                fdata = new float[11];
-
+                
                 try
                 {
                     string strExperiments = File.ReadAllText(Application.persistentDataPath + "/Data/Experiment.json");
@@ -817,90 +862,38 @@ public class SystemManager {
                     //local map size, ref size, content time, local map time
                     exDatas = new Dictionary<string, ExperimentData>();
 
-                    ExperimentData data1 = new ExperimentData();
-                    data1.name = "LocalMapTraffic";
-                    data1.nTotal = 0;
-                    data1.fSum = 0.0f;
-                    data1.fSum_2 = 0.0f;
-                    exDatas[data1.name] = data1;
+                    List<string> list = new List<string>();
+                    list.Add("TrackingTime");
+                    list.Add("FrameTime");
+                    list.Add("ReferenceFrameTime");
+                    list.Add("VisualizationTime");
+                    list.Add("ReferenceTraffic");
+                    list.Add("ReferenceReturnTime");
+                    list.Add("ObjectDetectionTime");
+                    list.Add("ContentReturnTime");
+                    list.Add("UploadTimeImage");
+                    list.Add("UploadTimeGyro");
+                    list.Add("DownloadTimeImage");
+                    list.Add("DownloadTimeObject");
 
-                    ExperimentData data2 = new ExperimentData();
-                    data2.name = "ReferenceTraffic";
-                    data2.nTotal = 0;
-                    data2.fSum = 0.0f;
-                    data2.fSum_2 = 0.0f;
-                    exDatas[data2.name] = data2;
-
-                    ExperimentData data3 = new ExperimentData();
-                    data3.name = "ReferenceReturnTime";
-                    data3.nTotal = 0;
-                    data3.fSum = 0.0f;
-                    data3.fSum_2 = 0.0f;
-                    exDatas[data3.name] = data3;
-
-                    ExperimentData dataObject = new ExperimentData();
-                    dataObject.name = "ObjectDetectionTime";
-                    dataObject.nTotal = 0;
-                    dataObject.fSum = 0.0f;
-                    dataObject.fSum_2 = 0.0f;
-                    exDatas[dataObject.name] = dataObject;
-
-                    ExperimentData data4 = new ExperimentData();
-                    data4.name = "ContentReturnTime";
-                    data4.nTotal = 0;
-                    data4.fSum = 0.0f;
-                    data4.fSum_2 = 0.0f;
-                    exDatas[data4.name] = data4;
-
-                    ExperimentData data5 = new ExperimentData();
-                    data5.name = "SendingQueue";
-                    data5.nTotal = 0;
-                    data5.fSum = 0.0f;
-                    data5.fSum_2 = 0.0f;
-                    exDatas[data5.name] = data5;
-
-                    ExperimentData data6 = new ExperimentData();
-                    data6.name = "ReceivingQueue";
-                    data6.nTotal = 0;
-                    data6.fSum = 0.0f;
-                    data6.fSum_2 = 0.0f;
-                    exDatas[data6.name] = data6;
-
-                    ExperimentData data7 = new ExperimentData();
-                    data7.name = "UploadTime";
-                    data7.nTotal = 0;
-                    data7.fSum = 0.0f;
-                    data7.fSum_2 = 0.0f;
-                    exDatas[data7.name] = data7;
-
-                    ExperimentData data8 = new ExperimentData();
-                    data8.name = "DownloadTime";
-                    data8.nTotal = 0;
-                    data8.fSum = 0.0f;
-                    data8.fSum_2 = 0.0f;
-                    exDatas[data8.name] = data8;
-
-                    ExperimentData data9 = new ExperimentData();
-                    data9.name = "TestTime";
-                    data9.nTotal = 0;
-                    data9.fSum = 0.0f;
-                    data9.fSum_2 = 0.0f;
-                    exDatas[data9.name] = data9;
-
-                    Dictionary<string, SystemManager.ExperimentData>.ValueCollection values = exDatas.Values;
-                    SystemManager.ExperimentData[] datas = new SystemManager.ExperimentData[values.Count];
-                    int idx = 0;
-                    foreach (SystemManager.ExperimentData data in values)
+                    foreach (string str in list)
                     {
+                        ExperimentData data = new ExperimentData();
+                        data.name = str;
+                        data.nTotal = 0;
+                        data.fSum = 0.0f;
+                        data.fSum_2 = 0.0f;
                         data.Calculate();
-                        datas[idx++] = data;
+                        exDatas[data.name] = data;
                     }
 
+                    int idx = 0;
+                    Dictionary<string, SystemManager.ExperimentData>.ValueCollection values = exDatas.Values;
                     ExperimentData[] temp = new ExperimentData[exDatas.Count];
-                    temp[idx++] = data1;
-                    temp[idx++] = data2;
-                    temp[idx++] = data3;
-                    temp[idx++] = data4;
+                    foreach(ExperimentData data in values)
+                    {
+                        temp[idx++] = data;
+                    }
 
                     string camJsonStr = JsonHelper.ToJson(temp, true);
                     File.WriteAllText(Application.persistentDataPath + "/Data/Experiment.json", camJsonStr);

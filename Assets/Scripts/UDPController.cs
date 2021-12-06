@@ -103,7 +103,7 @@ public class UDPController : MonoBehaviour
 
                 if (data.keyword == "ReferenceFrame")
                 {
-                    SystemManager.Instance.Experiments["DownloadTime"].Update((float)Dtimespan.Milliseconds);
+                    SystemManager.Instance.Experiments["DownloadTimeImage"].Update((float)Dtimespan.Milliseconds);
                     SetDataToDevice(req1, "ReferenceFrame");
                     //SetDataToDevice(req2, "ReferenceFrameDesc");
 
@@ -128,8 +128,12 @@ public class UDPController : MonoBehaviour
                     }
 
                     ////레퍼런스 프레임 설정
-                    if (SystemManager.Instance.IsDeviceTracking)
+                    if (SystemManager.Instance.IsDeviceTracking) {
+                        DateTime tref_start = DateTime.Now;
                         SetReferenceFrame(data.id);
+                        TimeSpan tref = DateTime.Now - tref_start;
+                        SystemManager.Instance.Experiments["ReferenceFrameTime"].Update((float)tref.Milliseconds);
+                    }
 
                 }
                 else if (data.keyword == "Content")

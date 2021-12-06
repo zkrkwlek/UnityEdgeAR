@@ -24,22 +24,22 @@ public class TouchProcessor : MonoBehaviour
 #if UNITY_EDITOR_WIN
 
 #elif UNITY_ANDROID
-        Touch touch = Input.GetTouch(0);
-        if (touch.phase == TouchPhase.Began)
-        {
-            touchPos = touch.position;
-            bTouch = true;
-        }
-        else if (touch.phase == TouchPhase.Moved)
-        {
-            touchPos = touch.position;
-            bTouch = true;
-        }
-        else if (touch.phase == TouchPhase.Ended)
-        {
-            touchPos = touch.position;
-            bTouch = true;
-        }
+            Touch touch = Input.GetTouch(0);
+            if (touch.phase == TouchPhase.Began)
+            {
+                touchPos = touch.position;
+                bTouch = true;
+            }
+            else if (touch.phase == TouchPhase.Moved)
+            {
+                touchPos = touch.position;
+                bTouch = true;
+            }
+            else if (touch.phase == TouchPhase.Ended)
+            {
+                touchPos = touch.position;
+                bTouch = true;
+            }
 #endif
 
             if (bTouch && Tracker.Instance.BackgroundRect.Contains(touchPos))

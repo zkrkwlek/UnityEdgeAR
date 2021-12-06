@@ -153,13 +153,20 @@ public class Tracker
     public void Connect()
     {
         nimageFrameIndex = 3;
-
+        ////맵 이름을 여기서 수정하도록 변경.
         if (!SystemManager.Instance.Cam)
         {
             string imgFileTxt = SystemManager.Instance.ImagePath + SystemManager.Instance.DataFile; //"rgb.txt";
             imgfilelist = File.ReadAllLines(imgFileTxt);
+            SystemManager.Instance.MapName = SystemManager.Instance.MapNameList[SystemManager.Instance.User.numDataset];
         }
+        else
+        {
+            SystemManager.Instance.MapName = SystemManager.Instance.User.MapName;
+        }
+        
 
+        //여기서 서버에 커넥트시 전송할 스트링을 생성함. 그런데 이게 아직 이용되는거?
         SystemManager.InitConnectData data = SystemManager.Instance.GetConnectData();
         string msg = JsonUtility.ToJson(data);
         byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
@@ -297,7 +304,7 @@ public class TrackingProcessor : MonoBehaviour
 {
 #if (UNITY_EDITOR_WIN)
     [DllImport("UnityLibrary")]
-    private static extern int SetFrame(IntPtr data,int id, double ts, ref float t1, ref float t2);
+    private static extern int SetFrame(IntPtr data,int id, double ts);
     [DllImport("UnityLibrary")]
     private static extern bool GrabImage(IntPtr addr, int id);
     [DllImport("UnityLibrary")]
@@ -311,7 +318,7 @@ public class TrackingProcessor : MonoBehaviour
     [DllImport("edgeslam")]
     private static extern bool GrabImage(IntPtr addr, int id);
     [DllImport("edgeslam")]
-    private static extern int SetFrame(IntPtr data, int id, double ts, ref float t1, ref float t2);
+    private static extern int SetFrame(IntPtr data, int id, double ts);
     
     [DllImport("edgeslam")]
     private static extern bool Track(IntPtr posePtr);
@@ -440,26 +447,35 @@ public class TrackingProcessor : MonoBehaviour
 
                 if (SystemManager.Instance.IsDeviceTracking)
                 {
-                    StatusTxt.text = Tracker.Instance.Texture.format.ToString();
+                    //StatusTxt.text = Tracker.Instance.Texture.format.ToString();
                     Color32[] texData = Tracker.Instance.Texture.GetPixels32();
                     GCHandle texHandle = GCHandle.Alloc(texData, GCHandleType.Pinned);
                     IntPtr texPtr = texHandle.AddrOfPinnedObject();
-                    
-                    float tt1 = 0f; float tt2 = 0f;
-                    SetFrame(texPtr, mnFrameID, 0.0, ref tt1, ref tt2);
+
+                    DateTime t1 = DateTime.Now;
+                    SetFrame(texPtr, mnFrameID, 0.0);
+                    TimeSpan tframe = DateTime.Now - t1;
+                    SystemManager.Instance.Experiments["FrameTime"].Update((float)tframe.Milliseconds);
+
                     if (SystemManager.Instance.UseGyro)
                         DeltaFrameR.Copy(ref fIMUPose, 0);
 
                     bool bTrack = false;
                     if (!SystemManager.Instance.User.ModeMultiAgentTest)
                     {
+                        DateTime t3 = DateTime.Now;
                         bTrack = Track(posePtr);
+                        TimeSpan ttrack = DateTime.Now - t3;
+                        SystemManager.Instance.Experiments["TrackingTime"].Update((float)ttrack.Milliseconds);
                     }
 
+                    DateTime t5 = DateTime.Now;
                     if (VisualizeFrame(texPtr))
                     {
                         Tracker.Instance.LoadRawTextureData(texPtr, texData.Length * 4);
                     }
+                    TimeSpan tvisual = DateTime.Now - t5;
+                    SystemManager.Instance.Experiments["VisualizationTime"].Update((float)tvisual.Milliseconds);
 
                     if (bTrack)
                     {
