@@ -21,36 +21,28 @@ public class TestGUI : MonoBehaviour
     private static extern void LoadVocabulary();
 #endif
 
-    public InputField ifUser;
-    public InputField ifMap;
-    public InputField ifJPEG;
+    public InputField ifUser, ifMap, ifJPEG, ifSkip, ifFeature, ifPyramid, ifKFs, ifKeyword;
 
     public RawImage ResultImage;
     public Dropdown drop;
     public Dropdown drop2;
     public Dropdown drop3;
 
-    GameObject Canvas;
+    public GameObject Canvas;
+    public AspectRatioFitter fitter;
     CanvasScaler Scaler;
 
     public Button btnConnect;
     public Button btnSend;
     public Button btnOption;
+    public Button btnClose;
 
     public Toggle toggleCam, toggleIMU, toggleMapping, toggleTracking, toggleTest;
 
     // Start is called before the first frame update
     void Start()
     {
-        Canvas = GameObject.Find("Canvas");
-        Scaler = Canvas.GetComponentInChildren<CanvasScaler>();
-        Scaler.matchWidthOrHeight = 1f;
-        Scaler.referenceResolution = new Vector2(Screen.width, Screen.height);
-
-        AspectRatioFitter fitter = GameObject.Find("background").GetComponent<AspectRatioFitter>();
-        fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-        fitter.aspectRatio = ((float)SystemManager.Instance.ImageWidth) / SystemManager.Instance.ImageHeight;
-
+       
 #if (UNITY_EDITOR_WIN)
         byte[] b = System.Text.Encoding.ASCII.GetBytes(Application.persistentDataPath);
         SetPath(b, b.Length);
@@ -103,59 +95,92 @@ public class TestGUI : MonoBehaviour
         ifUser.text = SystemManager.Instance.User.UserName;
         ifUser.onValueChanged.AddListener(delegate {
             SystemManager.Instance.User.UserName = ifUser.text;
-            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
+            
         });
+        
         ifMap.text = SystemManager.Instance.User.MapName;
         ifMap.onValueChanged.AddListener(delegate {
             SystemManager.Instance.User.MapName = ifMap.text;
-            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
+        });
+        ifKeyword.text = SystemManager.Instance.User.Keywords;
+        ifKeyword.onValueChanged.AddListener(delegate {
+            SystemManager.Instance.User.Keywords = ifKeyword.text;
         });
         ifJPEG.text = Convert.ToString(SystemManager.Instance.AppData.JpegQuality);
         ifJPEG.onValueChanged.AddListener(delegate {
             SystemManager.Instance.AppData.JpegQuality = Convert.ToInt32(ifJPEG.text);
-            File.WriteAllText(Application.persistentDataPath + "/Data/AppData.json", JsonUtility.ToJson(SystemManager.Instance.AppData));
+            
         });
+        ifSkip.text = Convert.ToString(SystemManager.Instance.AppData.numSkipFrames);
+        ifSkip.onValueChanged.AddListener(delegate {
+            SystemManager.Instance.AppData.numSkipFrames = Convert.ToInt32(ifSkip.text);
 
+        });
+        ifFeature.text = Convert.ToString(SystemManager.Instance.AppData.numFeatures);
+        ifFeature.onValueChanged.AddListener(delegate {
+            SystemManager.Instance.AppData.numFeatures = Convert.ToInt32(ifFeature.text);
+
+        });
+        ifPyramid.text = Convert.ToString(SystemManager.Instance.AppData.numPyramids);
+        ifPyramid.onValueChanged.AddListener(delegate {
+            SystemManager.Instance.AppData.numPyramids = Convert.ToInt32(ifPyramid.text);
+
+        });
+        ifKFs.text = Convert.ToString(SystemManager.Instance.AppData.numLocalKeyFrames);
+        ifKFs.onValueChanged.AddListener(delegate {
+            SystemManager.Instance.AppData.numLocalKeyFrames = Convert.ToInt32(ifKFs.text);
+
+        });
+        ////Input Field
         drop.onValueChanged.AddListener(delegate
         {
             SystemManager.Instance.User.numCameraParam = drop.value;
             SetUI();
-            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
         });
         drop2.onValueChanged.AddListener(delegate
         {
             SystemManager.Instance.User.numDataset = drop2.value;
-            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
+            if (!SystemManager.Instance.User.UseCamera)
+            {
+                ifMap.text = SystemManager.Instance.MapNameList[drop2.value];
+            }
         });
         drop3.onValueChanged.AddListener(delegate
         {
             SystemManager.Instance.User.numDatasetFileName = drop3.value;
-            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
         });
 
         toggleCam.onValueChanged.AddListener(delegate {
             SystemManager.Instance.User.UseCamera = toggleCam.isOn;
-            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
+            if (!SystemManager.Instance.User.UseCamera)
+            {
+                ifMap.text = SystemManager.Instance.MapNameList[SystemManager.Instance.User.numDataset];
+            }
+            else
+            {
+                ifMap.text = "TestMap";
+            }
         });
         toggleIMU.onValueChanged.AddListener(delegate
         {
             SystemManager.Instance.User.UseGyro = toggleIMU.isOn;
-            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
         });
         toggleMapping.onValueChanged.AddListener(delegate
         {
             SystemManager.Instance.User.ModeMapping = toggleMapping.isOn;
-            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
         });
         toggleTracking.onValueChanged.AddListener(delegate
         {
             SystemManager.Instance.User.ModeTracking = toggleTracking.isOn;
-            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
         });
         toggleTest.onValueChanged.AddListener(delegate
         {
             SystemManager.Instance.User.ModeMultiAgentTest = toggleTest.isOn;
+        });
+
+        btnClose.onClick.AddListener(delegate {
             File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
+            File.WriteAllText(Application.persistentDataPath + "/Data/AppData.json", JsonUtility.ToJson(SystemManager.Instance.AppData));
         });
 
         ////Connect & disconnect
@@ -173,9 +198,17 @@ public class TestGUI : MonoBehaviour
                 UdpAsyncHandler.Instance.UdpSocketBegin(appData.UdpAddres, appData.UdpPort, appData.LocalPort);
                 //UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "MappingResult", "connect", "single");
                 //UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "LocalMap", "connect", "single");
-                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "ReferenceFrame", "connect", "single");
-                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "ObjectDetection", "connect", "single");
-                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "Content", "connect", "all");
+
+                string[] keywords = SystemManager.Instance.User.Keywords.Split(',');
+
+                for(int i = 0; i < keywords.Length; i += 2)
+                {
+                    UdpAsyncHandler.Instance.Send(SystemManager.Instance.User.UserName, keywords[i], "connect", keywords[i+1]);
+                }
+
+                //UdpAsyncHandler.Instance.Send(SystemManager.Instance.User.UserName, "ReferenceFrame", "connect", "single");
+                //UdpAsyncHandler.Instance.Send(SystemManager.Instance.User.UserName, "ObjectDetection", "connect", "single");
+                //UdpAsyncHandler.Instance.Send(SystemManager.Instance.User.UserName, "Content", "connect", "all");
 
             }
             else
@@ -186,9 +219,15 @@ public class TestGUI : MonoBehaviour
                 //개별 컨트롤러 해제 처리
                 Tracker.Instance.Disconnect();
                 ////
-                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "ReferenceFrame", "disconnect", "single");
-                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "ObjectDetection", "disconnect", "single");
-                UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "Content", "disconnect", "all");
+                //UdpAsyncHandler.Instance.Send(SystemManager.Instance.User.UserName, "ReferenceFrame", "disconnect", "single");
+                //UdpAsyncHandler.Instance.Send(SystemManager.Instance.User.UserName, "ObjectDetection", "disconnect", "single");
+                //UdpAsyncHandler.Instance.Send(SystemManager.Instance.User.UserName, "Content", "disconnect", "all");
+                string[] keywords = SystemManager.Instance.User.Keywords.Split(',');
+
+                for (int i = 0; i < keywords.Length; i += 2)
+                {
+                    UdpAsyncHandler.Instance.Send(SystemManager.Instance.User.UserName, keywords[i], "disconnect", keywords[i + 1]);
+                }
                 UdpAsyncHandler.Instance.UdpSocketClose();
                 File.WriteAllLines(Application.persistentDataPath + "/Data/Trajectory.txt", SystemManager.Instance.Trajectory);
             }
@@ -223,7 +262,16 @@ public class TestGUI : MonoBehaviour
 
     void SetUI()
     {
+        
         SystemManager.CameraParams cam = SystemManager.Instance.Cameras[SystemManager.Instance.User.numCameraParam];
+
+        Scaler = Canvas.GetComponentInChildren<CanvasScaler>();
+        Scaler.matchWidthOrHeight = 1f;
+        Scaler.referenceResolution = new Vector2(Screen.width, Screen.height);
+        
+        fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+        fitter.aspectRatio = ((float)SystemManager.Instance.ImageWidth) / SystemManager.Instance.ImageHeight;
+
         float Scale = ((float)Screen.height) / cam.h;
         float Width = (cam.w * Scale);
         float Height = (cam.h * Scale);
@@ -237,57 +285,14 @@ public class TestGUI : MonoBehaviour
         rt0.anchoredPosition = new Vector3(-Width/2f+25f,Height/2f-25f,0f);
         ResultImage.color = new Color(0f, 1.0f, 0f, 0.3f);
 
-        RectTransform rtDrop1 = drop.GetComponent<RectTransform>();
-        float offset = rtDrop1.sizeDelta.x / 2f+30f;
-        
         RectTransform rtBtn1 = btnConnect.GetComponent<RectTransform>();
         RectTransform rtBtn2 = btnSend.GetComponent<RectTransform>();
         RectTransform rtBtn3 = btnOption.GetComponent<RectTransform>();
 
-        float w, w2, toggleHeight, margin;
-#if UNITY_EDITOR_WIN
-        w = 200f;
-        margin = 10;
-        w2 = 80f;
-        toggleHeight = 30f;
-#elif UNITY_ANDROID
-        w = 350f;//Width - 100f;
-        margin = 20;
-        w2 = 70f;
-        toggleHeight = 60f;
-#endif
-
-        //rtDrop1.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + w2);
-        //rtDrop2.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + w2);
-        //rtDrop3.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + w2);
-
-        /*
-        rtToggle1.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + toggleHeight);
-        rtToggle2.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + toggleHeight);
-        rtToggle3.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + toggleHeight);
-        rtToggle4.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + toggleHeight);
-        rtToggle5.anchoredPosition = new Vector3(-Width / 2f - offset, w);
-        */
-
-        w = -Height/2f+100f;
+        rtBtn1.anchoredPosition = new Vector3((Width + rtBtn1.sizeDelta.x + 10f) / 2f, rtBtn1.anchoredPosition.y);
+        rtBtn2.anchoredPosition = new Vector3((Width + rtBtn1.sizeDelta.x + 10f) / 2f, rtBtn2.anchoredPosition.y);
+        rtBtn3.anchoredPosition = new Vector3((Width + rtBtn1.sizeDelta.x + 10f) / 2f, rtBtn3.anchoredPosition.y);
         
-#if UNITY_EDITOR_WIN
-        w = 200f;
-#elif UNITY_ANDROID
-        w = 350f;//Width - 100f;
-#endif
-
-        rtBtn1.anchoredPosition = new Vector3(Width / 2f + offset, w); w -= (margin + w2);
-        rtBtn2.anchoredPosition = new Vector3(Width / 2f + offset, w); w -= (margin + w2);
-        rtBtn3.anchoredPosition = new Vector3(Width / 2f + offset, w);
-
-        //rtDrop1.sizeDelta = new Vector2(200f, w2);
-        //rtDrop2.sizeDelta = new Vector2(200f, w2);
-        //rtDrop3.sizeDelta = new Vector2(200f, w2);
-        
-        rtBtn1.sizeDelta = new Vector2(200f, w2);
-        rtBtn2.sizeDelta = new Vector2(200f, w2);
-        rtBtn3.sizeDelta = new Vector2(200f, w2);
     }
 
     // Update is called once per frame

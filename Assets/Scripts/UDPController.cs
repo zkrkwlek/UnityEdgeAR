@@ -128,7 +128,7 @@ public class UDPController : MonoBehaviour
                     }
 
                     ////레퍼런스 프레임 설정
-                    if (SystemManager.Instance.IsDeviceTracking) {
+                    if (SystemManager.Instance.User.ModeTracking) {
                         DateTime tref_start = DateTime.Now;
                         SetReferenceFrame(data.id);
                         TimeSpan tref = DateTime.Now - tref_start;
@@ -142,7 +142,7 @@ public class UDPController : MonoBehaviour
                     Buffer.BlockCopy(req1.downloadHandler.data, 0, fdata, 0, req1.downloadHandler.data.Length);
                     AddContentInfo(data.id, fdata[0], fdata[1], fdata[2]);
 
-                    if (data.type2 == SystemManager.Instance.UserName)
+                    if (data.type2 == SystemManager.Instance.User.UserName)
                     {
                         ////update 시간
                         UdpData data2 = DataQueue.Instance.Get("ContentGeneration" + data.id);
@@ -171,7 +171,7 @@ public class UDPController : MonoBehaviour
 
     UnityWebRequest GetRequest(string keyword, int id)
     {
-        string addr2 = SystemManager.Instance.ServerAddr + "/Load?keyword=" + keyword + "&id=" + id + "&src=" + SystemManager.Instance.UserName;
+        string addr2 = SystemManager.Instance.AppData.Address + "/Load?keyword=" + keyword + "&id=" + id + "&src=" + SystemManager.Instance.User.UserName;
         UnityWebRequest request = new UnityWebRequest(addr2);
         request.method = "POST";
         request.downloadHandler = new DownloadHandlerBuffer();
@@ -180,7 +180,7 @@ public class UDPController : MonoBehaviour
     }
     UnityWebRequest GetRequest(string keyword, int id, string src)
     {
-        string addr2 = SystemManager.Instance.ServerAddr + "/Load?keyword=" + keyword + "&id=" + id + "&src=" + src;
+        string addr2 = SystemManager.Instance.AppData.Address + "/Load?keyword=" + keyword + "&id=" + id + "&src=" + src;
         UnityWebRequest request = new UnityWebRequest(addr2);
         request.method = "POST";
         request.downloadHandler = new DownloadHandlerBuffer();

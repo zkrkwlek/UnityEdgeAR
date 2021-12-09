@@ -34,6 +34,7 @@ public class SystemManager {
         public int numDatasetFileName;
         public string UserName;
         public string MapName;
+        public string Keywords;
         public bool ModeMapping;
         public bool ModeTracking;
         public bool ModeMultiAgentTest;
@@ -128,7 +129,7 @@ public class SystemManager {
             type1 = "device";
             type2 = "NONE";
             //생성할 키워드
-            keyword = "Image,Gyro,Accelerometer,DevicePosition,DeviceConnect,DeviceDisconnect,ContentGeneration,Map";
+            keyword = "Image,Gyro,Accelerometer,DeviceConnect,DeviceDisconnect,ContentGeneration";//,Map,DevicePosition
             src = userID;
         }
         public string type1, type2, keyword, src;
@@ -245,43 +246,6 @@ public class SystemManager {
         }
     }
 
-    public int NumSkipFrame
-    {
-        get
-        {
-            return appData.numSkipFrames;
-        }
-    }
-
-    public string UserName
-    {
-        get
-        {
-            return userData.UserName;
-        }
-
-    }
-    static private string mapName;
-    public string MapName
-    {
-        get
-        {
-            //return userData.MapName;
-            return mapName;
-        }
-        set 
-        {
-            mapName = value;
-        }
-    }
-    public string ServerAddr
-    {
-        get
-        {
-            return appData.Address;
-        }
-    }
-
     public string ImagePath
     {
         get
@@ -321,30 +285,6 @@ public class SystemManager {
         }
     }
 
-    
-    public bool Cam
-    {
-        get
-        {
-            return userData.UseCamera;
-        }
-    }
-    
-    public bool IsServerMapping
-    {
-        get
-        {
-            return userData.ModeMapping;
-        }
-    }
-
-    public bool IsDeviceTracking
-    {
-        get
-        {
-            return userData.ModeTracking;
-        }
-    }
     static int nSensorSpeed = 0;
     public int SensorSpeed
     {
@@ -366,14 +306,7 @@ public class SystemManager {
             return bAcc;
         }
     }
-    public bool UseGyro
-    {
-        get
-        {
-            return userData.UseGyro;
-        }
-    }
-
+    
     static bool bManagerMode = false;
     public bool Manager
     {
@@ -821,6 +754,7 @@ public class SystemManager {
                     userData.numDatasetFileName = 0;
                     userData.UserName = "zkrkwlek";
                     userData.MapName = "TestMap";
+                    userData.Keywords = "ReferenceFrame,single,Content,all";
                     userData.ModeMultiAgentTest = false;
                     File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(userData));
                 }

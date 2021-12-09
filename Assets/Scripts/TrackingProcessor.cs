@@ -14,12 +14,12 @@ public class Tracker
 {
 #if UNITY_EDITOR_WIN
     [DllImport("UnityLibrary")]
-    private static extern void SetInit(int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4, int nfeature, int nlevel, float fscale, int nskip);
+    private static extern void SetInit(int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4, int nfeature, int nlevel, float fscale, int nskip, int nKFs);
     [DllImport("UnityLibrary")]
     private static extern void ConnectDevice();
 #elif UNITY_ANDROID
     [DllImport("edgeslam")]
-    private static extern void SetInit(int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4, int nfeature, int nlevel, float fscale, int nskip);    
+    private static extern void SetInit(int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4, int nfeature, int nlevel, float fscale, int nskip, int nKFs);    
     
     [DllImport("edgeslam")]
     private static extern void ConnectDevice();
@@ -154,24 +154,18 @@ public class Tracker
     {
         nimageFrameIndex = 3;
         ////맵 이름을 여기서 수정하도록 변경.
-        if (!SystemManager.Instance.Cam)
+        if (!SystemManager.Instance.User.UseCamera)
         {
             string imgFileTxt = SystemManager.Instance.ImagePath + SystemManager.Instance.DataFile; //"rgb.txt";
             imgfilelist = File.ReadAllLines(imgFileTxt);
-            SystemManager.Instance.MapName = SystemManager.Instance.MapNameList[SystemManager.Instance.User.numDataset];
         }
-        else
-        {
-            SystemManager.Instance.MapName = SystemManager.Instance.User.MapName;
-        }
-        
 
         //여기서 서버에 커넥트시 전송할 스트링을 생성함. 그런데 이게 아직 이용되는거?
         SystemManager.InitConnectData data = SystemManager.Instance.GetConnectData();
         string msg = JsonUtility.ToJson(data);
         byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg);
 
-        UnityWebRequest request = new UnityWebRequest(SystemManager.Instance.ServerAddr + "/Connect?port=40003");
+        UnityWebRequest request = new UnityWebRequest(SystemManager.Instance.AppData.Address + "/Connect?port=40003");
         request.method = "POST";
         UploadHandlerRaw uH = new UploadHandlerRaw(bdata);
         uH.contentType = "application/json";
@@ -185,14 +179,14 @@ public class Tracker
         }
 
         ////Device & Map store
-        string addr2 = SystemManager.Instance.ServerAddr + "/Store?keyword=DeviceConnect&id=0&src=" + SystemManager.Instance.UserName;
-        string msg2 = SystemManager.Instance.UserName + "," + SystemManager.Instance.MapName;
+        string addr2 = SystemManager.Instance.AppData.Address + "/Store?keyword=DeviceConnect&id=0&src=" + SystemManager.Instance.User.UserName;
+        string msg2 = SystemManager.Instance.User.UserName + "," + SystemManager.Instance.User.MapName;
         byte[] bdatab = System.Text.Encoding.UTF8.GetBytes(msg2);
         float[] fdataa = SystemManager.Instance.IntrinsicData;
         byte[] bdata2 = new byte[3 + fdataa.Length * 4 + bdatab.Length];
-        bdata2[fdataa.Length * 4] = SystemManager.Instance.IsServerMapping ? (byte)1 : (byte)0;
-        bdata2[fdataa.Length * 4+1] = SystemManager.Instance.IsDeviceTracking ? (byte)1 : (byte)0;
-        bdata2[fdataa.Length * 4+2] = SystemManager.Instance.UseGyro ? (byte)1 : (byte)0;
+        bdata2[fdataa.Length * 4] = SystemManager.Instance.User.ModeMapping ? (byte)1 : (byte)0;
+        bdata2[fdataa.Length * 4+1] = SystemManager.Instance.User.ModeTracking ? (byte)1 : (byte)0;
+        bdata2[fdataa.Length * 4+2] = SystemManager.Instance.User.UseGyro ? (byte)1 : (byte)0;
         Buffer.BlockCopy(fdataa, 0, bdata2, 0, fdataa.Length * 4);
         Buffer.BlockCopy(bdatab, 0, bdata2, fdataa.Length * 4+3, bdatab.Length);
 
@@ -209,11 +203,12 @@ public class Tracker
         //SystemManager.Instance.AppData.
         SetInit(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.FocalLengthX, SystemManager.Instance.FocalLengthY, SystemManager.Instance.PrincipalPointX, SystemManager.Instance.PrincipalPointY,
                         SystemManager.Instance.IntrinsicData[6], SystemManager.Instance.IntrinsicData[7], SystemManager.Instance.IntrinsicData[8], SystemManager.Instance.IntrinsicData[9],
-                        SystemManager.Instance.AppData.numFeatures,SystemManager.Instance.AppData.numPyramids, 1.2f, SystemManager.Instance.AppData.numSkipFrames);
+                        SystemManager.Instance.AppData.numFeatures,SystemManager.Instance.AppData.numPyramids, 1.2f, SystemManager.Instance.AppData.numSkipFrames, SystemManager.Instance.AppData.numLocalKeyFrames);
 
+        Debug.Log(SystemManager.Instance.ImageWidth + " " + SystemManager.Instance.ImageHeight);
         tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.BGRA32, false);
 
-        if (SystemManager.Instance.Cam)
+        if (SystemManager.Instance.User.UseCamera)
         {
             //SetDeviceCamera(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, 30.0);
             WebCamDevice[] devices = WebCamTexture.devices;
@@ -252,8 +247,8 @@ public class Tracker
         }
 
         ////Device & Map store
-        string addr2 = SystemManager.Instance.ServerAddr + "/Store?keyword=DeviceDisconnect&id=0&src=" + SystemManager.Instance.UserName;
-        string msg2 = SystemManager.Instance.UserName + "," + SystemManager.Instance.MapName;
+        string addr2 = SystemManager.Instance.AppData.Address + "/Store?keyword=DeviceDisconnect&id=0&src=" + SystemManager.Instance.User.UserName;
+        string msg2 = SystemManager.Instance.User.UserName + "," + SystemManager.Instance.User.MapName;
         byte[] bdata = System.Text.Encoding.UTF8.GetBytes(msg2);
 
         UnityWebRequest request = new UnityWebRequest(addr2);
@@ -376,7 +371,7 @@ public class TrackingProcessor : MonoBehaviour
 #if (UNITY_EDITOR_WIN)
 
 #elif (UNITY_ANDROID)
-        SetIMUAddress(imuPtr, SystemManager.Instance.UseGyro);
+        SetIMUAddress(imuPtr, SystemManager.Instance.User.UseGyro);
 #endif
         sender = new DataTransfer();
     }
@@ -387,7 +382,7 @@ public class TrackingProcessor : MonoBehaviour
         {
 
             //StatusTxt.text = "Quality = " + nQuality;
-            if (SystemManager.Instance.UseGyro)
+            if (SystemManager.Instance.User.UseGyro)
             {
                 DeltaFrameR = SensorManager.Instance.DeltaRotationMatrix();
                 DeltaR = DeltaR * DeltaFrameR;
@@ -396,7 +391,7 @@ public class TrackingProcessor : MonoBehaviour
             if (SystemManager.Instance.Start && SystemManager.Instance.Connect)
             {
 
-                if (SystemManager.Instance.Cam)
+                if (SystemManager.Instance.User.UseCamera)
                 {
                     Tracker.Instance.LoadWebcamTextre();
                 }
@@ -420,8 +415,8 @@ public class TrackingProcessor : MonoBehaviour
                 if (mnFrameID % Tracker.Instance.SkipFrame == 0)
                 {
                     
-                    string src = SystemManager.Instance.UserName;
-                    if (SystemManager.Instance.UseGyro)
+                    string src = SystemManager.Instance.User.UserName;
+                    if (SystemManager.Instance.User.UseGyro)
                     {
                         //StatusTxt.text = DeltaR.m00 + " " + DeltaR.m11+" "+ DeltaR.m22;
                         float[] fdata = new float[9];
@@ -445,7 +440,7 @@ public class TrackingProcessor : MonoBehaviour
                     StartCoroutine(sender.SendData(data));
                 }
 
-                if (SystemManager.Instance.IsDeviceTracking)
+                if (SystemManager.Instance.User.ModeTracking)
                 {
                     //StatusTxt.text = Tracker.Instance.Texture.format.ToString();
                     Color32[] texData = Tracker.Instance.Texture.GetPixels32();
@@ -457,7 +452,7 @@ public class TrackingProcessor : MonoBehaviour
                     TimeSpan tframe = DateTime.Now - t1;
                     SystemManager.Instance.Experiments["FrameTime"].Update((float)tframe.Milliseconds);
 
-                    if (SystemManager.Instance.UseGyro)
+                    if (SystemManager.Instance.User.UseGyro)
                         DeltaFrameR.Copy(ref fIMUPose, 0);
 
                     bool bTrack = false;

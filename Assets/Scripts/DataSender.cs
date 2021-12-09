@@ -68,7 +68,7 @@ public class DataTransfer {
 
     UnityWebRequest SetRequest(string keyword, byte[] data, int id, double ts)
     {
-        string addr2 = SystemManager.Instance.ServerAddr + "/Store?keyword=" + keyword + "&id=" + id + "&src=" + SystemManager.Instance.UserName;
+        string addr2 = SystemManager.Instance.AppData.Address + "/Store?keyword=" + keyword + "&id=" + id + "&src=" + SystemManager.Instance.User.UserName;
         if (ts > 0.0)
             addr2 += "&type2=" + ts;
         UnityWebRequest request = new UnityWebRequest(addr2);

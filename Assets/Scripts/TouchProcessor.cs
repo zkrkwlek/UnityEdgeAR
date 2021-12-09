@@ -60,7 +60,7 @@ public class TouchProcessor : MonoBehaviour
                 Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length * 4);
                 Buffer.BlockCopy(fPoseData, 0, bdata, fdata.Length * 4, fPoseData.Length * 4);
 
-                UdpData data = new UdpData("ContentGeneration", SystemManager.Instance.UserName, mnTouchID, bdata);
+                UdpData data = new UdpData("ContentGeneration", SystemManager.Instance.User.UserName, mnTouchID, bdata);
                 data.sendedTime = DateTime.Now;
                 DataQueue.Instance.Add(data);
                 //DataQueue.Instance.SendingQueue.Enqueue(data);
