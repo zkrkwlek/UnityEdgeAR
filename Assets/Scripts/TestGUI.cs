@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -20,6 +21,10 @@ public class TestGUI : MonoBehaviour
     private static extern void LoadVocabulary();
 #endif
 
+    public InputField ifUser;
+    public InputField ifMap;
+    public InputField ifJPEG;
+
     public RawImage ResultImage;
     public Dropdown drop;
     public Dropdown drop2;
@@ -30,6 +35,7 @@ public class TestGUI : MonoBehaviour
 
     public Button btnConnect;
     public Button btnSend;
+    public Button btnOption;
 
     public Toggle toggleCam, toggleIMU, toggleMapping, toggleTracking, toggleTest;
 
@@ -93,39 +99,63 @@ public class TestGUI : MonoBehaviour
         /////Initialize
 
         ////Add Listener
+        ////Input Field
+        ifUser.text = SystemManager.Instance.User.UserName;
+        ifUser.onValueChanged.AddListener(delegate {
+            SystemManager.Instance.User.UserName = ifUser.text;
+            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
+        });
+        ifMap.text = SystemManager.Instance.User.MapName;
+        ifMap.onValueChanged.AddListener(delegate {
+            SystemManager.Instance.User.MapName = ifMap.text;
+            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
+        });
+        ifJPEG.text = Convert.ToString(SystemManager.Instance.AppData.JpegQuality);
+        ifJPEG.onValueChanged.AddListener(delegate {
+            SystemManager.Instance.AppData.JpegQuality = Convert.ToInt32(ifJPEG.text);
+            File.WriteAllText(Application.persistentDataPath + "/Data/AppData.json", JsonUtility.ToJson(SystemManager.Instance.AppData));
+        });
+
         drop.onValueChanged.AddListener(delegate
         {
             SystemManager.Instance.User.numCameraParam = drop.value;
             SetUI();
-            
+            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
         });
         drop2.onValueChanged.AddListener(delegate
         {
             SystemManager.Instance.User.numDataset = drop2.value;
+            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
         });
         drop3.onValueChanged.AddListener(delegate
         {
             SystemManager.Instance.User.numDatasetFileName = drop3.value;
+            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
         });
 
         toggleCam.onValueChanged.AddListener(delegate {
             SystemManager.Instance.User.UseCamera = toggleCam.isOn;
+            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
         });
         toggleIMU.onValueChanged.AddListener(delegate
         {
             SystemManager.Instance.User.UseGyro = toggleIMU.isOn;
+            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
         });
         toggleMapping.onValueChanged.AddListener(delegate
         {
             SystemManager.Instance.User.ModeMapping = toggleMapping.isOn;
+            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
         });
         toggleTracking.onValueChanged.AddListener(delegate
         {
             SystemManager.Instance.User.ModeTracking = toggleTracking.isOn;
+            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
         });
         toggleTest.onValueChanged.AddListener(delegate
         {
             SystemManager.Instance.User.ModeMultiAgentTest = toggleTest.isOn;
+            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
         });
 
         ////Connect & disconnect
@@ -162,10 +192,7 @@ public class TestGUI : MonoBehaviour
                 UdpAsyncHandler.Instance.UdpSocketClose();
                 File.WriteAllLines(Application.persistentDataPath + "/Data/Trajectory.txt", SystemManager.Instance.Trajectory);
             }
-
-            ////save file
-            File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
-
+                        
             Dictionary<string, SystemManager.ExperimentData>.ValueCollection values = SystemManager.Instance.Experiments.Values;
             SystemManager.ExperimentData[] datas = new SystemManager.ExperimentData[values.Count];
             int idx = 0;
@@ -212,17 +239,10 @@ public class TestGUI : MonoBehaviour
 
         RectTransform rtDrop1 = drop.GetComponent<RectTransform>();
         float offset = rtDrop1.sizeDelta.x / 2f+30f;
-        RectTransform rtDrop2 = drop2.GetComponent<RectTransform>();
-        RectTransform rtDrop3 = drop3.GetComponent<RectTransform>();
-
+        
         RectTransform rtBtn1 = btnConnect.GetComponent<RectTransform>();
         RectTransform rtBtn2 = btnSend.GetComponent<RectTransform>();
-
-        RectTransform rtToggle1 = toggleCam.GetComponent<RectTransform>();
-        RectTransform rtToggle2 = toggleIMU.GetComponent<RectTransform>();
-        RectTransform rtToggle3 = toggleMapping.GetComponent<RectTransform>();
-        RectTransform rtToggle4 = toggleTracking.GetComponent<RectTransform>();
-        RectTransform rtToggle5 = toggleTest.GetComponent<RectTransform>();
+        RectTransform rtBtn3 = btnOption.GetComponent<RectTransform>();
 
         float w, w2, toggleHeight, margin;
 #if UNITY_EDITOR_WIN
@@ -237,9 +257,9 @@ public class TestGUI : MonoBehaviour
         toggleHeight = 60f;
 #endif
 
-        rtDrop1.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + w2);
-        rtDrop2.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + w2);
-        rtDrop3.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + w2);
+        //rtDrop1.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + w2);
+        //rtDrop2.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + w2);
+        //rtDrop3.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + w2);
 
         /*
         rtToggle1.anchoredPosition = new Vector3(-Width / 2f - offset, w); w -= (margin + toggleHeight);
@@ -250,13 +270,7 @@ public class TestGUI : MonoBehaviour
         */
 
         w = -Height/2f+100f;
-        rtToggle5.anchoredPosition = new Vector3(-Width / 2f - offset, w); w += (toggleHeight);
-        rtToggle4.anchoredPosition = new Vector3(-Width / 2f - offset, w); w += (toggleHeight);
-        rtToggle3.anchoredPosition = new Vector3(-Width / 2f - offset, w); w += (toggleHeight);
-        rtToggle2.anchoredPosition = new Vector3(-Width / 2f - offset, w); w += (toggleHeight);
-        rtToggle1.anchoredPosition = new Vector3(-Width / 2f - offset, w); 
         
-
 #if UNITY_EDITOR_WIN
         w = 200f;
 #elif UNITY_ANDROID
@@ -264,18 +278,16 @@ public class TestGUI : MonoBehaviour
 #endif
 
         rtBtn1.anchoredPosition = new Vector3(Width / 2f + offset, w); w -= (margin + w2);
-        rtBtn2.anchoredPosition = new Vector3(Width / 2f + offset, w); 
+        rtBtn2.anchoredPosition = new Vector3(Width / 2f + offset, w); w -= (margin + w2);
+        rtBtn3.anchoredPosition = new Vector3(Width / 2f + offset, w);
 
-        rtDrop1.sizeDelta = new Vector2(200f, w2);
-        rtDrop2.sizeDelta = new Vector2(200f, w2);
-        rtDrop3.sizeDelta = new Vector2(200f, w2);
-        rtToggle1.sizeDelta = new Vector2(200f, w2);
-        rtToggle2.sizeDelta = new Vector2(200f, w2);
-        rtToggle3.sizeDelta = new Vector2(200f, w2);
-        rtToggle4.sizeDelta = new Vector2(200f, w2);
-        rtToggle5.sizeDelta = new Vector2(200f, w2);
+        //rtDrop1.sizeDelta = new Vector2(200f, w2);
+        //rtDrop2.sizeDelta = new Vector2(200f, w2);
+        //rtDrop3.sizeDelta = new Vector2(200f, w2);
+        
         rtBtn1.sizeDelta = new Vector2(200f, w2);
         rtBtn2.sizeDelta = new Vector2(200f, w2);
+        rtBtn3.sizeDelta = new Vector2(200f, w2);
     }
 
     // Update is called once per frame
