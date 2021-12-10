@@ -206,7 +206,7 @@ public class Tracker
                         SystemManager.Instance.AppData.numFeatures,SystemManager.Instance.AppData.numPyramids, 1.2f, SystemManager.Instance.AppData.numSkipFrames, SystemManager.Instance.AppData.numLocalKeyFrames);
 
         Debug.Log(SystemManager.Instance.ImageWidth + " " + SystemManager.Instance.ImageHeight);
-        tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.BGRA32, false);
+        tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.ARGB32, false);//BGRA32
 
         if (SystemManager.Instance.User.UseCamera)
         {
