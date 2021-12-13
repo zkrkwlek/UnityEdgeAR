@@ -46,6 +46,8 @@ public class UDPController : MonoBehaviour
     private static extern void AddContentInfo(int id, float x, float y, float z);
     [DllImport("UnityLibrary")]
     private static extern void AddObjectInfos();
+    [DllImport("UnityLibrary")]
+    private static extern void Segmentation();
 #elif UNITY_ANDROID
     [DllImport("edgeslam")]
     private static extern void SetReferenceFrame(int id);
@@ -55,6 +57,8 @@ public class UDPController : MonoBehaviour
     private static extern void AddContentInfo(int id, float x, float y, float z);
     [DllImport("edgeslam")]
     private static extern void AddObjectInfos();
+    [DllImport("edgeslam")]
+    private static extern void Segmentation();
 #endif
 
     public RawImage ResultImage;
@@ -100,19 +104,18 @@ public class UDPController : MonoBehaviour
             if (req1.result == UnityWebRequest.Result.Success)
             {
                 TimeSpan Dtimespan = DateTime.Now - t1;
+                float n1 = (float)req1.downloadHandler.data.Length;
 
                 if (data.keyword == "ReferenceFrame")
                 {
-                    SystemManager.Instance.Experiments["DownloadTimeImage"].Update((float)Dtimespan.Milliseconds);
                     SetDataToDevice(req1, "ReferenceFrame");
-                    //SetDataToDevice(req2, "ReferenceFrameDesc");
-
                     ////update 시간
                     UdpData data2 = DataQueue.Instance.Get("Image" + data.id);
-                    int n1 = req1.downloadHandler.data.Length;//+req2.downloadHandler.data.Length;
-                    SystemManager.Instance.Experiments["ReferenceTraffic"].Update(n1);
                     TimeSpan time2 = DateTime.Now - data2.sendedTime;
-                    SystemManager.Instance.Experiments["ReferenceReturnTime"].Update((float)time2.Milliseconds);
+
+                    SystemManager.Instance.Experiments["ReferenceFrame"].Update("traffic", n1);
+                    SystemManager.Instance.Experiments["ReferenceFrame"].Update("latency", (float)time2.Milliseconds);
+                    SystemManager.Instance.Experiments["ReferenceFrame"].Update("download", (float)Dtimespan.Milliseconds);
                     ////update 시간
 
                     float[] a = new float[4];
@@ -132,7 +135,7 @@ public class UDPController : MonoBehaviour
                         DateTime tref_start = DateTime.Now;
                         SetReferenceFrame(data.id);
                         TimeSpan tref = DateTime.Now - tref_start;
-                        SystemManager.Instance.Experiments["ReferenceFrameTime"].Update((float)tref.Milliseconds);
+                        //SystemManager.Instance.Experiments["ReferenceFrameTime"].Update((float)tref.Milliseconds);
                     }
 
                 }
@@ -147,18 +150,33 @@ public class UDPController : MonoBehaviour
                         ////update 시간
                         UdpData data2 = DataQueue.Instance.Get("ContentGeneration" + data.id);
                         TimeSpan time2 = DateTime.Now - data2.sendedTime;
-                        SystemManager.Instance.Experiments["ContentReturnTime"].Update((float)time2.Milliseconds);
+                        //SystemManager.Instance.Experiments["ContentReturnTime"].Update((float)time2.Milliseconds);
                     }
                 }
                 else if (data.keyword == "ObjectDetection")
                 {
-                    SystemManager.Instance.Experiments["DownloadTimeObject"].Update((float)Dtimespan.Milliseconds);
                     UdpData data2 = DataQueue.Instance.Get("Image" + data.id);
                     TimeSpan time2 = DateTime.Now - data2.sendedTime;
-                    SystemManager.Instance.Experiments["ObjectDetectionTime"].Update((float)time2.Milliseconds);
 
                     SetDataToDevice(req1, "ObjectDetection");
                     AddObjectInfos();
+
+                    SystemManager.Instance.Experiments["ObjectDetection"].Update("traffic", n1);
+                    SystemManager.Instance.Experiments["ObjectDetection"].Update("latency", (float)time2.Milliseconds);
+                    SystemManager.Instance.Experiments["ObjectDetection"].Update("download", (float)Dtimespan.Milliseconds);
+
+                }
+                else if(data.keyword == "Segmentation")
+                {
+                    UdpData data2 = DataQueue.Instance.Get("Image" + data.id);
+                    TimeSpan time2 = DateTime.Now - data2.sendedTime;
+
+                    SetDataToDevice(req1, "Segmentation");
+                    Segmentation();
+
+                    SystemManager.Instance.Experiments["Segmentation"].Update("traffic", n1);
+                    SystemManager.Instance.Experiments["Segmentation"].Update("latency", (float)time2.Milliseconds);
+                    SystemManager.Instance.Experiments["Segmentation"].Update("download", (float)Dtimespan.Milliseconds);
                 }
             }
         }

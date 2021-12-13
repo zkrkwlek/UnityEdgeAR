@@ -35,12 +35,16 @@ public class SystemManager {
         public string UserName;
         public string MapName;
         public string Keywords;
+        public string Experiments;
         public bool ModeMapping;
         public bool ModeTracking;
         public bool ModeMultiAgentTest;
         public bool UseCamera;
         public bool UseGyro;
         public bool UseAccelerometer;
+        public bool bSaveTrajectory;
+        public bool bVisualizeFrame;
+        //public bool bShowLog;
     }
 
     [Serializable]
@@ -58,32 +62,78 @@ public class SystemManager {
         public string strBoW_database;
     }
 
-    public class ExperimentMap
-    {
-        public Dictionary<int, DateTime> map;// = new Dictionary<int, DateTime>();
-
-        public void Set(int id, DateTime t)
-        {
-            map[id] = t;
-        }
-        public DateTime Get(int id)
-        {
-            return map[id];
-        }
-    }
-
     [Serializable]
     public class ExperimentData
     {
         public string name;
+        public List<ExperimentDataElement> datas;
+        public Dictionary<string, ExperimentDataElement> datas2;
+        public ExperimentData(string _name)
+        {
+            name = _name;
+            datas = new List<ExperimentDataElement>();
+            datas.Add(new ExperimentDataElement("latency"));
+            datas.Add(new ExperimentDataElement("traffic"));
+            datas.Add(new ExperimentDataElement("download"));
+        }
+
+        public void Add(string s)
+        {
+            if(!datas2.ContainsKey(s))
+                datas2.Add(s, new ExperimentDataElement(s));
+        }
+        public void Remove(string s)
+        {
+            if (datas2.ContainsKey(s))
+                datas2.Remove(s);
+        }
+
+        public void Update(string s, float f)
+        {
+            datas2[s].Update(f);
+        }
+
+        public void Init()
+        {
+            datas2 = new Dictionary<string, ExperimentDataElement>();
+            for(int i =0; i < datas.Count; i++)
+            {
+                datas2.Add(datas[i].name, datas[i]);
+            }
+        }
+
+        public void Update()
+        {
+            datas = new List<ExperimentDataElement>();
+            Dictionary<string, ExperimentDataElement>.ValueCollection values = datas2.Values;
+            foreach(ExperimentDataElement data in values)
+            {
+                data.Calculate();
+                datas.Add(data);
+            }
+        }
+    }
+
+    [Serializable]
+    public class ExperimentDataElement
+    {
+        public string name;
         public int nTotal;
-        public int nTotalSize;//jpeg
-        public float fAvgSize;//jpeg
         public float fSum;
         public float fSum_2;
         public float fAvg;
         public float fStddev;
-        
+
+        public ExperimentDataElement(string _name)
+        {
+            name = _name;
+            nTotal = 0;
+            fSum = 0.0f;
+            fSum_2 = 0.0f;
+            fAvg = 0.0f;
+            fStddev = 0.0f;
+        }
+
         public void Update(float ts)
         {
             nTotal++;
@@ -100,6 +150,8 @@ public class SystemManager {
             }
         }
     }
+    
+    
 
     public class InitConnectData
     {
@@ -169,7 +221,7 @@ public class SystemManager {
     public float[] IntrinsicData {
         get
         {
-            fdata = new float[12];
+            fdata = new float[13];
             int nidx = 0;
             CameraParams camParam = camParams[userData.numCameraParam];
             fdata[nidx++] = (float)camParam.w;
@@ -184,6 +236,7 @@ public class SystemManager {
             fdata[nidx++] = camParam.d4;
             fdata[nidx++] = camParam.d5;
             fdata[nidx++] = appData.JpegQuality;
+            fdata[nidx++] = appData.numSkipFrames;
             return fdata;
         }
     }
@@ -755,6 +808,7 @@ public class SystemManager {
                     userData.UserName = "zkrkwlek";
                     userData.MapName = "TestMap";
                     userData.Keywords = "ReferenceFrame,single,Content,all";
+                    userData.Experiments = "ReferenceFrame,Tracking,Content,ObjectDetection,Segmentation";
                     userData.ModeMultiAgentTest = false;
                     File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(userData));
                 }
@@ -781,57 +835,89 @@ public class SystemManager {
                     File.WriteAllText(Application.persistentDataPath + "/Data/AppData.json", JsonUtility.ToJson(appData));
                 }
                 
-                try
+                //try
+                //{
+                //    string strExperiments = File.ReadAllText(Application.persistentDataPath + "/Data/Experiment.json");
+                //    ExperimentData[] temp = JsonHelper.FromJson<ExperimentData>(strExperiments);
+                //    exDatas = new Dictionary<string, ExperimentData>();
+                //    foreach (ExperimentData data in temp)
+                //    {
+                //        exDatas[data.name] = data;
+                //    }
+                //}
+                //catch (FileNotFoundException) {
+
+                //    //local map size, ref size, content time, local map time
+                //    exDatas = new Dictionary<string, ExperimentData>();
+
+                //    List<string> list = new List<string>();
+                //    list.Add("TrackingTime");
+                //    list.Add("FrameTime");
+                //    list.Add("ReferenceFrameTime");
+                //    list.Add("VisualizationTime");
+                //    list.Add("ReferenceTraffic");
+                //    list.Add("ReferenceReturnTime");
+                //    list.Add("ObjectDetectionTime");
+                //    list.Add("Segmentation");
+                //    list.Add("ContentReturnTime");
+                //    list.Add("UploadTimeImage");
+                //    list.Add("UploadTimeGyro");
+                //    list.Add("DownloadTimeImage");
+                //    list.Add("DownloadTimeObject");
+
+                //    foreach (string str in list)
+                //    {
+                //        ExperimentData data = new ExperimentData(str);
+                //        data.nTotal = 0;
+                //        data.fSum = 0.0f;
+                //        data.fSum_2 = 0.0f;
+                //        data.Calculate();
+                //        exDatas[data.name] = data;
+                //    }
+
+                //    int idx = 0;
+                //    Dictionary<string, SystemManager.ExperimentData>.ValueCollection values = exDatas.Values;
+                //    ExperimentData[] temp = new ExperimentData[exDatas.Count];
+                //    foreach(ExperimentData data in values)
+                //    {
+                //        temp[idx++] = data;
+                //    }
+
+                //    string camJsonStr = JsonHelper.ToJson(temp, true);
+                //    File.WriteAllText(Application.persistentDataPath + "/Data/Experiment.json", camJsonStr);
+                //}
+
+                if (!Directory.Exists(Application.persistentDataPath + "/Experiment/"))
                 {
-                    string strExperiments = File.ReadAllText(Application.persistentDataPath + "/Data/Experiment.json");
-                    ExperimentData[] temp = JsonHelper.FromJson<ExperimentData>(strExperiments);
-                    exDatas = new Dictionary<string, ExperimentData>();
-                    foreach (ExperimentData data in temp)
+                    Directory.CreateDirectory(Application.persistentDataPath + "/Experiment/");
+                }
+                string[] strExs = userData.Experiments.Split(',');
+                string expath = Application.persistentDataPath + "/Experiment/";
+                exDatas = new Dictionary<string, ExperimentData>(strExs.Length);
+                foreach(string str in strExs)
+                {
+                    try
                     {
-                        exDatas[data.name] = data;
+                        string strData = File.ReadAllText(expath + str + ".json");
+                        ExperimentData ex = JsonUtility.FromJson<ExperimentData>(strData);
+                        ex.Init();
+                        exDatas.Add(str, ex);
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        ExperimentData ex = new ExperimentData(str);
+                        exDatas.Add(str, ex);
+                        ex.Init();
+                        File.WriteAllText(expath+str+".json", JsonUtility.ToJson(ex));
                     }
                 }
-                catch (FileNotFoundException) {
+                exDatas["Tracking"].Remove("latency");
+                exDatas["Tracking"].Remove("traffic");
+                exDatas["Tracking"].Remove("download");
+                exDatas["Tracking"].Add("Frame");
+                exDatas["Tracking"].Add("Tracking");
+                exDatas["Tracking"].Add("Visualization");
 
-                    //local map size, ref size, content time, local map time
-                    exDatas = new Dictionary<string, ExperimentData>();
-
-                    List<string> list = new List<string>();
-                    list.Add("TrackingTime");
-                    list.Add("FrameTime");
-                    list.Add("ReferenceFrameTime");
-                    list.Add("VisualizationTime");
-                    list.Add("ReferenceTraffic");
-                    list.Add("ReferenceReturnTime");
-                    list.Add("ObjectDetectionTime");
-                    list.Add("ContentReturnTime");
-                    list.Add("UploadTimeImage");
-                    list.Add("UploadTimeGyro");
-                    list.Add("DownloadTimeImage");
-                    list.Add("DownloadTimeObject");
-
-                    foreach (string str in list)
-                    {
-                        ExperimentData data = new ExperimentData();
-                        data.name = str;
-                        data.nTotal = 0;
-                        data.fSum = 0.0f;
-                        data.fSum_2 = 0.0f;
-                        data.Calculate();
-                        exDatas[data.name] = data;
-                    }
-
-                    int idx = 0;
-                    Dictionary<string, SystemManager.ExperimentData>.ValueCollection values = exDatas.Values;
-                    ExperimentData[] temp = new ExperimentData[exDatas.Count];
-                    foreach(ExperimentData data in values)
-                    {
-                        temp[idx++] = data;
-                    }
-
-                    string camJsonStr = JsonHelper.ToJson(temp, true);
-                    File.WriteAllText(Application.persistentDataPath + "/Data/Experiment.json", camJsonStr);
-                }
                 trajectory = new List<string>();
             }
             return m_pInstance;

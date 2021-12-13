@@ -21,7 +21,7 @@ public class TestGUI : MonoBehaviour
     private static extern void LoadVocabulary();
 #endif
 
-    public InputField ifUser, ifMap, ifJPEG, ifSkip, ifFeature, ifPyramid, ifKFs, ifKeyword;
+    public InputField ifUser, ifMap, ifJPEG, ifSkip, ifFeature, ifPyramid, ifKFs, ifKeyword, ifEx;
 
     public RawImage ResultImage;
     public Dropdown drop;
@@ -37,7 +37,7 @@ public class TestGUI : MonoBehaviour
     public Button btnOption;
     public Button btnClose;
 
-    public Toggle toggleCam, toggleIMU, toggleMapping, toggleTracking, toggleTest;
+    public Toggle toggleCam, toggleIMU, toggleMapping, toggleTracking, toggleTest, toggleVis, toggleSave;
 
     // Start is called before the first frame update
     void Start()
@@ -86,7 +86,8 @@ public class TestGUI : MonoBehaviour
         toggleMapping.isOn = SystemManager.Instance.User.ModeMapping;
         toggleTracking.isOn = SystemManager.Instance.User.ModeTracking;
         toggleTest.isOn = SystemManager.Instance.User.ModeMultiAgentTest;
-
+        toggleVis.isOn = SystemManager.Instance.User.bVisualizeFrame;
+        toggleSave.isOn = SystemManager.Instance.User.bSaveTrajectory;
         SetUI();
         /////Initialize
 
@@ -106,6 +107,26 @@ public class TestGUI : MonoBehaviour
         ifKeyword.onValueChanged.AddListener(delegate {
             SystemManager.Instance.User.Keywords = ifKeyword.text;
         });
+        ifEx.text = SystemManager.Instance.User.Experiments;
+        ifEx.onEndEdit.AddListener(delegate {
+            SystemManager.Instance.User.Experiments = ifEx.text;
+
+            string[] strExs = SystemManager.Instance.User.Experiments.Split(',');
+            string expath = Application.persistentDataPath + "/Experiment/";
+            //SystemManager.Instance.Experi = new Dictionary<string, ExperimentData>(strExs.Length);
+            foreach (string str in strExs)
+            {
+                if (!File.Exists(expath + str+".json"))
+
+                {
+                    SystemManager.ExperimentData ex = new SystemManager.ExperimentData(str);
+                    ex.Init();
+                    SystemManager.Instance.Experiments.Add(str, ex);
+                    File.WriteAllText(expath + str + ".json", JsonUtility.ToJson(ex));
+                }
+            }
+        });
+        
         ifJPEG.text = Convert.ToString(SystemManager.Instance.AppData.JpegQuality);
         ifJPEG.onValueChanged.AddListener(delegate {
             SystemManager.Instance.AppData.JpegQuality = Convert.ToInt32(ifJPEG.text);
@@ -177,6 +198,12 @@ public class TestGUI : MonoBehaviour
         {
             SystemManager.Instance.User.ModeMultiAgentTest = toggleTest.isOn;
         });
+        toggleVis.onValueChanged.AddListener(delegate {
+            SystemManager.Instance.User.bVisualizeFrame = toggleVis.isOn;
+        });
+        toggleSave.onValueChanged.AddListener(delegate {
+            SystemManager.Instance.User.bSaveTrajectory = toggleSave.isOn;
+        });
 
         btnClose.onClick.AddListener(delegate {
             File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(SystemManager.Instance.User));
@@ -231,16 +258,15 @@ public class TestGUI : MonoBehaviour
                 UdpAsyncHandler.Instance.UdpSocketClose();
                 File.WriteAllLines(Application.persistentDataPath + "/Data/Trajectory.txt", SystemManager.Instance.Trajectory);
             }
-                        
+
             Dictionary<string, SystemManager.ExperimentData>.ValueCollection values = SystemManager.Instance.Experiments.Values;
             SystemManager.ExperimentData[] datas = new SystemManager.ExperimentData[values.Count];
             int idx = 0;
             foreach(SystemManager.ExperimentData data in values)
             {
-                data.Calculate();
-                datas[idx++] = data;
+                data.Update();
+                File.WriteAllText(Application.persistentDataPath + "/Experiment/" + data.name + ".json", JsonUtility.ToJson(data));
             }
-            File.WriteAllText(Application.persistentDataPath + "/Data/Experiment.json", JsonHelper.ToJson(datas, true));
             
         });
 

@@ -183,14 +183,14 @@ public class Tracker
         string msg2 = SystemManager.Instance.User.UserName + "," + SystemManager.Instance.User.MapName;
         byte[] bdatab = System.Text.Encoding.UTF8.GetBytes(msg2);
         float[] fdataa = SystemManager.Instance.IntrinsicData;
-        byte[] bdata2 = new byte[3 + fdataa.Length * 4 + bdatab.Length];
+        int nByte = 4;
+        byte[] bdata2 = new byte[nByte + fdataa.Length * 4 + bdatab.Length];
         bdata2[fdataa.Length * 4] = SystemManager.Instance.User.ModeMapping ? (byte)1 : (byte)0;
-        bdata2[fdataa.Length * 4+1] = SystemManager.Instance.User.ModeTracking ? (byte)1 : (byte)0;
-        bdata2[fdataa.Length * 4+2] = SystemManager.Instance.User.UseGyro ? (byte)1 : (byte)0;
+        bdata2[fdataa.Length * 4 + 1] = SystemManager.Instance.User.ModeTracking ? (byte)1 : (byte)0;
+        bdata2[fdataa.Length * 4 + 2] = SystemManager.Instance.User.UseGyro ? (byte)1 : (byte)0;
+        bdata2[fdataa.Length * 4 + 3] = SystemManager.Instance.User.bSaveTrajectory ? (byte)1 : (byte)0;
         Buffer.BlockCopy(fdataa, 0, bdata2, 0, fdataa.Length * 4);
-        Buffer.BlockCopy(bdatab, 0, bdata2, fdataa.Length * 4+3, bdatab.Length);
-
-        //Debug.Log(msg2+" "+ bdatab.Length);
+        Buffer.BlockCopy(bdatab, 0, bdata2, fdataa.Length * 4+nByte, bdatab.Length);
 
         request = new UnityWebRequest(addr2);
         request.method = "POST";
@@ -205,7 +205,6 @@ public class Tracker
                         SystemManager.Instance.IntrinsicData[6], SystemManager.Instance.IntrinsicData[7], SystemManager.Instance.IntrinsicData[8], SystemManager.Instance.IntrinsicData[9],
                         SystemManager.Instance.AppData.numFeatures,SystemManager.Instance.AppData.numPyramids, 1.2f, SystemManager.Instance.AppData.numSkipFrames, SystemManager.Instance.AppData.numLocalKeyFrames);
 
-        Debug.Log(SystemManager.Instance.ImageWidth + " " + SystemManager.Instance.ImageHeight);
         tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.ARGB32, false);//BGRA32
 
         if (SystemManager.Instance.User.UseCamera)
@@ -450,7 +449,7 @@ public class TrackingProcessor : MonoBehaviour
                     DateTime t1 = DateTime.Now;
                     SetFrame(texPtr, mnFrameID, 0.0);
                     TimeSpan tframe = DateTime.Now - t1;
-                    SystemManager.Instance.Experiments["FrameTime"].Update((float)tframe.Milliseconds);
+                    SystemManager.Instance.Experiments["Tracking"].Update("Frame",(float)tframe.Milliseconds);
 
                     if (SystemManager.Instance.User.UseGyro)
                         DeltaFrameR.Copy(ref fIMUPose, 0);
@@ -461,16 +460,17 @@ public class TrackingProcessor : MonoBehaviour
                         DateTime t3 = DateTime.Now;
                         bTrack = Track(posePtr);
                         TimeSpan ttrack = DateTime.Now - t3;
-                        SystemManager.Instance.Experiments["TrackingTime"].Update((float)ttrack.Milliseconds);
+                        SystemManager.Instance.Experiments["Tracking"].Update("Tracking", (float)tframe.Milliseconds);
                     }
-
-                    DateTime t5 = DateTime.Now;
-                    if (VisualizeFrame(texPtr))
+                    
+                    if (SystemManager.Instance.User.bVisualizeFrame)
                     {
+                        DateTime t5 = DateTime.Now;
+                        VisualizeFrame(texPtr);
                         Tracker.Instance.LoadRawTextureData(texPtr, texData.Length * 4);
+                        TimeSpan tvisual = DateTime.Now - t5;
+                        SystemManager.Instance.Experiments["Tracking"].Update("Visualization", (float)tframe.Milliseconds);
                     }
-                    TimeSpan tvisual = DateTime.Now - t5;
-                    SystemManager.Instance.Experiments["VisualizationTime"].Update((float)tvisual.Milliseconds);
 
                     if (bTrack)
                     {
