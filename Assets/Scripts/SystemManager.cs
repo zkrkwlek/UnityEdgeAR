@@ -181,7 +181,7 @@ public class SystemManager {
             type1 = "device";
             type2 = "NONE";
             //생성할 키워드
-            keyword = "Image,Gyro,Accelerometer,DeviceConnect,DeviceDisconnect,ContentGeneration";//,Map,DevicePosition
+            keyword = "Image,Gyro,Accelerometer,DeviceConnect,DeviceDisconnect,ContentGeneration,DevicePosition";//,Map,
             src = userID;
         }
         public string type1, type2, keyword, src;
@@ -721,7 +721,7 @@ public class SystemManager {
                 }
                 catch (FileNotFoundException)
                 {
-                    int nDataList = 26;
+                    int nDataList = 27;
                     templist = new string[nDataList];
                     int nIdx = 0;
                     templist[nIdx++] = "TEST,/KI/S21+/1/";
@@ -733,6 +733,7 @@ public class SystemManager {
                     templist[nIdx++] = "tum1_xyz,/TUM/TUM1/xyz/";
                     templist[nIdx++] = "tum2_xyz,/TUM/TUM2/xyz/";
                     templist[nIdx++] = "tum2_desk,/TUM/TUM2/desk/";
+                    templist[nIdx++] = "tum2_desk_person,/TUM/TUM2/desk_with_person/";
                     templist[nIdx++] = "tum2_360,/TUM/TUM2/360/";
                     templist[nIdx++] = "tum2_no_loop,/TUM/TUM2/large_no_loop/";
                     templist[nIdx++] = "tum2_loop,/TUM/TUM2/large_with_loop/";

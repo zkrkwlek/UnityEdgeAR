@@ -209,7 +209,6 @@ public class Tracker
 
         if (SystemManager.Instance.User.UseCamera)
         {
-            //SetDeviceCamera(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, 30.0);
             WebCamDevice[] devices = WebCamTexture.devices;
             for (int i = 0; i < devices.Length; i++)
             {
@@ -327,7 +326,6 @@ public class TrackingProcessor : MonoBehaviour
     GCHandle texHandle;
     IntPtr texPtr;
     
-    //float[] fPoseData;
     GCHandle poseHandle;
     IntPtr posePtr;
 
@@ -461,6 +459,16 @@ public class TrackingProcessor : MonoBehaviour
                         bTrack = Track(posePtr);
                         TimeSpan ttrack = DateTime.Now - t3;
                         SystemManager.Instance.Experiments["Tracking"].Update("Tracking", (float)tframe.Milliseconds);
+
+                        if (bTrack && SystemManager.Instance.User.bSaveTrajectory)
+                        {
+                            byte[] bdata = new byte[Tracker.Instance.PoseData.Length * 4];
+                            Buffer.BlockCopy(Tracker.Instance.PoseData, 0, bdata, 0, bdata.Length);
+
+                            UdpData poseData = new UdpData("DevicePosition", SystemManager.Instance.User.UserName, mnFrameID, bdata, ts);
+                            poseData.sendedTime = DateTime.Now;
+                            StartCoroutine(sender.SendData(poseData));
+                        }
                     }
                     
                     if (SystemManager.Instance.User.bVisualizeFrame)
