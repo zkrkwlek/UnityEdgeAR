@@ -131,7 +131,7 @@ public class UDPController : MonoBehaviour
                     }
 
                     ////레퍼런스 프레임 설정
-                    if (SystemManager.Instance.User.ModeTracking) {
+                    if (n > 30 && SystemManager.Instance.User.ModeTracking) {
                         DateTime tref_start = DateTime.Now;
                         SetReferenceFrame(data.id);
                         TimeSpan tref = DateTime.Now - tref_start;
