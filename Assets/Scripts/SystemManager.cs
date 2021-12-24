@@ -181,7 +181,7 @@ public class SystemManager {
             type1 = "device";
             type2 = "NONE";
             //생성할 키워드
-            keyword = "Image,Gyro,Accelerometer,DeviceConnect,DeviceDisconnect,ContentGeneration,DevicePosition";//,Map,
+            keyword = "Image,Gyro,Accelerometer,DeviceConnect,DeviceDisconnect,ContentGeneration,DevicePosition,ReqSuperPoint";//,Map,
             src = userID;
         }
         public string type1, type2, keyword, src;
@@ -299,13 +299,6 @@ public class SystemManager {
         }
     }
 
-    public string ImagePath
-    {
-        get
-        {
-            return path + datalists[userData.numDataset];
-        }
-    }
     public string DataFile
     {
         get{
@@ -458,15 +451,6 @@ public class SystemManager {
         }
     }
     static private List<string> trajectory;
-
-    static private string path;
-    public string Path
-    {
-        get
-        {
-            return path;
-        }
-    }
 
     static private ApplicationData appData;
      public ApplicationData AppData
@@ -699,72 +683,18 @@ public class SystemManager {
                     string camJsonStr = JsonHelper.ToJson(camParams, true);
                     File.WriteAllText(Application.persistentDataPath + "/Data/CameraIntrinsics.json", camJsonStr);
                 }
-                
-#if UNITY_EDITOR_WIN
-                path = "E:/SLAM_DATASET/MY";
-#elif UNITY_ANDROID
-                path = Application.persistentDataPath+"/File";
-#endif
 
-                string[] templist;
-                try
+                string[] dirs = System.IO.Directory.GetDirectories(Application.persistentDataPath + "/File", "*rgb*", SearchOption.AllDirectories);
+                datalists = new string[dirs.Length];
+                mapnamelist = new string[dirs.Length];
+                char[] delimiter = { '\\', '/' };
+                for (int i = 0; i < dirs.Length; i++)
                 {
-                    templist = File.ReadAllLines(Application.persistentDataPath + "/Data/DataLists.json");
-                    datalists = new string[templist.Length];
-                    mapnamelist = new string[templist.Length];
-                    for(int i = 0; i < templist.Length; i++)
-                    {
-                        string[] strs = templist[i].Split(',');
-                        mapnamelist[i] = strs[0];
-                        datalists[i] = strs[1];
-                    }
-                }
-                catch (FileNotFoundException)
-                {
-                    int nDataList = 27;
-                    templist = new string[nDataList];
-                    int nIdx = 0;
-                    templist[nIdx++] = "TEST,/KI/S21+/1/";
-                    templist[nIdx++] = "TEST,/KI/S21+/5/";
-                    templist[nIdx++] = "TEST,/KI/NOTE8/1/";
-                    templist[nIdx++] = "tum1_desk,/TUM/TUM1/desk/";
-                    templist[nIdx++] = "tum1_floor,/TUM/TUM1/floor/";
-                    templist[nIdx++] = "tum1_room,/TUM/TUM1/room/";
-                    templist[nIdx++] = "tum1_xyz,/TUM/TUM1/xyz/";
-                    templist[nIdx++] = "tum2_xyz,/TUM/TUM2/xyz/";
-                    templist[nIdx++] = "tum2_desk,/TUM/TUM2/desk/";
-                    templist[nIdx++] = "tum2_desk_person,/TUM/TUM2/desk_with_person/";
-                    templist[nIdx++] = "tum2_360,/TUM/TUM2/360/";
-                    templist[nIdx++] = "tum2_no_loop,/TUM/TUM2/large_no_loop/";
-                    templist[nIdx++] = "tum2_loop,/TUM/TUM2/large_with_loop/";
-                    templist[nIdx++] = "tum3_office,/TUM/TUM3/long_office/";
-                    templist[nIdx++] = "tum3_strtexfar,/TUM/TUM3/str_tex_far/";
-                    templist[nIdx++] = "tum3_strtexnear,/TUM/TUM3/str_tex_near/";
-                    templist[nIdx++] = "tum3_sitting_half,/TUM/TUM3/sitting_half/";
-                    templist[nIdx++] = "tum3_walking_static,/TUM/TUM3/walking_static/";
-                    templist[nIdx++] = "tum3_walking_xyz,/TUM/TUM3/walking_xyz/";
-                    templist[nIdx++] = "lr0,/NUIM/lr0/";
-                    templist[nIdx++] = "lr0n,/NUIM/lr0n/";
-                    templist[nIdx++] = "lr1,/NUIM/lr1/";
-                    templist[nIdx++] = "lr1n,/NUIM/lr1n/";
-                    templist[nIdx++] = "lr2,/NUIM/lr2/";
-                    templist[nIdx++] = "lr2n,/NUIM/lr2n/";
-                    templist[nIdx++] = "lr3,/NUIM/lr3/";
-                    templist[nIdx++] = "lr3n,/NUIM/lr3n/";
-
-                    datalists = new string[templist.Length];
-                    mapnamelist = new string[templist.Length];
-                    for (int i = 0; i < templist.Length; i++)
-                    {
-                        string[] strs = templist[i].Split(',');
-                        mapnamelist[i] = strs[0];
-                        datalists[i] = strs[1];
-                    }
-
-                    File.WriteAllLines(Application.persistentDataPath + "/Data/DataLists.json", templist);
-                }
-                finally {
-                    
+                    string dir = dirs[i];
+                    string[] temp_splited = dir.Split(delimiter);
+                    string mapname = temp_splited[temp_splited.Length - 2];
+                    mapnamelist[i] = mapname;
+                    datalists[i] = dir.Substring(0, dir.Length - 3);
                 }
 
                 try

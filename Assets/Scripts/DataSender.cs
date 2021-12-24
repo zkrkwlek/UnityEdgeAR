@@ -73,9 +73,12 @@ public class DataTransfer {
             addr2 += "&type2=" + ts;
         UnityWebRequest request = new UnityWebRequest(addr2);
         request.method = "POST";
-        UploadHandlerRaw uH = new UploadHandlerRaw(data);
-        uH.contentType = "application/json";
-        request.uploadHandler = uH;
+        if (data.Length > 0)
+        {
+            UploadHandlerRaw uH = new UploadHandlerRaw(data);
+            uH.contentType = "application/json";
+            request.uploadHandler = uH;
+        }
         request.downloadHandler = new DownloadHandlerBuffer();
         //request.SendWebRequest();
         return request;

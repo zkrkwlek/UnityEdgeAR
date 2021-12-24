@@ -63,7 +63,7 @@ public class TestGUI : MonoBehaviour
             drop.options.Add(data);
         }
 
-        foreach (string dataset in SystemManager.Instance.DataLists)
+        foreach (string dataset in SystemManager.Instance.MapNameList)
         {
             Dropdown.OptionData data = new Dropdown.OptionData();
             data.text = dataset;

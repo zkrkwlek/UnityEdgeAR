@@ -156,7 +156,7 @@ public class Tracker
         ////맵 이름을 여기서 수정하도록 변경.
         if (!SystemManager.Instance.User.UseCamera)
         {
-            string imgFileTxt = SystemManager.Instance.ImagePath + SystemManager.Instance.DataFile; //"rgb.txt";
+            string imgFileTxt = SystemManager.Instance.DataLists[SystemManager.Instance.User.numDataset] + SystemManager.Instance.DataFile; //"rgb.txt";
             imgfilelist = File.ReadAllLines(imgFileTxt);
         }
 
@@ -344,6 +344,10 @@ public class TrackingProcessor : MonoBehaviour
 
     DataTransfer sender;
 
+    void Delay() {
+        //yield return new WaitForSecondsRealtime(0.033333333333333333f);
+    }
+
     void Start()
     {
         //result image ptr
@@ -373,11 +377,12 @@ public class TrackingProcessor : MonoBehaviour
         sender = new DataTransfer();
     }
 
-    void Update()
+    void FixedUpdate()
     {
         try
         {
-
+            DateTime Ts = DateTime.Now;
+            
             //StatusTxt.text = "Quality = " + nQuality;
             if (SystemManager.Instance.User.UseGyro)
             {
@@ -403,7 +408,7 @@ public class TrackingProcessor : MonoBehaviour
                     string[] strsplit = Tracker.Instance.ImageList[Tracker.Instance.ImageFrameIndexX++].Split(' ');
                     ts = Convert.ToDouble(strsplit[0]);
                     string file = Convert.ToString(strsplit[1]);
-                    string imgFile = SystemManager.Instance.ImagePath + file;
+                    string imgFile = SystemManager.Instance.DataLists[SystemManager.Instance.User.numDataset] + file;
                     byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
                     Tracker.Instance.Texture.LoadImage(byteTexture);
                 }
@@ -435,6 +440,14 @@ public class TrackingProcessor : MonoBehaviour
                     data.sendedTime = DateTime.Now;
                     DataQueue.Instance.Add(data);
                     StartCoroutine(sender.SendData(data));
+
+                    //if (SystemManager.Instance.User.ModeMapping)
+                    //{
+                    //    UdpData pdata = new UdpData("ReqSuperPoint", src, mnFrameID, new byte[0], ts);
+                    //    data.sendedTime = DateTime.Now;
+                    //    //DataQueue.Instance.Add(pdata);
+                    //    StartCoroutine(sender.SendData(pdata));
+                    //}
                 }
 
                 if (SystemManager.Instance.User.ModeTracking)
@@ -447,7 +460,7 @@ public class TrackingProcessor : MonoBehaviour
                     DateTime t1 = DateTime.Now;
                     SetFrame(texPtr, mnFrameID, 0.0);
                     TimeSpan tframe = DateTime.Now - t1;
-                    SystemManager.Instance.Experiments["Tracking"].Update("Frame",(float)tframe.Milliseconds);
+                    SystemManager.Instance.Experiments["Tracking"].Update("Frame", (float)tframe.Milliseconds);
 
                     if (SystemManager.Instance.User.UseGyro)
                         DeltaFrameR.Copy(ref fIMUPose, 0);
@@ -458,7 +471,7 @@ public class TrackingProcessor : MonoBehaviour
                         DateTime t3 = DateTime.Now;
                         bTrack = Track(posePtr);
                         TimeSpan ttrack = DateTime.Now - t3;
-                        SystemManager.Instance.Experiments["Tracking"].Update("Tracking", (float)tframe.Milliseconds);
+                        SystemManager.Instance.Experiments["Tracking"].Update("Tracking", (float)ttrack.Milliseconds);
 
                         if (bTrack && SystemManager.Instance.User.bSaveTrajectory)
                         {
@@ -470,25 +483,26 @@ public class TrackingProcessor : MonoBehaviour
                             StartCoroutine(sender.SendData(poseData));
                         }
                     }
-                    
+
                     if (SystemManager.Instance.User.bVisualizeFrame)
                     {
                         DateTime t5 = DateTime.Now;
                         VisualizeFrame(texPtr);
                         Tracker.Instance.LoadRawTextureData(texPtr, texData.Length * 4);
                         TimeSpan tvisual = DateTime.Now - t5;
-                        SystemManager.Instance.Experiments["Tracking"].Update("Visualization", (float)tframe.Milliseconds);
+                        SystemManager.Instance.Experiments["Tracking"].Update("Visualization", (float)tvisual.Milliseconds);
                     }
 
                     if (bTrack)
                     {
                         ResultImage.color = new Color(0.0f, 1.0f, 0.0f, 4.0f);
                     }
-                    else {
+                    else
+                    {
                         ResultImage.color = new Color(1.0f, 0.0f, 0.0f, 4.0f);
                     }
                     texHandle.Free();
-                }                
+                }
                 ++mnFrameID;
             }
         }
