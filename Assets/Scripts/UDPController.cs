@@ -45,9 +45,9 @@ public class UDPController : MonoBehaviour
     [DllImport("UnityLibrary")]
     private static extern void AddContentInfo(int id, float x, float y, float z);
     [DllImport("UnityLibrary")]
-    private static extern void AddObjectInfos();
+    private static extern void AddObjectInfos(int id);
     [DllImport("UnityLibrary")]
-    private static extern void Segmentation();
+    private static extern void Segmentation(int id);
 #elif UNITY_ANDROID
     [DllImport("edgeslam")]
     private static extern void SetReferenceFrame(int id);
@@ -56,9 +56,9 @@ public class UDPController : MonoBehaviour
     [DllImport("edgeslam")]
     private static extern void AddContentInfo(int id, float x, float y, float z);
     [DllImport("edgeslam")]
-    private static extern void AddObjectInfos();
+    private static extern void AddObjectInfos(int id);
     [DllImport("edgeslam")]
-    private static extern void Segmentation();
+    private static extern void Segmentation(int id);
 #endif
 
     public RawImage ResultImage;
@@ -159,7 +159,7 @@ public class UDPController : MonoBehaviour
                     TimeSpan time2 = DateTime.Now - data2.sendedTime;
 
                     SetDataToDevice(req1, "ObjectDetection");
-                    AddObjectInfos();
+                    AddObjectInfos(data.id);
 
                     SystemManager.Instance.Experiments["ObjectDetection"].Update("traffic", n1);
                     SystemManager.Instance.Experiments["ObjectDetection"].Update("latency", (float)time2.Milliseconds);
@@ -172,7 +172,7 @@ public class UDPController : MonoBehaviour
                     TimeSpan time2 = DateTime.Now - data2.sendedTime;
 
                     SetDataToDevice(req1, "Segmentation");
-                    Segmentation();
+                    Segmentation(data.id);
 
                     SystemManager.Instance.Experiments["Segmentation"].Update("traffic", n1);
                     SystemManager.Instance.Experiments["Segmentation"].Update("latency", (float)time2.Milliseconds);
