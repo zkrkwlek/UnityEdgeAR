@@ -183,12 +183,13 @@ public class Tracker
         string msg2 = SystemManager.Instance.User.UserName + "," + SystemManager.Instance.User.MapName;
         byte[] bdatab = System.Text.Encoding.UTF8.GetBytes(msg2);
         float[] fdataa = SystemManager.Instance.IntrinsicData;
-        int nByte = 4;
+        int nByte = 5;
         byte[] bdata2 = new byte[nByte + fdataa.Length * 4 + bdatab.Length];
         bdata2[fdataa.Length * 4] = SystemManager.Instance.User.ModeMapping ? (byte)1 : (byte)0;
         bdata2[fdataa.Length * 4 + 1] = SystemManager.Instance.User.ModeTracking ? (byte)1 : (byte)0;
         bdata2[fdataa.Length * 4 + 2] = SystemManager.Instance.User.UseGyro ? (byte)1 : (byte)0;
         bdata2[fdataa.Length * 4 + 3] = SystemManager.Instance.User.bSaveTrajectory ? (byte)1 : (byte)0;
+        bdata2[fdataa.Length * 4 + 4] = SystemManager.Instance.User.ModeAsyncQualityTest ? (byte)1 : (byte)0;
         Buffer.BlockCopy(fdataa, 0, bdata2, 0, fdataa.Length * 4);
         Buffer.BlockCopy(bdatab, 0, bdata2, fdataa.Length * 4+nByte, bdatab.Length);
 
@@ -304,7 +305,8 @@ public class TrackingProcessor : MonoBehaviour
     private static extern bool VisualizeFrame(IntPtr data);
     [DllImport("UnityLibrary")]
     private static extern bool Track(IntPtr posePtr);
-    
+    [DllImport("UnityLibrary")]
+    private static extern void TestUploaddata(IntPtr data, int len, int id, char[] keyword, int len1, char[] src, int len2, double ts);
 #elif UNITY_ANDROID
     [DllImport("edgeslam")]
     private static extern void SetIMUAddress(IntPtr addr, bool bIMU);
@@ -317,7 +319,8 @@ public class TrackingProcessor : MonoBehaviour
     private static extern bool Track(IntPtr posePtr);
     [DllImport("edgeslam")]
     private static extern bool VisualizeFrame(IntPtr data);
-    
+    [DllImport("edgeslam")]
+    private static extern void TestUploaddata(IntPtr data, int len, int id, char[] keyword, int len1, char[] src, int len2, double ts);
 #endif
 
     public UnityEngine.UI.Text StatusTxt;
@@ -377,26 +380,29 @@ public class TrackingProcessor : MonoBehaviour
         sender = new DataTransfer();
     }
 
-    void FixedUpdate()
+    void Update()
     {
         try
         {
-            DateTime Ts = DateTime.Now;
-            
-            //StatusTxt.text = "Quality = " + nQuality;
+            ////자이로 센서 설정
             if (SystemManager.Instance.User.UseGyro)
             {
                 DeltaFrameR = SensorManager.Instance.DeltaRotationMatrix();
                 DeltaR = DeltaR * DeltaFrameR;
             }
 
+
             if (SystemManager.Instance.Start && SystemManager.Instance.Connect)
             {
 
+                ////웹캠 카메라 텍스쳐 올리기
                 if (SystemManager.Instance.User.UseCamera)
                 {
                     Tracker.Instance.LoadWebcamTextre();
+                    var timeSpan = DateTime.UtcNow - SystemManager.Instance.StartTime;
+                    ts = timeSpan.TotalMilliseconds;
                 }
+                ////이미지 텍스쳐에 올리기
                 else
                 {
                     if(Tracker.Instance.ImageFrameIndexX >= Tracker.Instance.ImageList.Length)
@@ -412,11 +418,15 @@ public class TrackingProcessor : MonoBehaviour
                     byte[] byteTexture = System.IO.File.ReadAllBytes(imgFile);
                     Tracker.Instance.Texture.LoadImage(byteTexture);
                 }
-                
+
+                ////텍스쳐 정보 NDK에 올리기
+
+                ////텍스쳐 정보 NDK에 올리기
+
                 ////send data
                 if (mnFrameID % Tracker.Instance.SkipFrame == 0)
                 {
-                    
+
                     string src = SystemManager.Instance.User.UserName;
                     if (SystemManager.Instance.User.UseGyro)
                     {
@@ -426,7 +436,8 @@ public class TrackingProcessor : MonoBehaviour
                         byte[] bdata = new byte[(fdata.Length) * 4];
                         Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length * 4);
 
-                        UdpData gdata = new UdpData("Gyro", src, mnFrameID, bdata);
+                        
+                        UdpData gdata = new UdpData("Gyro", src, mnFrameID, bdata, ts);
                         gdata.sendedTime = DateTime.Now;
 
                         //DataQueue.Instance.SendingQueue.Enqueue(gdata);
@@ -439,7 +450,10 @@ public class TrackingProcessor : MonoBehaviour
                     UdpData data = new UdpData("Image", src, mnFrameID, Tracker.Instance.Texture.EncodeToJPG(Tracker.Instance.ImageQuality), ts);
                     data.sendedTime = DateTime.Now;
                     DataQueue.Instance.Add(data);
-                    StartCoroutine(sender.SendData(data));
+                    //StartCoroutine(sender.SendData(data));
+                    GCHandle imghandle = GCHandle.Alloc(data.data, GCHandleType.Pinned);
+                    IntPtr imgptr = imghandle.AddrOfPinnedObject();
+                    TestUploaddata(imgptr, data.data.Length, mnFrameID, data.keyword.ToCharArray(), data.keyword.Length, src.ToCharArray(), src.Length, ts);
 
                     //if (SystemManager.Instance.User.ModeMapping)
                     //{
@@ -466,22 +480,23 @@ public class TrackingProcessor : MonoBehaviour
                         DeltaFrameR.Copy(ref fIMUPose, 0);
 
                     bool bTrack = false;
-                    if (!SystemManager.Instance.User.ModeMultiAgentTest)
+                    DateTime t3 = DateTime.Now;
+                    bTrack = Track(posePtr);
+                    TimeSpan ttrack = DateTime.Now - t3;
+                    SystemManager.Instance.Experiments["Tracking"].Update("Tracking", (float)ttrack.Milliseconds);
+
+                    if (bTrack && SystemManager.Instance.User.bSaveTrajectory)
                     {
-                        DateTime t3 = DateTime.Now;
-                        bTrack = Track(posePtr);
-                        TimeSpan ttrack = DateTime.Now - t3;
-                        SystemManager.Instance.Experiments["Tracking"].Update("Tracking", (float)ttrack.Milliseconds);
+                        byte[] bdata = new byte[Tracker.Instance.PoseData.Length * 4];
+                        Buffer.BlockCopy(Tracker.Instance.PoseData, 0, bdata, 0, bdata.Length);
 
-                        if (bTrack && SystemManager.Instance.User.bSaveTrajectory)
-                        {
-                            byte[] bdata = new byte[Tracker.Instance.PoseData.Length * 4];
-                            Buffer.BlockCopy(Tracker.Instance.PoseData, 0, bdata, 0, bdata.Length);
+                        UdpData poseData = new UdpData("DevicePosition", SystemManager.Instance.User.UserName, mnFrameID, bdata, ts);
+                        poseData.sendedTime = DateTime.Now;
+                        //StartCoroutine(sender.SendData(poseData));
 
-                            UdpData poseData = new UdpData("DevicePosition", SystemManager.Instance.User.UserName, mnFrameID, bdata, ts);
-                            poseData.sendedTime = DateTime.Now;
-                            StartCoroutine(sender.SendData(poseData));
-                        }
+                        GCHandle imghandle = GCHandle.Alloc(poseData.data, GCHandleType.Pinned);
+                        IntPtr imgptr = imghandle.AddrOfPinnedObject();
+                        TestUploaddata(imgptr, poseData.data.Length, mnFrameID, poseData.keyword.ToCharArray(), poseData.keyword.Length, SystemManager.Instance.User.UserName.ToCharArray(), SystemManager.Instance.User.UserName.Length, ts);
                     }
 
                     if (SystemManager.Instance.User.bVisualizeFrame)

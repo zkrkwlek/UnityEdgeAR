@@ -48,6 +48,8 @@ public class UDPController : MonoBehaviour
     private static extern void AddObjectInfos(int id);
     [DllImport("UnityLibrary")]
     private static extern void Segmentation(int id);
+    [DllImport("UnityLibrary")]
+    private static extern void TestDownloaddata(int id, char[] keyword, int len1, char[] src, int len2, bool bTracking);
 #elif UNITY_ANDROID
     [DllImport("edgeslam")]
     private static extern void SetReferenceFrame(int id);
@@ -59,6 +61,8 @@ public class UDPController : MonoBehaviour
     private static extern void AddObjectInfos(int id);
     [DllImport("edgeslam")]
     private static extern void Segmentation(int id);
+    [DllImport("edgeslam")]
+    private static extern void TestDownloaddata(int id, char[] keyword, int len1, char[] src, int len2, bool bTracking);
 #endif
 
     public RawImage ResultImage;
@@ -74,7 +78,20 @@ public class UDPController : MonoBehaviour
             string msg = System.Text.Encoding.Default.GetString(e.bdata);
             UdpData data = JsonUtility.FromJson<UdpData>(msg);
             data.receivedTime = DateTime.Now;
-            StartCoroutine(MessageParsing(data));
+            //StartCoroutine(MessageParsing(data));
+            TestDownloaddata(data.id, data.keyword.ToCharArray(), data.keyword.Length, SystemManager.Instance.User.UserName.ToCharArray(), SystemManager.Instance.User.UserName.Length, SystemManager.Instance.User.ModeTracking);
+
+            
+
+            var timeSpan = DateTime.UtcNow - SystemManager.Instance.StartTime;
+            double a = timeSpan.TotalMilliseconds-data.ts;
+
+            UdpData data2 = DataQueue.Instance.Get("Image" + data.id);
+
+            StatusTxt.text = "aaaaaaaaaaaaaaaaaaaaaaaaa = " + msg+"\n\t\t\t\t"+data.ts + "                  "+a+"             "+data2.ts+" "+data.src;//data.ts;
+
+            SystemManager.Instance.Experiments[data.keyword].Update("latency", (float)a);
+            //SystemManager.Instance.Experiments[data.keyword].Update("download", (float)Dtimespan.Milliseconds);
         }
         catch(Exception ex)
         {
@@ -108,6 +125,9 @@ public class UDPController : MonoBehaviour
 
                 if (data.keyword == "ReferenceFrame")
                 {
+
+                    //TestDownloaddata(data.id, data.keyword.ToCharArray(), data.keyword.Length, SystemManager.Instance.User.UserName.ToCharArray(), SystemManager.Instance.User.UserName.Length);
+
                     SetDataToDevice(req1, "ReferenceFrame");
                     ////update 시간
                     UdpData data2 = DataQueue.Instance.Get("Image" + data.id);

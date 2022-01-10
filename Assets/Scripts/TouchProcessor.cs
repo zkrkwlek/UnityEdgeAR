@@ -44,6 +44,8 @@ public class TouchProcessor : MonoBehaviour
 
             if (bTouch && Tracker.Instance.BackgroundRect.Contains(touchPos))
             {
+
+                var timeSpan = DateTime.UtcNow - SystemManager.Instance.StartTime;
                 ++mnTouchID;
 
                 float[] fdata = new float[3];
@@ -60,7 +62,7 @@ public class TouchProcessor : MonoBehaviour
                 Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length * 4);
                 Buffer.BlockCopy(fPoseData, 0, bdata, fdata.Length * 4, fPoseData.Length * 4);
 
-                UdpData data = new UdpData("ContentGeneration", SystemManager.Instance.User.UserName, mnTouchID, bdata);
+                UdpData data = new UdpData("ContentGeneration", SystemManager.Instance.User.UserName, mnTouchID, bdata, timeSpan.TotalMilliseconds);
                 data.sendedTime = DateTime.Now;
                 DataQueue.Instance.Add(data);
                 //DataQueue.Instance.SendingQueue.Enqueue(data);

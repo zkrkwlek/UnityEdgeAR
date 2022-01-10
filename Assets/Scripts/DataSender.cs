@@ -68,9 +68,9 @@ public class DataTransfer {
 
     UnityWebRequest SetRequest(string keyword, byte[] data, int id, double ts)
     {
-        string addr2 = SystemManager.Instance.AppData.Address + "/Store?keyword=" + keyword + "&id=" + id + "&src=" + SystemManager.Instance.User.UserName;
-        if (ts > 0.0)
-            addr2 += "&type2=" + ts;
+        string addr2 = SystemManager.Instance.AppData.Address + "/Store?keyword=" + keyword + "&id=" + id +"&ts="+ts+"&src=" + SystemManager.Instance.User.UserName;
+        //if (ts > 0.0)
+        //addr2 += "&type2=" + ts;
         UnityWebRequest request = new UnityWebRequest(addr2);
         request.method = "POST";
         if (data.Length > 0)
@@ -86,7 +86,7 @@ public class DataTransfer {
 
     public IEnumerator SendData(UdpData data)
     {
-        UnityWebRequest req = SetRequest(data.keyword, data.data, data.id, data.timestamp);
+        UnityWebRequest req = SetRequest(data.keyword, data.data, data.id, data.ts);
         yield return req.SendWebRequest();
 
         //DateTime t1 = DateTime.Now;

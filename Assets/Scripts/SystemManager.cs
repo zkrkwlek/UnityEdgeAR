@@ -38,7 +38,7 @@ public class SystemManager {
         public string Experiments;
         public bool ModeMapping;
         public bool ModeTracking;
-        public bool ModeMultiAgentTest;
+        public bool ModeAsyncQualityTest;
         public bool UseCamera;
         public bool UseGyro;
         public bool UseAccelerometer;
@@ -79,7 +79,7 @@ public class SystemManager {
 
         public void Add(string s)
         {
-            if(!datas2.ContainsKey(s))
+            if (!datas2.ContainsKey(s))
                 datas2.Add(s, new ExperimentDataElement(s));
         }
         public void Remove(string s)
@@ -96,7 +96,7 @@ public class SystemManager {
         public void Init()
         {
             datas2 = new Dictionary<string, ExperimentDataElement>();
-            for(int i =0; i < datas.Count; i++)
+            for (int i = 0; i < datas.Count; i++)
             {
                 datas2.Add(datas[i].name, datas[i]);
             }
@@ -106,7 +106,7 @@ public class SystemManager {
         {
             datas = new List<ExperimentDataElement>();
             Dictionary<string, ExperimentDataElement>.ValueCollection values = datas2.Values;
-            foreach(ExperimentDataElement data in values)
+            foreach (ExperimentDataElement data in values)
             {
                 data.Calculate();
                 datas.Add(data);
@@ -150,8 +150,8 @@ public class SystemManager {
             }
         }
     }
-    
-    
+
+
 
     public class InitConnectData
     {
@@ -240,7 +240,14 @@ public class SystemManager {
             return fdata;
         }
     }
-
+    static private DateTime sTime;
+    public DateTime StartTime
+    {
+        get
+        {
+            return sTime;
+        }
+    }
     public int ImageWidth
     {
         get
@@ -471,7 +478,9 @@ public class SystemManager {
             {
                 m_pInstance = new SystemManager();
                 //LoadParameter();
-                
+
+                sTime = new DateTime(2022, 1, 1, 0, 0, 0);
+
                 try
                 {
                     Debug.Log(Application.persistentDataPath);
@@ -740,7 +749,7 @@ public class SystemManager {
                     userData.MapName = "TestMap";
                     userData.Keywords = "ReferenceFrame,single,Content,all";
                     userData.Experiments = "ReferenceFrame,Tracking,Content,ObjectDetection,Segmentation";
-                    userData.ModeMultiAgentTest = false;
+                    userData.ModeAsyncQualityTest = false;
                     File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(userData));
                 }
 

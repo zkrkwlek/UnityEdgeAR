@@ -26,25 +26,18 @@ public class UdpData
         type1 = _type;
         src = _src;
     }
-    public UdpData(string _key, string _src, int _id, byte[] _data)
-    {
-        keyword = _key;
-        src = _src;
-        id = _id;
-        data = _data;
-    }
     public UdpData(string _key, string _src, int _id, byte[] _data, double _ts)
     {
         keyword = _key;
         src = _src;
         id = _id;
         data = _data;
-        timestamp = _ts;
+        ts = _ts;
     }
     public string keyword, type1, type2, src;
     public byte[] data;
     public int id, id2;
-    public double timestamp;
+    public double ts;
     public DateTime sendedTime, receivedTime;
 }
 

@@ -85,7 +85,7 @@ public class TestGUI : MonoBehaviour
         toggleIMU.isOn = SystemManager.Instance.User.UseGyro;
         toggleMapping.isOn = SystemManager.Instance.User.ModeMapping;
         toggleTracking.isOn = SystemManager.Instance.User.ModeTracking;
-        toggleTest.isOn = SystemManager.Instance.User.ModeMultiAgentTest;
+        toggleTest.isOn = SystemManager.Instance.User.ModeAsyncQualityTest;
         toggleVis.isOn = SystemManager.Instance.User.bVisualizeFrame;
         toggleSave.isOn = SystemManager.Instance.User.bSaveTrajectory;
         SetUI();
@@ -196,7 +196,7 @@ public class TestGUI : MonoBehaviour
         });
         toggleTest.onValueChanged.AddListener(delegate
         {
-            SystemManager.Instance.User.ModeMultiAgentTest = toggleTest.isOn;
+            SystemManager.Instance.User.ModeAsyncQualityTest = toggleTest.isOn;
         });
         toggleVis.onValueChanged.AddListener(delegate {
             SystemManager.Instance.User.bVisualizeFrame = toggleVis.isOn;

@@ -3640,105 +3640,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45c05cc4be5ec324c9bba9177d12be51, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resized: []
-  Scale: 0
-  Width: 0
-  Height: 0
-  additional: 0
-  BackGroundRect:
-    x: 0
-    y: 0
-    width: 0
-    height: 0
-  Canvas: {fileID: 0}
-  Scaler: {fileID: 0}
-  isAlive: 1
-  rectWidth: 160
-  rectHeight: 80
-  rect1:
-    x: 0
-    y: 0
-    width: 0
-    height: 0
-  rect2:
-    x: 0
-    y: 0
-    width: 0
-    height: 0
-  rect3:
-    x: 0
-    y: 0
-    width: 0
-    height: 0
-  rect4:
-    x: 0
-    y: 0
-    width: 0
-    height: 0
-  rectMappingToggle:
-    x: 0
-    y: 0
-    width: 0
-    height: 0
-  rectTrackingToggle:
-    x: 0
-    y: 0
-    width: 0
-    height: 0
-  rectAccToggle:
-    x: 0
-    y: 0
-    width: 0
-    height: 0
-  rectGyroToggle:
-    x: 0
-    y: 0
-    width: 0
-    height: 0
-  DiffScreen: {x: 0, y: 0}
-  webCamTexture: {fileID: 0}
-  webCamColorData: []
-  screenRect:
-    x: 0
-    y: 0
-    width: 0
-    height: 0
-  tabIndex: 0
-  tabSubject:
-  - ray
-  - object
-  nImgFrameIDX: 0
-  nMaxImageIndex: 0
-  imagePath: 
-  Center: {x: 0, y: 0, z: 0}
-  DIR: {x: 0, y: 0, z: 0}
-  nUserID: -1
-  imgFileLIst: []
-  background: {fileID: 2074102852}
-  tex: {fileID: 0}
-  datasetImg: {fileID: 0}
-  StatusTxt: {fileID: 1455588100}
-  bTracking: 0
-  fPoseData: []
-  fIMUPose: []
-  mnFrameID: 0
-  mnTouchID: 0
-  mnLastFrameID: 0
-  fit: {fileID: 0}
-  bCam: 0
-  mbSended: 1
-  dialog: {fileID: 0}
-  nDurationSendFrame: 0
-  ts: 0
-  bGrabImage: 0
-  bSendImage: 0
-  mnContentID: 0
-  FloorParam: {x: 0, y: 0, z: 0, w: 0}
-  FloorObject: {fileID: 0}
-  vel: {x: 0, y: 0, z: 0}
-  webCamByteData: []
-  resData: []
-  bDoingTrack: 0
 --- !u!4 &739606614
 Transform:
   m_ObjectHideFlags: 0
@@ -7508,7 +7409,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
+  m_Color: {r: 0, g: 0.046749115, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -7571,7 +7472,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -533.3327, y: 599.9997}
+  m_AnchoredPosition: {x: -533.33276, y: 599.9997}
   m_SizeDelta: {x: -611.1262, y: 400}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1464681432
@@ -8724,7 +8625,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: TEST
+  m_Text: Async Quality TEST
 --- !u!222 &1689733775
 CanvasRenderer:
   m_ObjectHideFlags: 0
