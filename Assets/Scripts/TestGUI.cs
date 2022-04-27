@@ -12,13 +12,9 @@ public class TestGUI : MonoBehaviour
 #if UNITY_EDITOR_WIN
     [DllImport("UnityLibrary")]
     private static extern void SetPath(byte[] name, int len);
-    [DllImport("UnityLibrary")]
-    private static extern void LoadVocabulary();
 #elif UNITY_ANDROID
     [DllImport("edgeslam")]
     private static extern void SetPath(char[] path);
-    [DllImport("edgeslam")]
-    private static extern void LoadVocabulary();
 #endif
 
     public InputField ifUser, ifMap, ifJPEG, ifSkip, ifFeature, ifPyramid, ifKFs, ifKeyword, ifEx;
@@ -50,7 +46,6 @@ public class TestGUI : MonoBehaviour
 #elif (UNITY_ANDROID)
         SetPath(Application.persistentDataPath.ToCharArray());    
 #endif
-        LoadVocabulary();
 
         /////Initialize
         drop.options.Clear();

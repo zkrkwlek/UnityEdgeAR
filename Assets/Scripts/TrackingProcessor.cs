@@ -16,13 +16,20 @@ public class Tracker
     [DllImport("UnityLibrary")]
     private static extern void SetInit(int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4, int nfeature, int nlevel, float fscale, int nskip, int nKFs);
     [DllImport("UnityLibrary")]
+    private static extern void SetUserName(char[] src, int len);
+    [DllImport("UnityLibrary")]
     private static extern void ConnectDevice();
+    [DllImport("UnityLibrary")]
+    private static extern void DisconnectDevice();
 #elif UNITY_ANDROID
     [DllImport("edgeslam")]
     private static extern void SetInit(int w, int h, float fx, float fy, float cx, float cy, float d1, float d2, float d3, float d4, int nfeature, int nlevel, float fscale, int nskip, int nKFs);    
-    
+    [DllImport("edgeslam")]
+    private static extern void SetUserName(char[] src, int len);    
     [DllImport("edgeslam")]
     private static extern void ConnectDevice();
+    [DllImport("edgeslam")]
+    private static extern void DisconnectDevice();
 #endif
 
     static private RawImage background;
@@ -205,9 +212,10 @@ public class Tracker
         SetInit(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, SystemManager.Instance.FocalLengthX, SystemManager.Instance.FocalLengthY, SystemManager.Instance.PrincipalPointX, SystemManager.Instance.PrincipalPointY,
                         SystemManager.Instance.IntrinsicData[6], SystemManager.Instance.IntrinsicData[7], SystemManager.Instance.IntrinsicData[8], SystemManager.Instance.IntrinsicData[9],
                         SystemManager.Instance.AppData.numFeatures,SystemManager.Instance.AppData.numPyramids, 1.2f, SystemManager.Instance.AppData.numSkipFrames, SystemManager.Instance.AppData.numLocalKeyFrames);
+        SetUserName(SystemManager.Instance.User.UserName.ToCharArray(), SystemManager.Instance.User.UserName.Length);
 
         tex = new Texture2D(SystemManager.Instance.ImageWidth, SystemManager.Instance.ImageHeight, TextureFormat.ARGB32, false);//BGRA32
-
+        
         if (SystemManager.Instance.User.UseCamera)
         {
             WebCamDevice[] devices = WebCamTexture.devices;
@@ -258,10 +266,23 @@ public class Tracker
         request.downloadHandler = new DownloadHandlerBuffer();
         UnityWebRequestAsyncOperation res = request.SendWebRequest();
 
-        while (!request.downloadHandler.isDone)
+        string addr3 = SystemManager.Instance.AppData.Address + "/Disconnect?src=" + SystemManager.Instance.User.UserName+"&type=device";
+        UnityWebRequest request3 = new UnityWebRequest(addr3);
+        request3.method = "POST";
+        //UploadHandlerRaw uH3 = new UploadHandlerRaw(bdata3);
+        //uH3.contentType = "application/json";
+        //request3.uploadHandler = uH3;
+        request3.downloadHandler = new DownloadHandlerBuffer();
+        UnityWebRequestAsyncOperation res3 = request3.SendWebRequest();
+
+        while (!request.downloadHandler.isDone)//&& !request3.downloadHandler.isDone
         {
             continue;
         }
+
+        DisconnectDevice();
+        UnityEngine.Object.DestroyImmediate(tex);
+        
     }
 
     public void LoadWebcamTextre()
@@ -297,30 +318,18 @@ public class Tracker
 public class TrackingProcessor : MonoBehaviour
 {
 #if (UNITY_EDITOR_WIN)
+
     [DllImport("UnityLibrary")]
-    private static extern int SetFrame(IntPtr data,int id, double ts);
+    private static extern bool Localization(IntPtr data, int id, double ts, int nQuality, bool bTracking, bool bVisualization);
     [DllImport("UnityLibrary")]
-    private static extern bool GrabImage(IntPtr addr, int id);
-    [DllImport("UnityLibrary")]
-    private static extern bool VisualizeFrame(IntPtr data);
-    [DllImport("UnityLibrary")]
-    private static extern bool Track(IntPtr posePtr);
-    [DllImport("UnityLibrary")]
-    private static extern void TestUploaddata(IntPtr data, int len, int id, char[] keyword, int len1, char[] src, int len2, double ts);
+    private static extern void TestUploaddata(byte[] data, int len, int id, char[] keyword, int len1, char[] src, int len2, double ts);
 #elif UNITY_ANDROID
     [DllImport("edgeslam")]
     private static extern void SetIMUAddress(IntPtr addr, bool bIMU);
     [DllImport("edgeslam")]
-    private static extern bool GrabImage(IntPtr addr, int id);
+    private static extern bool Localization(IntPtr data, int id, double ts, int nQuality, bool bTracking, bool bVisualization);
     [DllImport("edgeslam")]
-    private static extern int SetFrame(IntPtr data, int id, double ts);
-    
-    [DllImport("edgeslam")]
-    private static extern bool Track(IntPtr posePtr);
-    [DllImport("edgeslam")]
-    private static extern bool VisualizeFrame(IntPtr data);
-    [DllImport("edgeslam")]
-    private static extern void TestUploaddata(IntPtr data, int len, int id, char[] keyword, int len1, char[] src, int len2, double ts);
+    private static extern void TestUploaddata(byte[] data, int len, int id, char[] keyword, int len1, char[] src, int len2, double ts);
 #endif
 
     public UnityEngine.UI.Text StatusTxt;
@@ -372,6 +381,8 @@ public class TrackingProcessor : MonoBehaviour
 
         Tracker.Instance.Background = background;
 
+        UnityEngine.Profiling.Profiler.enabled = true;
+
 #if (UNITY_EDITOR_WIN)
 
 #elif (UNITY_ANDROID)
@@ -384,13 +395,13 @@ public class TrackingProcessor : MonoBehaviour
     {
         try
         {
+            var A = DateTime.Now;
             ////자이로 센서 설정
             if (SystemManager.Instance.User.UseGyro)
             {
                 DeltaFrameR = SensorManager.Instance.DeltaRotationMatrix();
                 DeltaR = DeltaR * DeltaFrameR;
             }
-
 
             if (SystemManager.Instance.Start && SystemManager.Instance.Connect)
             {
@@ -420,14 +431,44 @@ public class TrackingProcessor : MonoBehaviour
                 }
 
                 ////텍스쳐 정보 NDK에 올리기
+                Color32[] texData = Tracker.Instance.Texture.GetPixels32();
+                GCHandle texHandle = GCHandle.Alloc(texData, GCHandleType.Pinned);
+                IntPtr texPtr = texHandle.AddrOfPinnedObject();
 
+                if (SystemManager.Instance.User.UseGyro)
+                    DeltaFrameR.Copy(ref fIMUPose, 0);
+                var B = DateTime.Now;
+                TimeSpan time2 = B - A;
+                StatusTxt.text = "\t\t\t\t\t Reference = " + time2.TotalMilliseconds;
+                bool bSuccessTracking = Localization(texPtr, ++mnFrameID, ts, Tracker.Instance.ImageQuality, SystemManager.Instance.User.ModeTracking, SystemManager.Instance.User.bVisualizeFrame);
+                if (SystemManager.Instance.User.ModeTracking)
+                {
+                    var C = DateTime.Now;
+                    TimeSpan time3 = C - B;
+                    StatusTxt.text = StatusTxt.text + "  " + time3.TotalMilliseconds;// + "==" + UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong();
+                }
+                if (SystemManager.Instance.User.bVisualizeFrame)
+                    Tracker.Instance.LoadRawTextureData(texPtr, texData.Length * 4);
+
+                if (bSuccessTracking)
+                {
+                    ResultImage.color = new Color(0.0f, 1.0f, 0.0f, 4.0f);
+                }
+                else
+                {
+                    ResultImage.color = new Color(1.0f, 0.0f, 0.0f, 4.0f);
+                }
+
+                texHandle.Free();
                 ////텍스쳐 정보 NDK에 올리기
 
-                ////send data
-                if (mnFrameID % Tracker.Instance.SkipFrame == 0)
-                {
+                if (mnFrameID % Tracker.Instance.SkipFrame == 0) {
 
                     string src = SystemManager.Instance.User.UserName;
+                    UdpData data = new UdpData("Image", src, mnFrameID, ts);
+                    data.sendedTime = A;
+                        DataQueue.Instance.Add(data);
+                    
                     if (SystemManager.Instance.User.UseGyro)
                     {
                         //StatusTxt.text = DeltaR.m00 + " " + DeltaR.m11+" "+ DeltaR.m22;
@@ -436,7 +477,6 @@ public class TrackingProcessor : MonoBehaviour
                         byte[] bdata = new byte[(fdata.Length) * 4];
                         Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length * 4);
 
-                        
                         UdpData gdata = new UdpData("Gyro", src, mnFrameID, bdata, ts);
                         gdata.sendedTime = DateTime.Now;
 
@@ -445,80 +485,11 @@ public class TrackingProcessor : MonoBehaviour
                         //전송할때까지 다시 자이로 값을 누적함.
                         DeltaR = new Matrix3x3();
                     }
-
-                    ////압축 이미지를 바이트로 변환
-                    UdpData data = new UdpData("Image", src, mnFrameID, Tracker.Instance.Texture.EncodeToJPG(Tracker.Instance.ImageQuality), ts);
-                    data.sendedTime = DateTime.Now;
-                    DataQueue.Instance.Add(data);
-                    //StartCoroutine(sender.SendData(data));
-                    GCHandle imghandle = GCHandle.Alloc(data.data, GCHandleType.Pinned);
-                    IntPtr imgptr = imghandle.AddrOfPinnedObject();
-                    TestUploaddata(imgptr, data.data.Length, mnFrameID, data.keyword.ToCharArray(), data.keyword.Length, src.ToCharArray(), src.Length, ts);
-
-                    //if (SystemManager.Instance.User.ModeMapping)
-                    //{
-                    //    UdpData pdata = new UdpData("ReqSuperPoint", src, mnFrameID, new byte[0], ts);
-                    //    data.sendedTime = DateTime.Now;
-                    //    //DataQueue.Instance.Add(pdata);
-                    //    StartCoroutine(sender.SendData(pdata));
-                    //}
+                    
                 }
-
-                if (SystemManager.Instance.User.ModeTracking)
-                {
-                    //StatusTxt.text = Tracker.Instance.Texture.format.ToString();
-                    Color32[] texData = Tracker.Instance.Texture.GetPixels32();
-                    GCHandle texHandle = GCHandle.Alloc(texData, GCHandleType.Pinned);
-                    IntPtr texPtr = texHandle.AddrOfPinnedObject();
-
-                    DateTime t1 = DateTime.Now;
-                    SetFrame(texPtr, mnFrameID, 0.0);
-                    TimeSpan tframe = DateTime.Now - t1;
-                    SystemManager.Instance.Experiments["Tracking"].Update("Frame", (float)tframe.Milliseconds);
-
-                    if (SystemManager.Instance.User.UseGyro)
-                        DeltaFrameR.Copy(ref fIMUPose, 0);
-
-                    bool bTrack = false;
-                    DateTime t3 = DateTime.Now;
-                    bTrack = Track(posePtr);
-                    TimeSpan ttrack = DateTime.Now - t3;
-                    SystemManager.Instance.Experiments["Tracking"].Update("Tracking", (float)ttrack.Milliseconds);
-
-                    if (bTrack && SystemManager.Instance.User.bSaveTrajectory)
-                    {
-                        byte[] bdata = new byte[Tracker.Instance.PoseData.Length * 4];
-                        Buffer.BlockCopy(Tracker.Instance.PoseData, 0, bdata, 0, bdata.Length);
-
-                        UdpData poseData = new UdpData("DevicePosition", SystemManager.Instance.User.UserName, mnFrameID, bdata, ts);
-                        poseData.sendedTime = DateTime.Now;
-                        //StartCoroutine(sender.SendData(poseData));
-
-                        GCHandle imghandle = GCHandle.Alloc(poseData.data, GCHandleType.Pinned);
-                        IntPtr imgptr = imghandle.AddrOfPinnedObject();
-                        TestUploaddata(imgptr, poseData.data.Length, mnFrameID, poseData.keyword.ToCharArray(), poseData.keyword.Length, SystemManager.Instance.User.UserName.ToCharArray(), SystemManager.Instance.User.UserName.Length, ts);
-                    }
-
-                    if (SystemManager.Instance.User.bVisualizeFrame)
-                    {
-                        DateTime t5 = DateTime.Now;
-                        VisualizeFrame(texPtr);
-                        Tracker.Instance.LoadRawTextureData(texPtr, texData.Length * 4);
-                        TimeSpan tvisual = DateTime.Now - t5;
-                        SystemManager.Instance.Experiments["Tracking"].Update("Visualization", (float)tvisual.Milliseconds);
-                    }
-
-                    if (bTrack)
-                    {
-                        ResultImage.color = new Color(0.0f, 1.0f, 0.0f, 4.0f);
-                    }
-                    else
-                    {
-                        ResultImage.color = new Color(1.0f, 0.0f, 0.0f, 4.0f);
-                    }
-                    texHandle.Free();
-                }
-                ++mnFrameID;
+                //var timeSpan2 = DateTime.Now - A;
+                //StatusTxt.text = "\t\t\t\t\t" + timeSpan2.TotalMilliseconds;
+                return;
             }
         }
         catch (Exception ex)

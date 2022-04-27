@@ -156,7 +156,7 @@ public class SystemManager {
     public class InitConnectData
     {
         public InitConnectData() { }
-        public InitConnectData(string _userID, string _mapName, bool _bMapping, bool _bGyro, bool _bManager, bool _bDeviceTracking,
+        public InitConnectData(string _userID, string _mapName, bool _bMapping, bool _bGyro, bool _bManager, bool _bDeviceTracking, int _skip,
             float _fx, float _fy, float _cx, float _cy,
             float _d1, float _d2, float _d3, float _d4, int _w, int _h)
         {
@@ -183,6 +183,7 @@ public class SystemManager {
             //생성할 키워드
             keyword = "Image,Gyro,Accelerometer,DeviceConnect,DeviceDisconnect,ContentGeneration,DevicePosition,ReqSuperPoint";//,Map,
             src = userID;
+            capacity = 33 / _skip + 1;
         }
         public string type1, type2, keyword, src;
         public string userID, mapName;
@@ -190,6 +191,7 @@ public class SystemManager {
         public float d1, d2, d3, d4;
         public int w, h;
         public bool bMapping, bGyro, bManager, bDeviceTracking;
+        public int capacity;
     }
     /// <summary>
     /// 알림 서버에 내가 받을 키워드를 알림
@@ -214,7 +216,7 @@ public class SystemManager {
     public InitConnectData GetConnectData()
     {
         CameraParams camParam = camParams[userData.numCameraParam];
-        return new InitConnectData(userData.UserName, userData.MapName, userData.ModeMapping, userData.UseGyro, bManagerMode, userData.ModeTracking, camParam.fx, camParam.fy, camParam.cx, camParam.cy, camParam.d1, camParam.d2, camParam.d3, camParam.d4, (int)camParam.w, (int)camParam.h);
+        return new InitConnectData(userData.UserName, userData.MapName, userData.ModeMapping, userData.UseGyro, bManagerMode, userData.ModeTracking, appData.numSkipFrames, camParam.fx, camParam.fy, camParam.cx, camParam.cy, camParam.d1, camParam.d2, camParam.d3, camParam.d4, (int)camParam.w, (int)camParam.h);
     }
 
     private static float[] fdata;
@@ -489,7 +491,7 @@ public class SystemManager {
                 }
                 catch(FileNotFoundException)
                 {
-                    int nTotalCam = 13;
+                    int nTotalCam = 14;
                     camParams = new CameraParams[nTotalCam];
                     int idx = 0;
                     camParams[idx] = new CameraParams();
@@ -689,6 +691,20 @@ public class SystemManager {
                     camParams[idx].h = 480f;
                     idx++;
 
+                    camParams[idx] = new CameraParams();
+                    camParams[idx].name = "WEAN";
+                    camParams[idx].fx = 487.109f;
+                    camParams[idx].fy = 487.109f;
+                    camParams[idx].cx = 320.788f;
+                    camParams[idx].cy = 245.845f;
+                    camParams[idx].d1 = 0.0f;
+                    camParams[idx].d2 = 0.0f;
+                    camParams[idx].d3 = 0.0f;
+                    camParams[idx].d4 = 0.0f;
+                    camParams[idx].d5 = 0.0f;
+                    camParams[idx].w = 640f;
+                    camParams[idx].h = 480f;
+                    idx++;
                     string camJsonStr = JsonHelper.ToJson(camParams, true);
                     File.WriteAllText(Application.persistentDataPath + "/Data/CameraIntrinsics.json", camJsonStr);
                 }

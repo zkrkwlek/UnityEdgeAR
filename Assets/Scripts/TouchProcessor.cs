@@ -1,11 +1,23 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Networking;
 
 public class TouchProcessor : MonoBehaviour
 {
+#if (UNITY_EDITOR_WIN)
+    [DllImport("UnityLibrary")]
+    private static extern void TestUploaddata(byte[] data, int len, int id, char[] keyword, int len1, char[] src, int len2, double ts);
+    [DllImport("UnityLibrary")]
+    private static extern void TouchProcessInit(int id, float x, float y, double ts);
+#elif UNITY_ANDROID
+    [DllImport("edgeslam")]
+    private static extern void TouchProcessInit(int id, float x, float y, double ts);
+    [DllImport("edgeslam")]
+    private static extern void TestUploaddata(byte[] data, int len, int id, char[] keyword, int len1, char[] src, int len2, double ts);
+#endif
     // Start is called before the first frame update
     void Start()
     {
@@ -55,9 +67,10 @@ public class TouchProcessor : MonoBehaviour
                 fdata[0] = (touchPos.x - width) / scale;
                 fdata[1] = (height - touchPos.y) / scale;
                 fdata[2] = 1.0f;
+                TouchProcessInit(mnTouchID, fdata[0], fdata[1], timeSpan.TotalMilliseconds);
 
+                ////임시 사용
                 float[] fPoseData = Tracker.Instance.PoseData;
-
                 byte[] bdata = new byte[(fPoseData.Length + fdata.Length) * 4];
                 Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length * 4);
                 Buffer.BlockCopy(fPoseData, 0, bdata, fdata.Length * 4, fPoseData.Length * 4);
@@ -65,8 +78,10 @@ public class TouchProcessor : MonoBehaviour
                 UdpData data = new UdpData("ContentGeneration", SystemManager.Instance.User.UserName, mnTouchID, bdata, timeSpan.TotalMilliseconds);
                 data.sendedTime = DateTime.Now;
                 DataQueue.Instance.Add(data);
-                //DataQueue.Instance.SendingQueue.Enqueue(data);
-                StartCoroutine(sender.SendData(data));
+                ////임시 사용
+                //string keyword = "ContentGeneration";
+                ////TestUploaddata(bdata, bdata.Length, mnTouchID, keyword.ToCharArray(), keyword.Length, SystemManager.Instance.User.UserName.ToCharArray(), SystemManager.Instance.User.UserName.Length, 0.0);
+                //StartCoroutine(sender.SendData(data));
             }
             ////touch 
         }
