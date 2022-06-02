@@ -34,7 +34,8 @@ public class SystemManager {
         public int numDatasetFileName;
         public string UserName;
         public string MapName;
-        public string Keywords;
+        public string SendKeywords;
+        public string ReceiveKeywords;
         public string Experiments;
         public bool ModeMapping;
         public bool ModeTracking;
@@ -156,7 +157,7 @@ public class SystemManager {
     public class InitConnectData
     {
         public InitConnectData() { }
-        public InitConnectData(string _userID, string _mapName, bool _bMapping, bool _bGyro, bool _bManager, bool _bDeviceTracking, int _skip,
+        public InitConnectData(string _userID, string _mapName, string _sendkeyword, bool _bMapping, bool _bGyro, bool _bManager, bool _bDeviceTracking, int _skip,
             float _fx, float _fy, float _cx, float _cy,
             float _d1, float _d2, float _d3, float _d4, int _w, int _h)
         {
@@ -181,7 +182,7 @@ public class SystemManager {
             type1 = "device";
             type2 = "NONE";
             //생성할 키워드
-            keyword = "Image,Gyro,Accelerometer,DeviceConnect,DeviceDisconnect,ContentGeneration,DevicePosition,ReqSuperPoint";//,Map,
+            keyword = _sendkeyword;//,Map,
             src = userID;
             capacity = 33 / _skip + 1;
         }
@@ -216,7 +217,7 @@ public class SystemManager {
     public InitConnectData GetConnectData()
     {
         CameraParams camParam = camParams[userData.numCameraParam];
-        return new InitConnectData(userData.UserName, userData.MapName, userData.ModeMapping, userData.UseGyro, bManagerMode, userData.ModeTracking, appData.numSkipFrames, camParam.fx, camParam.fy, camParam.cx, camParam.cy, camParam.d1, camParam.d2, camParam.d3, camParam.d4, (int)camParam.w, (int)camParam.h);
+        return new InitConnectData(userData.UserName, userData.MapName, userData.SendKeywords, userData.ModeMapping, userData.UseGyro, bManagerMode, userData.ModeTracking, appData.numSkipFrames, camParam.fx, camParam.fy, camParam.cx, camParam.cy, camParam.d1, camParam.d2, camParam.d3, camParam.d4, (int)camParam.w, (int)camParam.h);
     }
 
     private static float[] fdata;
@@ -763,7 +764,8 @@ public class SystemManager {
                     userData.numDatasetFileName = 0;
                     userData.UserName = "zkrkwlek";
                     userData.MapName = "TestMap";
-                    userData.Keywords = "ReferenceFrame,single,Content,all";
+                    userData.SendKeywords = "Image,Gyro,Accelerometer,DeviceConnect,DeviceDisconnect,DevicePosition,ContentGeneration,VO.SELECTION";
+                    userData.ReceiveKeywords = "ReferenceFrame,single,ObjectDetection,single,PlaneLine,single,LocalContent,single";
                     userData.Experiments = "ReferenceFrame,Tracking,Content,ObjectDetection,Segmentation";
                     userData.ModeAsyncQualityTest = false;
                     File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(userData));

@@ -17,7 +17,7 @@ public class TestGUI : MonoBehaviour
     private static extern void SetPath(char[] path);
 #endif
 
-    public InputField ifUser, ifMap, ifJPEG, ifSkip, ifFeature, ifPyramid, ifKFs, ifKeyword, ifEx;
+    public InputField ifUser, ifMap, ifJPEG, ifSkip, ifFeature, ifPyramid, ifKFs, ifSKeyword, ifRKeyword, ifEx;
 
     public RawImage ResultImage;
     public Dropdown drop;
@@ -98,9 +98,13 @@ public class TestGUI : MonoBehaviour
         ifMap.onValueChanged.AddListener(delegate {
             SystemManager.Instance.User.MapName = ifMap.text;
         });
-        ifKeyword.text = SystemManager.Instance.User.Keywords;
-        ifKeyword.onValueChanged.AddListener(delegate {
-            SystemManager.Instance.User.Keywords = ifKeyword.text;
+        ifSKeyword.text = SystemManager.Instance.User.SendKeywords;
+        ifSKeyword.onValueChanged.AddListener(delegate {
+            SystemManager.Instance.User.SendKeywords = ifSKeyword.text;
+        });
+        ifRKeyword.text = SystemManager.Instance.User.ReceiveKeywords;
+        ifRKeyword.onValueChanged.AddListener(delegate {
+            SystemManager.Instance.User.ReceiveKeywords = ifRKeyword.text;
         });
         ifEx.text = SystemManager.Instance.User.Experiments;
         ifEx.onEndEdit.AddListener(delegate {
@@ -221,7 +225,7 @@ public class TestGUI : MonoBehaviour
                 //UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "MappingResult", "connect", "single");
                 //UdpAsyncHandler.Instance.Send(SystemManager.Instance.UserName, "LocalMap", "connect", "single");
 
-                string[] keywords = SystemManager.Instance.User.Keywords.Split(',');
+                string[] keywords = SystemManager.Instance.User.ReceiveKeywords.Split(',');
 
                 for(int i = 0; i < keywords.Length; i += 2)
                 {
@@ -244,7 +248,7 @@ public class TestGUI : MonoBehaviour
                 //UdpAsyncHandler.Instance.Send(SystemManager.Instance.User.UserName, "ReferenceFrame", "disconnect", "single");
                 //UdpAsyncHandler.Instance.Send(SystemManager.Instance.User.UserName, "ObjectDetection", "disconnect", "single");
                 //UdpAsyncHandler.Instance.Send(SystemManager.Instance.User.UserName, "Content", "disconnect", "all");
-                string[] keywords = SystemManager.Instance.User.Keywords.Split(',');
+                string[] keywords = SystemManager.Instance.User.ReceiveKeywords.Split(',');
 
                 for (int i = 0; i < keywords.Length; i += 2)
                 {
