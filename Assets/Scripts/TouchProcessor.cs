@@ -11,10 +11,10 @@ public class TouchProcessor : MonoBehaviour
     [DllImport("UnityLibrary")]
     private static extern void TestUploaddata(byte[] data, int len, int id, char[] keyword, int len1, char[] src, int len2, double ts);
     [DllImport("UnityLibrary")]
-    private static extern void TouchProcessInit(int id, float x, float y, double ts);
+    private static extern void TouchProcessInit(int id, int phase, float x, float y, double ts);
 #elif UNITY_ANDROID
     [DllImport("edgeslam")]
-    private static extern void TouchProcessInit(int id, float x, float y, double ts);
+    private static extern void TouchProcessInit(int id, int phase, float x, float y, double ts);
     [DllImport("edgeslam")]
     private static extern void TestUploaddata(byte[] data, int len, int id, char[] keyword, int len1, char[] src, int len2, double ts);
 #endif
@@ -32,7 +32,7 @@ public class TouchProcessor : MonoBehaviour
             ////touch 
             bool bTouch = false;
             Vector2 touchPos = Vector2.zero;
-
+            int phase = -1; //0 == begin, 1 = move, 2 = ended
 #if UNITY_EDITOR_WIN
 
 #elif UNITY_ANDROID
@@ -41,16 +41,19 @@ public class TouchProcessor : MonoBehaviour
             {
                 touchPos = touch.position;
                 bTouch = true;
+                phase = 0;
             }
             else if (touch.phase == TouchPhase.Moved)
             {
                 touchPos = touch.position;
                 bTouch = true;
+                phase = 1;
             }
             else if (touch.phase == TouchPhase.Ended)
             {
                 touchPos = touch.position;
                 bTouch = true;
+                phase = 2;
             }
 #endif
 
@@ -64,10 +67,11 @@ public class TouchProcessor : MonoBehaviour
                 float scale = Tracker.Instance.Scale;
                 float width = Tracker.Instance.Diff.x;
                 float height = Tracker.Instance.Diff.y;
+                //기기 디스플레이 좌표계에서 이미지 좌표계로 변환
                 fdata[0] = (touchPos.x - width) / scale;
                 fdata[1] = (height - touchPos.y) / scale;
                 fdata[2] = 1.0f;
-                TouchProcessInit(mnTouchID, fdata[0], fdata[1], timeSpan.TotalMilliseconds);
+                TouchProcessInit(mnTouchID, phase, fdata[0], fdata[1], timeSpan.TotalMilliseconds);
 
                 ////임시 사용
                 float[] fPoseData = Tracker.Instance.PoseData;
