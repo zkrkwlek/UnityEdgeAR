@@ -320,14 +320,14 @@ public class TrackingProcessor : MonoBehaviour
 #if (UNITY_EDITOR_WIN)
 
     [DllImport("UnityLibrary")]
-    private static extern bool Localization(IntPtr data, int id, double ts, int nQuality, bool bTracking, bool bVisualization);
+    private static extern bool Localization(IntPtr texdata, IntPtr posedata, int id, double ts, int nQuality, bool bTracking, bool bVisualization);
     [DllImport("UnityLibrary")]
     private static extern void TestUploaddata(byte[] data, int len, int id, char[] keyword, int len1, char[] src, int len2, double ts);
 #elif UNITY_ANDROID
     [DllImport("edgeslam")]
     private static extern void SetIMUAddress(IntPtr addr, bool bIMU);
     [DllImport("edgeslam")]
-    private static extern bool Localization(IntPtr data, int id, double ts, int nQuality, bool bTracking, bool bVisualization);
+    private static extern bool Localization(IntPtr texdata, IntPtr posedata, int id, double ts, int nQuality, bool bTracking, bool bVisualization);
     [DllImport("edgeslam")]
     private static extern void TestUploaddata(byte[] data, int len, int id, char[] keyword, int len1, char[] src, int len2, double ts);
 #endif
@@ -335,9 +335,7 @@ public class TrackingProcessor : MonoBehaviour
     public UnityEngine.UI.Text StatusTxt;
     public RawImage ResultImage;
     public RawImage background;
-    GCHandle texHandle;
-    IntPtr texPtr;
-    
+            
     GCHandle poseHandle;
     IntPtr posePtr;
 
@@ -439,19 +437,46 @@ public class TrackingProcessor : MonoBehaviour
                     DeltaFrameR.Copy(ref fIMUPose, 0);
                 var B = DateTime.Now;
                 TimeSpan time2 = B - A;
-                StatusTxt.text = "\t\t\t\t\t Reference = " + time2.TotalMilliseconds;
-                bool bSuccessTracking = Localization(texPtr, ++mnFrameID, ts, Tracker.Instance.ImageQuality, SystemManager.Instance.User.ModeTracking, SystemManager.Instance.User.bVisualizeFrame);
-                if (SystemManager.Instance.User.ModeTracking)
-                {
-                    var C = DateTime.Now;
-                    TimeSpan time3 = C - B;
-                    StatusTxt.text = StatusTxt.text + "  " + time3.TotalMilliseconds;// + "==" + UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong();
-                }
+                //StatusTxt.text = "\t\t\t\t\t Reference = " + time2.TotalMilliseconds;
+                bool bSuccessTracking = Localization(texPtr, posePtr, ++mnFrameID, ts, Tracker.Instance.ImageQuality, SystemManager.Instance.User.ModeTracking, SystemManager.Instance.User.bVisualizeFrame);
+                //if (SystemManager.Instance.User.ModeTracking)
+                //{
+                //    var C = DateTime.Now;
+                //    TimeSpan time3 = C - B;
+                //    //StatusTxt.text = StatusTxt.text + "  " + time3.TotalMilliseconds;// + "==" + UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong();
+                //}
                 if (SystemManager.Instance.User.bVisualizeFrame)
                     Tracker.Instance.LoadRawTextureData(texPtr, texData.Length * 4);
-
+                
                 if (bSuccessTracking)
                 {
+                    //////포즈 정보 획득 후 카메라 위치 변경
+                    //{
+                    //    var pdata = Tracker.Instance.PoseData;
+                    //    Matrix3x3 R = new Matrix3x3(pdata[0], pdata[1], pdata[2], pdata[3], pdata[4], pdata[5], pdata[6], pdata[7], pdata[8]);
+                    //    var mAxis = R.LOG(); mAxis.y = -mAxis.y;
+                    //    float mAngle = mAxis.magnitude * Mathf.Rad2Deg;
+                    //    mAxis = mAxis.normalized;
+                    //    Quaternion rotation = Quaternion.AngleAxis(mAngle, mAxis);
+                    //    var Center = new Vector3(pdata[9], -pdata[10], pdata[11]);
+                    //    //var Center = -(R.Transpose() * t);
+                    //    ////이스크립터는 엣지 슬램 오브젝트와 연결되어 있음.
+
+                    //    //gameObject.transform.forward = R.row3;
+                    //    //gameObject.transform.position = Center;
+                    //    gameObject.transform.rotation = rotation;
+                    //    gameObject.transform.position = Center;
+
+                    //    ////업데이트 카메라 포즈
+                    //    //Vector3 mAxis = R.LOG();
+                    //    //var DIR = mAxis;
+                    //    //float mAngle = mAxis.magnitude * Mathf.Rad2Deg;
+                    //    //mAxis = mAxis.normalized;
+                    //    //Quaternion rotation = Quaternion.AngleAxis(mAngle, mAxis);
+                    //    //Quaternion q = Matrix3x3.RotToQuar(R);
+                    //    //StatusTxt.text = "\t\t\t\t\t Camera Center = " + Center.x+" "+Center.y+" "+Center.z+q.ToString();
+                    //}
+                    //Camera.main.transform.rotation = 
                     ResultImage.color = new Color(0.0f, 1.0f, 0.0f, 4.0f);
                 }
                 else
