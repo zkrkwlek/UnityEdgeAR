@@ -307,7 +307,7 @@ public class TestGUI : MonoBehaviour
         Tracker.Instance.Diff = new Vector2(diff, Height);
 
         RectTransform rt0 = ResultImage.GetComponent<RectTransform>();
-        rt0.anchoredPosition = new Vector3(-Width/2f+25f,Height/2f-25f,0f);
+        rt0.anchoredPosition = new Vector3(-Width/2f-25f,Height/2f-25f,0f);
         ResultImage.color = new Color(0f, 1.0f, 0f, 0.3f);
 
         RectTransform rtBtn1 = btnConnect.GetComponent<RectTransform>();
