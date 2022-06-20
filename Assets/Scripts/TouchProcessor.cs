@@ -74,14 +74,14 @@ public class TouchProcessor : MonoBehaviour
                 TouchProcessInit(mnTouchID, phase, fdata[0], fdata[1], timeSpan.TotalMilliseconds);
 
                 ////임시 사용
-                float[] fPoseData = Tracker.Instance.PoseData;
-                byte[] bdata = new byte[(fPoseData.Length + fdata.Length) * 4];
-                Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length * 4);
-                Buffer.BlockCopy(fPoseData, 0, bdata, fdata.Length * 4, fPoseData.Length * 4);
+                //float[] fPoseData = Tracker.Instance.PoseData;
+                //byte[] bdata = new byte[(fPoseData.Length + fdata.Length) * 4];
+                //Buffer.BlockCopy(fdata, 0, bdata, 0, fdata.Length * 4);
+                //Buffer.BlockCopy(fPoseData, 0, bdata, fdata.Length * 4, fPoseData.Length * 4);
+                //UdpData data = new UdpData("ContentGeneration", SystemManager.Instance.User.UserName, mnTouchID, bdata, timeSpan.TotalMilliseconds);
+                //data.sendedTime = DateTime.Now;
+                //DataQueue.Instance.Add(data);
 
-                UdpData data = new UdpData("ContentGeneration", SystemManager.Instance.User.UserName, mnTouchID, bdata, timeSpan.TotalMilliseconds);
-                data.sendedTime = DateTime.Now;
-                DataQueue.Instance.Add(data);
                 ////임시 사용
                 //string keyword = "ContentGeneration";
                 ////TestUploaddata(bdata, bdata.Length, mnTouchID, keyword.ToCharArray(), keyword.Length, SystemManager.Instance.User.UserName.ToCharArray(), SystemManager.Instance.User.UserName.Length, 0.0);

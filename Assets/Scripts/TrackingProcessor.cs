@@ -452,20 +452,20 @@ public class TrackingProcessor : MonoBehaviour
                 {
                     //////포즈 정보 획득 후 카메라 위치 변경
                     //{
-                    //    var pdata = Tracker.Instance.PoseData;
-                    //    Matrix3x3 R = new Matrix3x3(pdata[0], pdata[1], pdata[2], pdata[3], pdata[4], pdata[5], pdata[6], pdata[7], pdata[8]);
-                    //    var mAxis = R.LOG(); mAxis.y = -mAxis.y;
-                    //    float mAngle = mAxis.magnitude * Mathf.Rad2Deg;
-                    //    mAxis = mAxis.normalized;
-                    //    Quaternion rotation = Quaternion.AngleAxis(mAngle, mAxis);
-                    //    var Center = new Vector3(pdata[9], -pdata[10], pdata[11]);
-                    //    //var Center = -(R.Transpose() * t);
-                    //    ////이스크립터는 엣지 슬램 오브젝트와 연결되어 있음.
+                    var pdata = Tracker.Instance.PoseData;
+                    Matrix3x3 R = new Matrix3x3(pdata[0], pdata[1], pdata[2], pdata[3], pdata[4], pdata[5], pdata[6], pdata[7], pdata[8]);
+                    var mAxis = R.LOG(); mAxis.y = -mAxis.y;
+                    float mAngle = mAxis.magnitude * Mathf.Rad2Deg;
+                    mAxis = mAxis.normalized;
+                    Quaternion rotation = Quaternion.AngleAxis(mAngle, mAxis);
+                    var Center = new Vector3(pdata[9], -pdata[10], pdata[11]);
+                    //var Center = -(R.Transpose() * t);
+                    ////이스크립터는 엣지 슬램 오브젝트와 연결되어 있음.
 
-                    //    //gameObject.transform.forward = R.row3;
-                    //    //gameObject.transform.position = Center;
-                    //    gameObject.transform.rotation = rotation;
-                    //    gameObject.transform.position = Center;
+                    //gameObject.transform.forward = R.row3;
+                    //gameObject.transform.position = Center;
+                    gameObject.transform.rotation = rotation;
+                    gameObject.transform.position = Center;
 
                     //    ////업데이트 카메라 포즈
                     //    //Vector3 mAxis = R.LOG();
