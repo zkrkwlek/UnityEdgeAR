@@ -484,10 +484,16 @@ public class SystemManager {
 
                 sTime = new DateTime(2022, 1, 1, 0, 0, 0);
 
+                var dirPath = Application.persistentDataPath + "/data";
+                if (!Directory.Exists(dirPath))
+                {
+                    Directory.CreateDirectory(dirPath);
+                }
+
                 try
                 {
                     Debug.Log(Application.persistentDataPath);
-                    string strIntrinsics = File.ReadAllText(Application.persistentDataPath + "/Data/CameraIntrinsics.json");
+                    string strIntrinsics = File.ReadAllText(dirPath + "/CameraIntrinsics.json");
                     camParams = JsonHelper.FromJson<CameraParams>(strIntrinsics);
                 }
                 catch(FileNotFoundException)
@@ -707,9 +713,13 @@ public class SystemManager {
                     camParams[idx].h = 480f;
                     idx++;
                     string camJsonStr = JsonHelper.ToJson(camParams, true);
-                    File.WriteAllText(Application.persistentDataPath + "/Data/CameraIntrinsics.json", camJsonStr);
+                    File.WriteAllText(dirPath + "/CameraIntrinsics.json", camJsonStr);
                 }
 
+                if (!Directory.Exists(Application.persistentDataPath + "/File"))
+                {
+                    Directory.CreateDirectory(Application.persistentDataPath + "/File");
+                }
                 string[] dirs = System.IO.Directory.GetDirectories(Application.persistentDataPath + "/File", "*rgb*", SearchOption.AllDirectories);
                 datalists = new string[dirs.Length];
                 mapnamelist = new string[dirs.Length];
@@ -725,7 +735,7 @@ public class SystemManager {
 
                 try
                 {
-                    filelists = File.ReadAllLines(Application.persistentDataPath + "/Data/FileLists.json");
+                    filelists = File.ReadAllLines(dirPath + "/FileLists.json");
                 }
                 catch (FileNotFoundException)
                 {
@@ -741,12 +751,12 @@ public class SystemManager {
                     filelists[nIdx++] = "test/scene6.txt";
                     filelists[nIdx++] = "test/scene7.txt";
                     filelists[nIdx++] = "test/scene8.txt";
-                    File.WriteAllLines(Application.persistentDataPath + "/Data/FileLists.json", filelists);
+                    File.WriteAllLines(dirPath + "/FileLists.json", filelists);
                 }
 
                 try
                 {
-                    string strAddData = File.ReadAllText(Application.persistentDataPath + "/Data/UserData.json");
+                    string strAddData = File.ReadAllText(dirPath + "/UserData.json");
                     userData = JsonUtility.FromJson<UserData>(strAddData);
                     
                     //////
@@ -768,12 +778,13 @@ public class SystemManager {
                     userData.ReceiveKeywords = "ReferenceFrame,single,ObjectDetection,single,PlaneLine,single,LocalContent,single";
                     userData.Experiments = "ReferenceFrame,Tracking,Content,ObjectDetection,Segmentation";
                     userData.ModeAsyncQualityTest = false;
-                    File.WriteAllText(Application.persistentDataPath + "/Data/UserData.json", JsonUtility.ToJson(userData));
+                    userData.UseCamera = true;
+                    File.WriteAllText(dirPath + "/UserData.json", JsonUtility.ToJson(userData));
                 }
 
                 try
                 {
-                    string strAddData = File.ReadAllText(Application.persistentDataPath + "/Data/AppData.json");
+                    string strAddData = File.ReadAllText(dirPath + "/AppData.json");
                     appData = JsonUtility.FromJson<ApplicationData>(strAddData);
                     
                 }
@@ -790,7 +801,7 @@ public class SystemManager {
                     appData.numFeatures = 800;
                     appData.numLocalMapPoints = 600;
                     appData.numLocalKeyFrames = 50;
-                    File.WriteAllText(Application.persistentDataPath + "/Data/AppData.json", JsonUtility.ToJson(appData));
+                    File.WriteAllText(dirPath + "/AppData.json", JsonUtility.ToJson(appData));
                 }
                 
                 //try
