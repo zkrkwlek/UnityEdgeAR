@@ -37,6 +37,7 @@ public class UDPProcessor
 
 public class UDPController : MonoBehaviour
 {
+
 #if UNITY_EDITOR_WIN
     [DllImport("UnityLibrary")]
     private static extern void TestDownloaddata(int id, char[] keyword, int len1, char[] src, int len2, bool bTracking);
@@ -44,7 +45,7 @@ public class UDPController : MonoBehaviour
     [DllImport("edgeslam")]
     private static extern void TestDownloaddata(int id, char[] keyword, int len1, char[] src, int len2, bool bTracking);
 #endif
-
+    public PlaneManager mPlaneManager;
     public RawImage ResultImage;
     public UnityEngine.UI.Text StatusTxt;
     // Start is called before the first frame update

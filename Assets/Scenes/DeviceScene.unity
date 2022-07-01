@@ -3687,6 +3687,7 @@ GameObject:
   - component: {fileID: 739606615}
   - component: {fileID: 739606612}
   - component: {fileID: 739606618}
+  - component: {fileID: 739606613}
   m_Layer: 0
   m_Name: EdgeSLAM
   m_TagString: Untagged
@@ -3704,6 +3705,18 @@ MonoBehaviour:
   m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 03e5ea8b3a012e14e8269357271de67f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &739606613
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 739606611}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a96a9c2a2611384e96ee2e061924d34, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!4 &739606614
@@ -3788,6 +3801,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56060d98ae665f0418c96f96224d4c6f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  mPlaneManager: {fileID: 739606613}
   ResultImage: {fileID: 1709135244}
   StatusTxt: {fileID: 1455588100}
 --- !u!114 &739606618
@@ -12094,7 +12108,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_AspectMode: 3
-  m_AspectRatio: 1.33333
+  m_AspectRatio: 1.7777778
 --- !u!114 &2074102852
 MonoBehaviour:
   m_ObjectHideFlags: 0
