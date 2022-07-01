@@ -9,6 +9,7 @@ Temp
 Assets/Plugins
 Assets/Resources
 Assets/Contents
+*.asset
 
 *.overrideController
 *.overrideController.meta
